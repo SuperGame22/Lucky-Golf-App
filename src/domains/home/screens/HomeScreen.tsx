@@ -3,7 +3,7 @@
  */
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/components/contexts/AuthContext';
 import { getRecentTransactions } from '@/services/cloverService';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
@@ -17,119 +17,4 @@ import {
 import { Button } from '@/components/ui/button';
 
 const quickActions = [
-  { icon: Trophy, label: 'Scorecard', path: '/play/scorecard', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
-  { icon: Target, label: 'Rangefinder', path: '/play/rangefinder', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
-  { icon: Gift, label: 'Lucky Spin', path: '/earn/spin', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
-  { icon: ShoppingBag, label: 'Shop', path: '/earn/shop', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
-];
-
-export default function HomeScreen() {
-  const { profile, user } = useAuth();
-  const navigate = useNavigate();
-
-  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Golfer';
-  const clovers = profile?.clovers ?? 0;
-  const totalClovers = profile?.total_clovers ?? 0;
-  const handicap = profile?.handicap_index ?? 0;
-  const luckyLevel = profile?.lucky_level ?? 1;
-  const goldBalance = (profile as any)?.gold_balance ?? 0;
-
-  const [activity, setActivity] = useState<any[]>([]);
-  useEffect(() => {
-    getRecentTransactions(5).then(setActivity);
-  }, []);
-
-  return (
-    <AppLayout>
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Welcome */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-display font-bold">Welcome, {displayName}</h1>
-            <p className="text-muted-foreground text-sm">
-              {handicap > 0 ? `HCP ${handicap} Â· ` : ''}Level {luckyLevel}
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Clover Balance */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden glass-card p-5 glow-green">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="flex-shrink-0">
-              <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
-              <div className="flex items-center gap-4">
-                <CloverIcon className="w-12 h-14 text-primary animate-float" />
-                <span className="text-7xl font-display font-black text-gradient-green">{clovers}</span>
-              </div>
-              {totalClovers > clovers && (
-                <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>{totalClovers} lifetime earned</span>
-                </div>
-              )}
-              {clovers === 0 && totalClovers === 0 && (
-                <p className="text-xs text-muted-foreground mt-3">Play rounds and shop to earn clovers</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2 flex-1 max-w-[140px]">
-              <Link to="/earn/raffle" className="block">
-                <motion.div whileHover={{ scale: 1.02 }}
-                  className="bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 transition-colors hover:bg-accent/20">
-                  <div className="flex items-center gap-1.5">
-                    <Trophy className="w-3.5 h-3.5 text-accent" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Weekly Raffle</span>
-                  </div>
-                  <p className="text-sm font-bold text-accent mt-0.5">Enter Now</p>
-                </motion.div>
-              </Link>
-              <Link to="/play/start" className="block">
-                <motion.div whileHover={{ scale: 1.02 }}
-                  className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors hover:bg-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs text-foreground">Start Round</span>
-                    </div>
-                    <Play className="w-3 h-3 text-primary" />
-                  </div>
-                </motion.div>
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-3">
-          {quickActions.map((action, index) => (
-            <motion.div key={action.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + index * 0.05 }}>
-              <Link to={action.path}
-                className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-300 relative ${action.color}`}>
-                <action.icon className="w-8 h-8" />
-                <span className="text-xs font-medium">{action.label}</span>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Wagers CTA */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="glass-card p-5 cursor-pointer hover:border-primary/50 transition-colors"
-        onCheck={{() => navigate('/play/wagers')}>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-MLÌŒ›^][\ËXÙ[\ˆ\ÝYžKXÙ[\ˆ‚ˆÜ\šÛ\ÈÛ\ÜÓ˜[YOHËMˆMˆ^^Y[ÝËMLˆÏ‚ˆÙ]‚ˆ]ˆÛ\ÜÓ˜[YOH™›^LH‚ˆÛ\ÜÓ˜[YOH™›ÛY\Ü^H›ÛX›Û“XÚÞHØYÙ\œÏÜ‚ˆÛ\ÜÓ˜[YOH^^È^[]]YY›Ü™YÜ›Ý[™Ú[[™ÙH[Ý\ˆœšY[™È[ˆ™X[][YOÜ‚ˆÙ]‚ˆ]ÛˆÚ^™OHœÛH”^OÐ]Û‚ˆÙ]‚ˆÛ[Ý[Û‹™]‚‚ˆËÊˆXÝ]š]H8 %œ›ÛHÝ\X˜\ÙH˜[œØXÝ[ÛœÈ
-‹ßBˆ[Ý[Û‹™]ˆ[š]X[^ÞÈÜXÚ]NˆNˆŒ_H[š[X]O^ÞÈÜXÚ]NˆKNˆ_H˜[œÚ][Û^ÞÈ[^Nˆ_BˆÛ\ÜÓ˜[YOH™Û\ÜËXØ\™MH‚ˆÈÛ\ÜÓ˜[YOH™›ÛY\Ü^H›Û\Ù[ZX›Û^[ÈX‹LÈXÝ]š]OÚÏ‚ˆØXÝ]š]K›[™ÝOOHÈ
-ˆ]ˆÛ\ÜÓ˜[YOH^XÙ[\ˆKMˆ‚ˆ\™Ù]Û\ÜÓ˜[YOHËNN^[]]YY›Ü™YÜ›Ý[™Í^X]]ÈX‹LˆˆÏ‚ˆÛ\ÜÓ˜[YOH^\ÛH^[]]YY›Ü™YÜ›Ý[™“›È™XÙ[XÝ]š]OÜ‚ˆÛ\ÜÓ˜[YOH^^È^[]]YY›Ü™YÜ›Ý[™ÍŒ]LH”^HH›Ý[™ÜˆÜ[ˆHÚY[ÈÙ]Ý\YÜ‚ˆÙ]‚ˆ
-Hˆ
-ˆ]ˆÛ\ÜÓ˜[YOHœÜXÙK^KLÈ‚ˆØXÝ]š]K›X\
-
-Žˆ[žKNˆ[X™\ŠHOˆ
-ˆ]ˆÙ^O^Ý‹šY_HÛ\ÜÓ˜[YOH™›^][\ËXÙ[\ˆ\ÝYžKX™]ÙY[ˆLˆ›Ý[™Y[ÈÝ™\Ž˜™Ë[]]YÍL˜[œÚ][Û‹XÛÛÜœÈ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^][\ËXÙ[\ˆØ\LÈ‚ˆ]ˆÛ\ÜÓ˜[YOHËNN™Ë\š[X\žKÌL›Ý[™YY[›^][\ËXÙ[\ˆ‚ˆÝ‹\HOOH	ÝÚ[›š[™ÜÉÈÈ›ÜHÛ\ÜÓ˜[YOHËMM^\š[X\žHˆÏˆˆ\™Ù]Û\ÜÓ˜[YOHËMM^\š[X\žHˆÏŸBˆÙ]‚ˆ]‚ˆÛ\ÜÓ˜[YOH^\ÛH›Û[YY][HžÝ‹™\ØÜš\[Ûˆ‹\_OÜ‚ˆÛ\ÜÓ˜[YOH^^È^[]]YY›Ü™YÜ›Ý[™žÛ™]È]J‹˜Ü™X]YØ]
-KÓØØ[Q]TÝš[™Ê
-_OÜ‚ˆÙ]‚ˆÙ]‚ˆÜ[ˆÛ\ÜÓ˜[YO^Ø^\ÛH›ÛX›Û	Ý‹˜[[Ý[ˆÈ	Ý^YÜ™Y[‹M	Èˆ	Ý^\™YM	ßXO‚ˆÝ‹˜[[Ý[ˆÈ	ÊÉÈˆ	Éß^Ý‹˜[[Ý[BˆÜÜ[‚ˆÙ]‚ˆ
-J_BˆÙ]‚ˆ
-_BˆÛ[Ý[Û‹™]‚ˆÙ]‚ˆÐ\^[Ý]‚ˆ
-NÂŸB
+  z–6öã¢G&÷‡’ÂÆ&VÃ¢u66÷&V6&BrÂFƒ¢r÷Æ’÷66÷&V6&BrÂ6öÆ÷#¢v&r×&–Ö'’óƒFW‡B×&–Ö'’Öf÷&Vw&÷VæB†÷fW#¦&r×&–Ö'’ó“rÒÀ¢²–6öã¢F&vWBÂÆ&VÃ¢u&ævVf–æFW"rÂFƒ¢r÷Æ’÷&ævVf–æFW"rÂ6öÆ÷#¢v&r×&–Ö'’óƒFW‡B×&–Ö'’Öf÷&Vw&÷VæB†÷fW#¦&r×&–Ö'’ó“rÒÀ¢²–6öã¢v–gBÂÆ&VÃ¢tÇV6·’7–ârÂFƒ¢röV&â÷7–ârÂ6öÆ÷#¢v&r×&–Ö'’óƒFW‡B×&–Ö'’Öf÷&Vw&÷VæB†÷fW#¦&r×&–Ö'’ó“rÒÀ¢²–6öã¢6†÷–æt&rÂÆ&VÃ¢u6†÷rÂFƒ¢röV&â÷6†÷rÂ6öÆ÷#¢v&r×&–Ö'’óƒFW‡B×&–Ö'’Öf÷&Vw&÷VæB†÷fW#¦&r×&–Ö'’ó“rÒÀ¥Ó° ¦W‡÷'BFVfVÇBgVæ7F–öâ†öÖU67&VVâ‚’°¢6öç7B²&öf–ÆRÂW6W"ÒÒW6TWF‚‚“°¢6öç7Bæf–vFRÒW6Tæf–vFR‚“° ¢6öç7BF—7Æ”æÖRÒ&öf–ÆSòæF—7Æ•öæÖRÇÂW6W#òæVÖ–Ãòç7Æ—B‚tr•³ÒÇÂtvöÆfW"s°¢6öç7B6Æ÷fW'2Ò&öf–ÆSòæ6Æ÷fW'2óò°¢6öç7BF÷FÄ6Æ÷fW'2Ò&öf–ÆSòçF÷FÅö6Æ÷fW'2óò°¢6öç7B†æF–6Ò&öf–ÆSòæ†æF–6ö–æFW‚óò°¢6öç7BÇV6·”ÆWfVÂÒ&öf–ÆSòæÇV6·•öÆWfVÂóò°¢6öç7BvöÆD&Ææ6RÒ‡&öf–ÆR2ç’“òævöÆEö&Ææ6Róò° ¢6öç7B¶7F—f—G’Â6WD7F—f—G•ÒÒW6U7FFSÆç•µÓâ…µÒ“°¢W6TVffV7B‚‚’Óâ°¢vWE&V6VçEG&ç67F–öç2ƒR’çF†Vâ‡6WD7F—f—G’“°¢ÒÂµÒ“° ¢&WGW&â€¢ÄÆ–÷WCà¢ÆF—b6Æ74æÖSÒ&Ö‚×rÖÆr×‚ÖWFò‚ÓB’Ób76R×’Ób#à¢²ò¢vVÆ6öÖR¢÷Ð¢ÆÖ÷F–öâæF—b–æ—F–Ã×·²÷6—G“¢Â“¢Ó×Òæ–ÖFS×·²÷6—G“¢Â“¢×Ð¢6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"§W7F–g’Ö&WGvVVâ#à¢ÆF—cà¢Æƒ6Æ74æÖSÒ'FW‡BÓ'†ÂföçBÖF—7Æ’föçBÖ&öÆB#åvVÆ6öÖRÂ¶F—7Æ”æÖWÓÂöƒà¢Ç6Æ74æÖSÒ'FW‡BÖ×WFVBÖf÷&Vw&÷VæBFW‡B×6Ò#à¢¶†æF–6âò„5G¶†æF–6Ò+r¢rwÔÆWfVÂ¶ÇV6·”ÆWfVÇÐ¢Â÷à¢ÂöF—cà¢ÂöÖ÷F–öâæF—cà ¢²ò¢6Æ÷fW"&Ææ6R¢÷Ð¢ÆÖ÷F–öâæF—b–æ—F–Ã×·²÷6—G“¢Â“¢#×Òæ–ÖFS×·²÷6—G“¢Â“¢×Ð¢6Æ74æÖSÒ'&VÆF—fR÷fW&fÆ÷rÖ†–FFVâvÆ72Ö6&BÓRvÆ÷rÖw&VVâ#à¢ÆF—b6Æ74æÖSÒ&'6öÇWFR×F÷Ó#×&–v‡BÓ#rÓC‚ÓC&r×&–Ö'’ó#&÷VæFVBÖgVÆÂ&ÇW"Ó7†Â"óà¢ÆF—b6Æ74æÖSÒ'&VÆF—fRfÆW‚—FV×2×7F'B§W7F–g’Ö&WGvVVâvÓB#à¢ÆF—b6Æ74æÖSÒ&fÆW‚×6‡&–æ²Ó#à¢Ç6Æ74æÖSÒ'FW‡BÖÆrföçB×6VÖ–&öÆBFW‡BÖ×WFVBÖf÷&Vw&÷VæBÖ"Ó"#å–÷W"6Æ÷fW'3Â÷à¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓB#à¢Ä6Æ÷fW$–6öâ6Æ74æÖSÒ'rÓ"‚ÓBFW‡B×&–Ö'’æ–ÖFRÖfÆöB"óà¢Ç7â6Æ74æÖSÒ'FW‡BÓw†ÂföçBÖF—7Æ’föçBÖ&Æ6²FW‡BÖw&F–VçBÖw&VVâ#ç¶6Æ÷fW'7ÓÂ÷7ãà¢ÂöF—cà¢·F÷FÄ6Æ÷fW'2â6Æ÷fW'2bb€¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓ"×BÓ2FW‡B×6ÒFW‡BÖ×WFVBÖf÷&Vw&÷VæB#à¢ÅG&VæF–æuW6Æ74æÖSÒ'rÓB‚ÓB"óà¢Ç7ãç·F÷FÄ6Æ÷fW'7ÒÆ–fWF–ÖRV&æVCÂ÷7ãà¢ÂöF—cà¢—Ð¢¶6Æ÷fW'2ÓÓÒbbF÷FÄ6Æ÷fW'2ÓÓÒbb€¢Ç6Æ74æÖSÒ'FW‡B×‡2FW‡BÖ×WFVBÖf÷&Vw&÷VæB×BÓ2#åÆ’&÷VæG2æB6†÷FòV&â6Æ÷fW'3Â÷à¢—Ð¢ÂöF—cà¢ÆF—b6Æ74æÖSÒ&fÆW‚fÆW‚Ö6öÂvÓ"fÆW‚ÓÖ‚×rÕ³C…Ò#à¢ÄÆ–æ²FóÒ"öV&â÷&ffÆR"6Æ74æÖSÒ&&Æö6²#à¢ÆÖ÷F–öâæF—bv†–ÆT†÷fW#×·²66ÆS¢ã"×Ð¢6Æ74æÖSÒ&&rÖ66VçBó&÷&FW"&÷&FW"Ö66VçBó3&÷VæFVBÖÆr‚Ó2’Ó"G&ç6—F–öâÖ6öÆ÷'2†÷fW#¦&rÖ66VçBó##à¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓãR#à¢ÅG&÷‡’6Æ74æÖSÒ'rÓ2ãR‚Ó2ãRFW‡BÖ66VçB"óà¢Ç7â6Æ74æÖSÒ'FW‡BÕ³…ÒFW‡BÖ×WFVBÖf÷&Vw&÷VæBWW&66RG&6¶–ær×v–FR#åvVV¶Ç’&ffÆSÂ÷7ãà¢ÂöF—cà¢Ç6Æ74æÖSÒ'FW‡B×6ÒföçBÖ&öÆBFW‡BÖ66VçB×BÓãR#äVçFW"æ÷sÂ÷à¢ÂöÖ÷F–öâæF—cà¢ÂôÆ–æ³à¢ÄÆ–æ²FóÒ"÷Æ’÷7F'B"6Æ74æÖSÒ&&Æö6²#à¢ÆÖ÷F–öâæF—bv†–ÆT†÷fW#×·²66ÆS¢ã"×Ð¢6Æ74æÖSÒ&&r×&–Ö'’ó&÷&FW"&÷&FW"×&–Ö'’ó3&÷VæFVBÖÆr‚Ó2’ÓãRG&ç6—F–öâÖ6öÆ÷'2†÷fW#¦&r×&–Ö'’ó##à¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"§W7F–g’Ö&WGvVVâ#à¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓãR#à¢Ä6ÆVæF"6Æ74æÖSÒ'rÓ2ãR‚Ó2ãRFW‡B×&–Ö'’"óà¢Ç7â6Æ74æÖSÒ'FW‡B×‡2FW‡BÖf÷&Vw&÷VæB#å7F'B&÷VæCÂ÷7ãà¢ÂöF—cà¢ÅÆ’6Æ74æÖSÒ'rÓ2‚Ó2FW‡B×&–Ö'’"óà¢ÂöF—cà¢ÂöÖ÷F–öâæF—cà¢ÂôÆ–æ³à¢ÂöF—cà¢ÂöF—cà¢ÂöÖ÷F–öâæF—cà ¢²ò¢V–6²7F–öç2¢÷Ð¢ÆF—b6Æ74æÖSÒ&w&–Bw&–BÖ6öÇ2ÓBvÓ2#à¢·V–6´7F–öç2æÖ‚†7F–öâÂ–æFW‚’Óâ€¢ÆÖ÷F–öâæF—b¶W“×¶7F–öâçF‡Ò–æ—F–Ã×·²÷6—G“¢Â“¢#×Òæ–ÖFS×·²÷6—G“¢Â“¢×Ð¢G&ç6—F–öã×·²FVÆ“¢ã"²–æFW‚¢ãR×Óà¢ÄÆ–æ²Fó×¶7F–öâçF‡Ð¢6Æ74æÖS×¶fÆW‚fÆW‚Ö6öÂ—FV×2Ö6VçFW"vÓ"Ó2&÷VæFVBÓ'†ÂG&ç6—F–öâÖÆÂGW&F–öâÓ3&VÆF—fRG¶7F–öâæ6öÆ÷'ÖÓà¢Æ7F–öâæ–6öâ6Æ74æÖSÒ'rÓ‚‚Ó‚"óà¢Ç7â6Æ74æÖSÒ'FW‡B×‡2föçBÖÖVF—VÒ#ç¶7F–öâæÆ&VÇÓÂ÷7ãà¢ÂôÆ–æ³à¢ÂöÖ÷F–öâæF—cà¢’—Ð¢ÂöF—cà ¢²ò¢vvW'25D¢÷Ð¢ÆÖ÷F–öâæF—b–æ—F–Ã×·²÷6—G“¢Â“¢#×Òæ–ÖFS×·²÷6—G“¢Â“¢×ÒG&ç6—F–öã×·²FVÆ“¢ã2×Ð¢6Æ74æÖSÒ&vÆ72Ö6&BÓR7W'6÷"×ö–çFW"†÷fW#¦&÷&FW"×&–Ö'’óSG&ç6—F–öâÖ6öÆ÷'2 ¢öä6Æ–6³×·²‚’Óâæf–vFR‚r÷Æ’÷vvW'2r—Óà¢ÆF—b6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓB#à¢ÆF—b6Æ74æÖSÒ'rÓ"‚Ó"&÷VæFVBÓ'†Â&rÖw&F–VçB×FòÖ'"g&öÒ×–VÆÆ÷rÓSó#FòÖ÷&ævRÔÔÀÀ¼ÈÀ™±•à¥Ñ•µÌµ•¹Ñ•È©ÕÍÑ¥™äµ•¹Ñ•Èˆø(€€€€€€€€€€€€€€ñMÁ…É­±•Ì±…ÍÍ9…µ”ô‰Ü´Ø ´ØÑ•áÐµå•±±½Ü´ÔÀÀˆ€¼ø(€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰™±•à´Äˆø(€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰™½¹Ðµ‘¥ÍÁ±…ä™½¹Ðµ‰½±ˆù1Õ­ä]…•ÉÌð½Àø(€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰Ñ•áÐµáÌÑ•áÐµµÕÑ•µ™½É•É½Õ¹ˆù¡…±±•¹”å½ÕÈ™É¥•¹‘Ì¥¸É•…°µÑ¥µ”ð½Àø(€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€ñ	ÕÑÑ½¸Í¥é”ô‰Í´ˆùA±…äð½	ÕÑÑ½¸ø(€€€€€€€€€€ð½‘¥Øø(€€€€€€€€ð½µ½Ñ¥½¸¹‘¥Øø((€€€€€€€ì¼¨Ñ¥Ù¥ÑäƒŠPÉ½´MÕÁ…‰…Í”ÑÉ…¹Í…Ñ¥½¹Ì€¨½ô(€€€€€€€€ñµ½Ñ¥½¸¹‘¥Ø¥¹¥Ñ¥…°õíì½Á…¥Ñäè€À°äè€ÈÀõô…¹¥µ…Ñ”õíì½Á…¥Ñäè€Ä°äè€ÀõôÑÉ…¹Í¥Ñ¥½¸õíì‘•±…äè€À¸Ðõô(€€€€€€€€€±…ÍÍ9…µ”ô‰±…ÍÌµ…ÉÀ´Ôˆø(€€€€€€€€€€ñ Ì±…ÍÍ9…µ”ô‰™½¹Ðµ‘¥ÍÁ±…ä™½¹ÐµÍ•µ¥‰½±Ñ•áÐµ±œµˆ´ÌˆùÑ¥Ù¥Ñäð½ Ìø(€€€€€€€€€í…Ñ¥Ù¥Ñä¹±•¹Ñ €ôôô€À€ü€ (€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Ñ•áÐµ•¹Ñ•ÈÁä´Øˆø(€€€€€€€€€€€€€€ñQ…É•Ð±…ÍÍ9…µ”ô‰Ü´à ´àÑ•áÐµµÕÑ•µ™½É•É½Õ¹¼ÐÀµàµ…ÕÑ¼µˆ´Èˆ€¼ø(€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰Ñ•áÐµÍ´Ñ•áÐµµÕÑ•µ™½É•É½Õ¹ˆù9¼É••¹Ð…Ñ¥Ù¥Ñäð½Àø(€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰Ñ•áÐµáÌÑ•áÐµµÕÑ•µ™½É•É½Õ¹¼ØÀµÐ´ÄˆùA±…ä„É½Õ¹½ÈÍÁ¥¸Ñ¡”Ý¡••°Ñ¼•ÐÍÑ…ÉÑ•ð½Àø(€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€¤€è€ (€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰ÍÁ…”µä´Ìˆø(€€€€€€€€€€€€€í…Ñ¥Ù¥Ñä¹µ…À ¡Ñá¸è…¹ä°¤è¹Õµ‰•È¤€ôø€ (€€€€€€€€€€€€€€€€ñ‘¥Ø­•äõíÑá¸¹¥ñð¥ô±…ÍÍ9…µ”ô‰™±•à¥Ñ•µÌµ•¹Ñ•È©ÕÍÑ¥™äµ‰•ÑÝ••¸À´ÈÉ½Õ¹‘•µ±œ¡½Ù•Èé‰œµµÕÑ•¼ÔÀÑÉ…¹Í¥Ñ¥½¸µ½±½ÉÌˆø(€€€€€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰™±•à¥Ñ•µÌµ•¹Ñ•È…À´Ìˆø(€€€€€€€€€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Ü´à ´à‰œµÁÉ¥µ…Éä¼ÄÀÉ½Õ¹‘•µ™Õ±°™±•à¥Ñ•µÌµ•¹Ñ•È©ÕÍÑ¥™äµ•¹Ñ•Èˆø(€€€€€€€€€€€€€€€€€€€€€íÑá¸¹ÑåÁ”€ôôô€Ý¥¹¹¥¹Ìœ€ü€ñQÉ½Á¡ä±…ÍÍ9…µ”ô‰Ü´Ð ´ÐÑ•áÐµÁÉ¥µ…Éäˆ€¼ø€è€ñQ…É•Ð±…ÍÍ9…µ”ô‰Ü´Ð ´ÐÑ•áÐµÁÉ¥µ…Éäˆ€¼ùô(€€€€€€€€€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰Ñ•áÐµÍ´™½¹Ðµµ•‘¥Õ´ˆùíÑá¸¹‘•ÍÉ¥ÁÑ¥½¸ñðÑá¸¹ÑåÁ•ôð½Àø(€€€€€€€€€€€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰Ñ•áÐµáÌÑ•áÐµµÕÑ•µ™½É•É½Õ¹ˆùí¹•Ü…Ñ”¡Ñá¸¹É•…Ñ•‘}…Ð¤¹Ñ½1½…±•…Ñ•MÑÉ¥¹œ ¥ôð½Àø(€€€€€€€€€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”õíÑ•áÐµÍ´™½¹Ðµ‰½±€‘íÑá¸¹…µ½Õ¹Ð€ø€À€ü€Ñ•áÐµÉ••¸´ÐÀÀœ€è€Ñ•áÐµÉ•´ÐÀÀõôø(€€€€€€€€€€€€€€€€€€€íÑá¸¹…µ½Õ¹Ð€ø€À€ü€œ¬œ€è€œõíÑá¸¹…µ½Õ¹Ñô(€€€€€€€€€€€€€€€€€€ð½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€€€€€¤¥ô(€€€€€€€€€€€€ð½‘¥Øø(€€€€€€€€€€¥ô(€€€€€€€€ð½µ½Ñ¥½¸¹‘¥Øø(€€€€€€ð½‘¥Øø(€€€€ð½ÁÁ1…å½ÕÐø(€€¤ì)ô(
