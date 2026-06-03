@@ -73,7 +73,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* ── Auth (public) ── */}
-              {Route path="/auth" element={<Auth />} />
+              <Route path="/auth" element={<Auth />} />
 
               {/* ── 5-Tab Domain Hubs ── */}
               <Route path="/" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
@@ -100,8 +100,8 @@ const App = () => (
               <Route path="/practice/rangefinder" element={<ProtectedRoute><Rangefinder /></ProtectedRoute>} />
               <Route path="/practice/putting" element={<ProtectedRoute><PuttingGrid /></ProtectedRoute>} />
               <Route path="/practice/distance" element={<ProtectedRoute><DistanceControl /></ProtectedRoute>} />
-              <Route path="/practice/sessions" element={<ProtectedRoute><ProcticeSessions /></ProtectedRoute>} />
-              <Route path="/practice/progress" element={<ProtectedRoute><ProcticeProgress /></ProtectedRoute>} />
+              <Route path="/practice/sessions" element={<ProtectedRoute><PracticeSessions /></ProtectedRoute>} />
+              <Route path="/practice/progress" element={<ProtectedRoute><PracticeProgress /></ProtectedRoute>} />
 
               {/* ── Career Sub-Routes ── */}
               <Route path="/career/stats" element={<ProtectedRoute><CareerStats /></ProtectedRoute>} />
