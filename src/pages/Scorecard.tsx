@@ -7,6 +7,12 @@ import { HoleGrid } from "@/components/scorecard/HoleGrid";
 import { LuckyLevelBadge } from "@/components/scorecard/LuckyLevelBadge";
 import { FindPlayers } from "@/components/scorecard/FindPlayers";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Flag } from "lucide-react";
 
 const holes = Array.from({ length: 9 }, (_, i) => ({
   number: i + 1,
@@ -14,10 +20,16 @@ const holes = Array.from({ length: 9 }, (_, i) => ({
   distance: [380, 165, 520, 410, 395, 185, 545, 425, 405][i],
 }));
 
+const CLOVERS_PER_ROUND = 5;
+
 const Scorecard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [scores, setScores] = useState<Record<number, number>>({});
   const [putts, setPutts] = useState<Record<number, number>>({});
   const [activeHole, setActiveHole] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [finished, setFinished] = useState(false);
 
   const updateScore = (hole: number, delta: number) => {
     setScores((prev) => ({
@@ -52,6 +64,52 @@ const Scorecard = () => {
 
   const luckyLevel = calculateLuckyLevel();
   const isGoldPlayer = holesPlayed >= 3 && scoreDiff < 0;
+
+  const finishRound = async () => {
+    if (!user || saving) return;
+    setSaving(true);
+
+    // Fill in any unplayed holes with par
+    const finalScores = { ...scores };
+    const finalPutts = { ...putts };
+    holes.forEach(h => {
+      if (!finalScores[h.number]) finalScores[h.number] = h.par;
+      if (!finalPutts[h.number]) finalPutts[h.number] = 2;
+    });
+
+    const finalTotal = Object.values(finalScores).reduce((a, b) => a + b, 0);
+    const finalPuttsTotal = Object.values(finalPutts).reduce((a, b) => a + b, 0);
+
+    try {
+      // Save round
+      const { error } = await supabase.from('rounds').insert({
+        user_id: user.id,
+        course_name: 'Practice Round',
+        holes: 9,
+        scores: Object.values(finalScores),
+        putts: Object.values(finalPutts),
+        total_score: finalTotal,
+        total_par: totalPar,
+        score_diff: finalTotal - totalPar,
+        total_putts: finalPuttsTotal,
+        holes_played: 9,
+        completed: true,
+        clovers_earned: CLOVERS_PER_ROUND,
+      });
+
+      if (error) throw error;
+
+      // Award clovers
+      await supabase.rpc('award_clovers', { p_user_id: user.id, p_amount: 20 });
+
+      setFinished(true);
+      toast.success(`Round saved! +${CLOVERS_PER_ROUND} clovers earned 🍀`);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save round');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleNext = () => {
     if (!scores[activeHole]) {
@@ -109,7 +167,7 @@ const Scorecard = () => {
           scoreDiff={scoreDiff}
         />
 
-        {/* Clover Reward Preview */}
+        {/* Clover Reward / Finish */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -117,14 +175,29 @@ const Scorecard = () => {
           className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center gap-4"
         >
           <CloverIcon className="w-10 h-10 text-primary" />
-          <div>
-            <p className="font-medium">Complete your round</p>
+          <div className="flex-1">
+            <p className="font-medium">{finished ? 'Round complete!' : 'Complete your round'}</p>
             <p className="text-sm text-muted-foreground">
-              Earn <span className="text-primary font-bold">+5 clovers</span> for
-              finishing!
+              Earn <span className="text-primary font-bold">+{CLOVERS_PER_ROUND} clovers</span> for finishing!
             </p>
           </div>
         </motion.div>
+
+        {!finished ? (
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={finishRound}
+            disabled={saving || holesPlayed < 1}
+          >
+            <Flag className="w-5 h-5 mr-2" />
+            {saving ? 'Saving...' : 'Finish Round'}
+          </Button>
+        ) : (
+          <Button className="w-full" size="lg" variant="outline" onClick={() => navigate('/career')}>
+            View Career Stats →
+          </Button>
+        )}
 
         <FindPlayers userLuckyLevel={luckyLevel} />
       </div>

@@ -4,22 +4,44 @@
 
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeedbackModal } from '@/components/FeedbackModal';
+import { supabase } from '@/integrations/supabase/client';
 import { Trophy, TrendingUp, Award, Crown, BarChart3, Target, Play, Settings, MessageSquareText } from 'lucide-react';
+
+interface RoundStats {
+  total: number;
+  bestScore: number | null;
+}
 
 export default function CareerScreen() {
   const navigate = useNavigate();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [roundStats, setRoundStats] = useState<RoundStats>({ total: 0, bestScore: null });
 
   const handicap = profile?.handicap_index ?? 0;
   const luckyLevel = profile?.lucky_level ?? 1;
   const clovers = profile?.clovers ?? 0;
   const displayName = profile?.display_name || 'Golfer';
   const isVIP = luckyLevel >= 5;
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('rounds')
+      .select('total_score, total_par')
+      .eq('user_id', user.id)
+      .eq('completed', true)
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const best = data.reduce((min, r) =>
+          r.total_score < min.total_score ? r : min, data[0]);
+        setRoundStats({ total: data.length, bestScore: best.total_score });
+      });
+  }, [user]);
 
   return (
     <div className="min-h-screen pb-20 bg-background">
@@ -55,8 +77,8 @@ export default function CareerScreen() {
         <div className="grid grid-cols-2 gap-4">
           {[
             { label: 'Handicap', value: handicap > 0 ? handicap : '—', icon: Target },
-            { label: 'Rounds', value: 0, icon: BarChart3 },
-            { label: 'Best Score', value: '—', icon: Trophy },
+            { label: 'Rounds', value: roundStats.total, icon: BarChart3 },
+            { label: 'Best Score', value: roundStats.bestScore ?? '—', icon: Trophy },
             { label: 'Clovers', value: clovers, icon: TrendingUp },
           ].map((stat, index) => {
             const Icon = stat.icon;
