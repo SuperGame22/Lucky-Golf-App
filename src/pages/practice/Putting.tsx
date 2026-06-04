@@ -192,7 +192,7 @@ export default function PuttingGame(){
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
   const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/1.6,1);
-  const bPx=BR*2,hPx=HR*2,A=5/4;
+  const bPx=BR*2,hPx=HR*2,A=1;
 
   return(
     <AppLayout>
