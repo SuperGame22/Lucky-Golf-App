@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -173,6 +174,22 @@ export default function PuttingGame(){
   const aim=d0&&dc?{dx:d0.x-dc.x,dy:d0.y-dc.y}:null;
   const pw=aim?Math.min(Math.sqrt(aim.dx**2+aim.dy**2),MXD):0;
   const done=hi>=cc.length-1&&gs==='sunk';
+
+  // Log completed session to DB
+  useEffect(() => {
+    if (!done) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('practice_sessions').insert({
+        user_id: user.id,
+        drill_type: 'putting',
+        duration_seconds: 0,
+        score: sk,
+        holes_completed: cc.length,
+      });
+    });
+  }, [done]);
+
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
   const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/1.6,1);
   const bPx=BR*2,hPx=HR*2,A=5/4;

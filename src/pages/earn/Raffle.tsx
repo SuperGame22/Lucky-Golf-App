@@ -58,24 +58,10 @@ export default function WeeklyRaffle() {
           </Button>
         </div>
 
-        {/* Past Winners */}
-        <div>
-          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Recent Winners</p>
-          <div className="space-y-2">
-            {[
-              { name: 'Tiger M.', amount: '$4,200', date: 'Last week' },
-              { name: 'Sarah K.', amount: '$3,800', date: '2 weeks ago' },
-              { name: 'Mike T.', amount: '$5,100', date: '3 weeks ago' },
-            ].map((w, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-border">
-                <div>
-                  <p className="font-bold text-sm">{w.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{w.date}</p>
-                </div>
-                <span className="font-black text-yellow-500">{w.amount}</span>
-              </div>
-            ))}
-          </div>
+        {/* Past Winners — populated once real winners exist */}
+        <div className="glass-card p-5 text-center">
+          <p className="text-sm text-muted-foreground">First raffle draws when the jackpot fills.</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Winners will appear here.</p>
         </div>
       </div>
     </AppLayout>

@@ -2,7 +2,8 @@
  * Distance Control Drill
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -22,6 +23,22 @@ export default function DistanceControl() {
   const [results, setResults] = useState<{ target: number; actual: number; diff: number }[]>([]);
 
   const drill = DRILLS[currentDrill];
+
+  // Log session when all drills are done
+  useEffect(() => {
+    if (results.length < DRILLS.length) return;
+    const hits = results.filter((r, i) => r.diff <= (DRILLS[i]?.tolerance ?? 10)).length;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('practice_sessions').insert({
+        user_id: user.id,
+        drill_type: 'distance',
+        duration_seconds: 0,
+        score: hits,
+        holes_completed: DRILLS.length,
+      });
+    });
+  }, [results.length]);
 
   const simulateShot = () => {
     const variance = (Math.random() - 0.5) * drill.tolerance * 4;
