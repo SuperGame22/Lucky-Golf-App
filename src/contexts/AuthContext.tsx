@@ -23,6 +23,7 @@ interface AuthState {
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: string | null }>;
 }
@@ -67,11 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error: error.message };
-    // Profile is created via DB trigger; optionally update display_name
-    if (user) {
-      await supabase.from('golfer_profiles').upsert({ user_id: user.id, display_name: displayName });
+    // Create golfer_profiles row with display_name using the returned user ID
+    if (data.user) {
+      await supabase.from('golfer_profiles').upsert({
+        user_id: data.user.id,
+        display_name: displayName.trim(),
+        lucky_level: 1,
+        clovers: 0,
+        total_clovers: 0,
+      }, { onConflict: 'user_id' });
     }
     return { error: null };
   };
@@ -83,6 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    return { error: error?.message ?? null };
   };
 
   const refreshProfile = async () => {
@@ -100,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
