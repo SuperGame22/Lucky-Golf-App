@@ -1,8 +1,3 @@
-/**
- * COACH ACE — Real AI Golf Coaching Chat
- * Powered by OpenAI gpt-4o-mini via Supabase edge function
- */
-
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -13,29 +8,23 @@ import { toast } from 'sonner';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-const COACH_AVATAR = '🏌️';
+const COACH_AVATAR = 'coaching';
 
-interface Message {
-  id: string;
-  role: 'user' | 'coach';
-  text: string;
-  timestamp: Date;
-}
+interface Message { id: string; role: 'user' | 'coach'; text: string; timestamp: Date; }
 
 const QUICK_TAPS = [
   { label: 'Fix my slice', query: 'How do I fix my slice?' },
   { label: 'First tee nerves', query: 'Tips for first tee nerves?' },
   { label: 'Club selection', query: 'How do I choose the right club?' },
-  { label: 'Basic rules', query: 'What are the basic golf rules I need to know?' },
+  { label: 'Basic rules', query: 'What are the basic golf rules?' },
   { label: 'Grip basics', query: 'How should I grip the club?' },
 ];
 
 export default function CoachAce() {
   const { profile, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([{
-    id: 'welcome',
-    role: 'coach',
-    text: `Hey${profile?.display_name ? ` ${profile.display_name}` : ''}! I'm Coach Ace 🍀 Ask me anything about golf — swing fixes, club selection, rules, mental game. Fire away.`,
+    id: 'welcome', role: 'coach',
+    text: `Hey${profile?.display_name ? ` ${profile.display_name}` : ''}! I'm Coach Ace. Ask me anything about golf — swing fixes, club selection, rules, or mental game. Fire away.`,
     timestamp: new Date(),
   }]);
   const [input, setInput] = useState('');
@@ -60,14 +49,9 @@ export default function CoachAce() {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/coach-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: authHeader, apikey: SUPABASE_KEY },
-        body: JSON.stringify({
-          messages: history.map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.text })),
-        }),
+        body: JSON.stringify({ messages: history.map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.text })) }),
       });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Error ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Error ${response.status}`);
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No stream');
       const decoder = new TextDecoder();
@@ -80,7 +64,7 @@ export default function CoachAce() {
             try {
               const delta = JSON.parse(line.slice(6)).choices?.[0]?.delta?.content;
               if (delta) { accumulated += delta; setMessages(prev => prev.map(m => m.id === coachId ? { ...m, text: accumulated } : m)); }
-            } catch { /* partial chunk */ }
+            } catch { /* partial */ }
           }
         }
       }
@@ -96,10 +80,10 @@ export default function CoachAce() {
       <div className="flex flex-col h-[100dvh] bg-background">
         <div className="flex-shrink-0 bg-background/95 backdrop-blur-xl border-b border-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-lg">{COACH_AVATAR}</div>
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-black text-primary">ACE</div>
             <div className="flex-1">
               <h1 className="font-black text-sm uppercase tracking-wider">Coach Ace</h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{isLoading ? 'Typing...' : 'AI Golf Pro · Lucky Golf'}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{isLoading ? 'Typing...' : 'AI Golf Pro'}</p>
             </div>
             <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full">
               <GraduationCap className="w-3 h-3 text-primary" />
@@ -122,22 +106,17 @@ export default function CoachAce() {
             {messages.map(msg => (
               <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'coach' && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm mt-1">{COACH_AVATAR}</div>
-                )}
+                {msg.role === 'coach' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary mt-1">ACE</div>}
                 <div className="max-w-[85%]">
                   <div className={`rounded-2xl px-4 py-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-card border border-border rounded-bl-md'}`}>
-                    {msg.text
-                      ? <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    {msg.text ? <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                       : <div className="flex gap-1">
                           <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                           <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>}
                   </div>
-                  <p className="text-[9px] text-muted-foreground/50 mt-1 ml-1">
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <p className="text-[9px] text-muted-foreground/50 mt-1 ml-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </motion.div>
             ))}

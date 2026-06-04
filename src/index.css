@@ -1,231 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
     --background: 145 30% 4%;
     --foreground: 60 30% 96%;
-
     --card: 145 25% 8%;
     --card-foreground: 60 30% 96%;
-
     --popover: 145 25% 8%;
     --popover-foreground: 60 30% 96%;
-
     --primary: 152 76% 40%;
     --primary-foreground: 60 30% 98%;
-
     --secondary: 145 20% 15%;
     --secondary-foreground: 60 30% 96%;
-
     --muted: 145 15% 18%;
     --muted-foreground: 145 10% 60%;
-
     --accent: 43 96% 56%;
     --accent-foreground: 145 30% 4%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 60 30% 98%;
-
     --border: 145 20% 18%;
     --input: 145 20% 18%;
     --ring: 152 76% 40%;
-
     --radius: 0.75rem;
-
-    /* Lucky Golf Custom Tokens */
     --lucky-green: 152 76% 40%;
-    --lucky-green-light: 152 76% 50%;
-    --lucky-green-glow: 152 76% 60%;
     --lucky-gold: 43 96% 56%;
-    --lucky-gold-dark: 43 80% 35%;
-    --lucky-gold-light: 43 96% 70%;
-    --lucky-gold-glow: 43 96% 80%;
-    --lucky-emerald: 145 63% 32%;
-    --lucky-shamrock: 140 50% 25%;
-    
-    /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(43 96% 56%), hsl(35 100% 50%));
-    --gradient-green: linear-gradient(135deg, hsl(152 76% 40%), hsl(145 63% 32%));
-    --gradient-rainbow: linear-gradient(90deg, 
-      hsl(0 85% 60%), 
-      hsl(35 90% 55%), 
-      hsl(55 90% 55%), 
-      hsl(152 76% 45%), 
-      hsl(200 85% 55%), 
-      hsl(260 70% 60%), 
-      hsl(300 70% 60%)
-    );
-    --gradient-card: linear-gradient(145deg, hsl(145 25% 10%), hsl(145 25% 6%));
-    --gradient-glow: radial-gradient(circle at center, hsl(152 76% 40% / 0.3), transparent 70%);
-
-    /* Glass effect */
-    --glass-bg: hsl(145 25% 8% / 0.8);
-    --glass-border: hsl(152 76% 40% / 0.2);
-
-    /* Shadows */
-    --shadow-gold: 0 0 30px hsl(43 96% 56% / 0.4);
-    --shadow-green: 0 0 30px hsl(152 76% 40% / 0.3);
-    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
-
-    --sidebar-background: 145 25% 8%;
-    --sidebar-foreground: 60 30% 96%;
-    --sidebar-primary: 152 76% 40%;
-    --sidebar-primary-foreground: 60 30% 98%;
-    --sidebar-accent: 145 20% 15%;
-    --sidebar-accent-foreground: 60 30% 96%;
-    --sidebar-border: 145 20% 18%;
-    --sidebar-ring: 152 76% 40%;
-  }
-
-  .light {
-    --background: 60 30% 98%;
-    --foreground: 145 30% 8%;
-    --card: 0 0% 100%;
-    --card-foreground: 145 30% 8%;
-    --primary: 152 76% 36%;
-    --primary-foreground: 60 30% 98%;
-    --secondary: 145 20% 92%;
-    --secondary-foreground: 145 30% 8%;
-    --muted: 145 15% 90%;
-    --muted-foreground: 145 15% 40%;
-    --accent: 43 96% 50%;
-    --accent-foreground: 145 30% 8%;
-    --border: 145 15% 85%;
-    --input: 145 15% 85%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
-  }
-}
-
-@layer components {
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-primary/20 rounded-2xl;
-  }
-
-  .glow-green {
-    box-shadow: 0 0 40px hsl(var(--lucky-green) / 0.4);
-  }
-
-  .glow-gold {
-    box-shadow: 0 0 40px hsl(var(--lucky-gold) / 0.5);
-  }
-
-  .text-gradient-gold {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--lucky-gold)), hsl(35 100% 60%));
-  }
-
-  .text-gradient-green {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--lucky-green-light)), hsl(var(--lucky-emerald)));
-  }
-
-  .celtic-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2300A86B' fill-opacity='0.06'%3E%3Cpath d='M15 15c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5c0 1.5-0.7 2.8-1.8 3.6 0.8-0.5 1.8-0.8 2.8-0.8 2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5c-1 0-2-0.3-2.8-0.8 1.1 0.8 1.8 2.1 1.8 3.6 0 2.5-2 4.5-4.5 4.5s-4.5-2-4.5-4.5c0-1.5 0.7-2.8 1.8-3.6-0.8 0.5-1.8 0.8-2.8 0.8-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5c1 0 2 0.3 2.8 0.8-1.1-0.8-1.8-2.1-1.8-3.6z'/%3E%3Cpath d='M19.5 30v6' stroke='%2300A86B' stroke-opacity='0.06' stroke-width='1.5' fill='none'/%3E%3Cpath d='M45 35c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5c0 1.5-0.7 2.8-1.8 3.6 0.8-0.5 1.8-0.8 2.8-0.8 2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5c-1 0-2-0.3-2.8-0.8 1.1 0.8 1.8 2.1 1.8 3.6 0 2.5-2 4.5-4.5 4.5s-4.5-2-4.5-4.5c0-1.5 0.7-2.8 1.8-3.6-0.8 0.5-1.8 0.8-2.8 0.8-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5c1 0 2 0.3 2.8 0.8-1.1-0.8-1.8-2.1-1.8-3.6z'/%3E%3Cpath d='M49.5 50v6' stroke='%2300A86B' stroke-opacity='0.06' stroke-width='1.5' fill='none'/%3E%3C/g%3E%3C/svg%3E");
-  }
-
-  .clover-bg-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2300A86B' stroke-opacity='0.08' stroke-width='1'%3E%3Cpath d='M20 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5c0 1.8-0.9 3.4-2.2 4.4 1-0.6 2.2-1 3.4-1 3 0 5.5 2.5 5.5 5.5s-2.5 5.5-5.5 5.5c-1.2 0-2.4-0.4-3.4-1 1.3 1 2.2 2.6 2.2 4.4 0 3-2.5 5.5-5.5 5.5s-5.5-2.5-5.5-5.5c0-1.8 0.9-3.4 2.2-4.4-1 0.6-2.2 1-3.4 1-3 0-5.5-2.5-5.5-5.5s2.5-5.5 5.5-5.5c1.2 0 2.4 0.4 3.4 1-1.3-1-2.2-2.6-2.2-4.4z'/%3E%3Cpath d='M25.5 38v8'/%3E%3Cpath d='M55 50c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5c0 1.8-0.9 3.4-2.2 4.4 1-0.6 2.2-1 3.4-1 3 0 5.5 2.5 5.5 5.5s-2.5 5.5-5.5 5.5c-1.2 0-2.4-0.4-3.4-1 1.3 1 2.2 2.6 2.2 4.4 0 3-2.5 5.5-5.5 5.5s-5.5-2.5-5.5-5.5c0-1.8 0.9-3.4 2.2-4.4-1 0.6-2.2 1-3.4 1-3 0-5.5-2.5-5.5-5.5s2.5-5.5 5.5-5.5c1.2 0 2.4 0.4 3.4 1-1.3-1-2.2-2.6-2.2-4.4z'/%3E%3Cpath d='M60.5 68v8'/%3E%3C/g%3E%3C/svg%3E");
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; font-family: 'Inter', sans-serif; }
 }
 
 @layer utilities {
-  .animate-shimmer {
-    animation: shimmer 2s ease-in-out infinite;
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
-
-  .animate-spin-slow {
-    animation: spin 8s linear infinite;
-  }
-
-  .animate-rainbow {
-    animation: rainbow-shift 3s linear infinite;
-  }
-}
-
-@keyframes shimmer {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px hsl(var(--lucky-gold) / 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px hsl(var(--lucky-gold) / 0.6);
-  }
-}
-
-@keyframes rainbow-shift {
-  0% {
-    filter: hue-rotate(0deg);
-  }
-  100% {
-    filter: hue-rotate(360deg);
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.5);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary));
+  .font-display { font-family: 'Playfair Display', serif; }
+  .glass-card { @apply bg-card/80 backdrop-blur-xl border border-border rounded-2xl; }
+  .glow-green { box-shadow: 0 0 30px hsl(152 76% 40% / 0.3); }
+  .glow-gold { box-shadow: 0 0 30px hsl(43 96% 56% / 0.4); }
+  .text-gradient-gold { background: linear-gradient(135deg, hsl(43 96% 56%), hsl(35 100% 50%)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .bg-celtic-knot { background-image: url('/images/clover-pattern.png'); }
+  .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
 }
