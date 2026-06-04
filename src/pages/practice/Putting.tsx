@@ -283,10 +283,10 @@ export default function PuttingGame(){
           </div>}
 
           {/* Hole */}
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+2)*2}%`,height:`${(HR+2)*2*A}%`,left:`${h.hx-HR-2}%`,top:`${h.hy-(HR+2)*A}%`,background:'radial-gradient(circle,rgba(0,0,0,0.3) 20%,transparent 65%)'}}/>
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+0.5)*2}%`,height:`${(HR+0.5)*2*A}%`,left:`${h.hx-HR-0.5}%`,top:`${h.hy-(HR+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
-          <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,height:`${hPx*A}%`,left:`${h.hx-HR}%`,top:`${h.hy-HR*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,height:`${hPx*0.4*A}%`,left:`${h.hx-HR*0.4}%`,top:`${h.hy-HR*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+2)*2}%`,height:`${(HR+2)*2*A}%`,aspectRatio:'1',left:`${h.hx-HR-2}%`,top:`${h.hy-(HR+2)*A}%`,background:'radial-gradient(circle,rgba(0,0,0,0.3) 20%,transparent 65%)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+0.5)*2}%`,height:`${(HR+0.5)*2*A}%`,aspectRatio:'1',left:`${h.hx-HR-0.5}%`,top:`${h.hy-(HR+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
+          <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,height:`${hPx*A}%`,aspectRatio:'1',left:`${h.hx-HR}%`,top:`${h.hy-HR*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,height:`${hPx*0.4*A}%`,aspectRatio:'1',left:`${h.hx-HR*0.4}%`,top:`${h.hy-HR*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
 
           {/* Flag */}
           <div className="absolute pointer-events-none z-[6]" style={{left:`${h.hx+0.15}%`,top:`${h.hy-HR*A*0.2}%`,transform:'translateX(-50%)'}}>
