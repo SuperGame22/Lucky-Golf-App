@@ -48,7 +48,7 @@ const LuckySpin = () => {
 
     const prizeIndex = Math.floor(Math.random() * prizes.length);
     const segmentAngle = 360 / prizes.length;
-    const targetRotation = 360 * 5 + (360 - (prizeIndex * segmentAngle) - segmentAngle / 2);
+    const targetRotation = 360 * 12 + (360 - (prizeIndex * segmentAngle) - segmentAngle / 2);
     setRotation(prev => prev + targetRotation);
 
     setTimeout(async () => {
@@ -67,7 +67,7 @@ const LuckySpin = () => {
       }
 
       if (!won.rare && spinsRemaining > 1) setCanRespin(true);
-    }, 4000);
+    }, 9000);
   };
 
   const respin = () => {
@@ -93,7 +93,7 @@ const LuckySpin = () => {
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: 4, ease: [0.2, 0.8, 0.2, 1] }}
+            <motion.div animate={{ rotate: rotation }} transition={{ duration: 9, ease: [0.02, 0.55, 0.04, 1] }}
               className="relative w-96 h-96">
               <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                 {prizes.map((prize, i) => {

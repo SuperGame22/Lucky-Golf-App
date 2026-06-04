@@ -31,24 +31,31 @@ const BUNKERS=[
   "M 74,2 C 80,-2 90,2 92,10 C 94,18 88,22 82,18 C 76,14 70,6 74,2 Z",
 ];
 
-// Putter "cluck" — impact noise burst + body thud
+// Putter hit — try real MP3, fall back to synthesis
 function sndHit(){
-  const ctx=new AudioContext();const now=ctx.currentTime;
-  // Impact click: short white noise through bandpass
-  const sz=Math.floor(ctx.sampleRate*0.04);
-  const buf=ctx.createBuffer(1,sz,ctx.sampleRate);
-  const d=buf.getChannelData(0);
-  for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(sz*0.08));
-  const ns=ctx.createBufferSource();ns.buffer=buf;
-  const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800;bp.Q.value=0.8;
-  const ng=ctx.createGain();ng.gain.setValueAtTime(0.7,now);ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
-  ns.connect(bp);bp.connect(ng);ng.connect(ctx.destination);ns.start(now);
-  // Body thud: sine drops from 420Hz → 180Hz quickly
-  const o=ctx.createOscillator();o.type='sine';
-  o.frequency.setValueAtTime(420,now);o.frequency.exponentialRampToValueAtTime(180,now+0.12);
-  const g=ctx.createGain();g.gain.setValueAtTime(0.35,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
-  o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+0.18);
-  setTimeout(()=>ctx.close(),400);
+  try {
+    const a = new Audio('/sounds/putter-hit.mp3');
+    a.volume = 0.8;
+    a.play().catch(() => sndHitSynth());
+  } catch { sndHitSynth(); }
+}
+function sndHitSynth(){
+  try {
+    const ctx=new AudioContext();const now=ctx.currentTime;
+    const sz=Math.floor(ctx.sampleRate*0.04);
+    const buf=ctx.createBuffer(1,sz,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(sz*0.08));
+    const ns=ctx.createBufferSource();ns.buffer=buf;
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800;bp.Q.value=0.8;
+    const ng=ctx.createGain();ng.gain.setValueAtTime(0.7,now);ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+    ns.connect(bp);bp.connect(ng);ng.connect(ctx.destination);ns.start(now);
+    const o=ctx.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(420,now);o.frequency.exponentialRampToValueAtTime(180,now+0.12);
+    const g=ctx.createGain();g.gain.setValueAtTime(0.35,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+    o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+0.18);
+    setTimeout(()=>ctx.close(),400);
+  } catch {}
 }
 // Sink chime — stays pleasant
 function sndSink(){
