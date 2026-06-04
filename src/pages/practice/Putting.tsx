@@ -34,7 +34,7 @@ const BUNKERS=[
 // Putter hit — try real MP3, fall back to synthesis
 function sndHit(){
   try {
-    const a = new Audio('/sounds/putter-hit.mp3');
+    const a = new Audio('/sounds/putter-hit.wav');
     a.volume = 0.8;
     a.play().catch(() => sndHitSynth());
   } catch { sndHitSynth(); }
