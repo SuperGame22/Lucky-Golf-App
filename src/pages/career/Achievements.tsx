@@ -1,29 +1,50 @@
 /**
  * Achievements - Badges & Milestones
+ * Unlocked based on real round/clover data
  */
 
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Award, Lock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { ArrowLeft } from 'lucide-react';
 
 const ACHIEVEMENTS = [
-  { id: 1, name: 'First Round', desc: 'Complete your first round', icon: '🏌️', earned: true, date: 'Jan 15' },
-  { id: 2, name: 'Par Machine', desc: '5 pars in a row', icon: '🎯', earned: true, date: 'Feb 2' },
-  { id: 3, name: 'Eagle Eye', desc: 'Score an eagle', icon: '🦅', earned: true, date: 'Mar 10' },
-  { id: 4, name: 'Clover Collector', desc: 'Earn 100 clovers', icon: '🍀', earned: true, date: 'Mar 22' },
-  { id: 5, name: 'Gold Rush', desc: 'Win 500 on Gold Machine', icon: '🏆', earned: false },
-  { id: 6, name: 'Social Butterfly', desc: 'Play with 10 different players', icon: '🦋', earned: false },
-  { id: 7, name: 'Ace!', desc: 'Score a hole-in-one', icon: '⛳', earned: false },
-  { id: 8, name: 'Marathon', desc: 'Play 100 rounds', icon: '🏃', earned: false },
-  { id: 9, name: 'Wager King', desc: 'Win 10 Lucky Wagers', icon: '👑', earned: false },
-  { id: 10, name: 'Under Par', desc: 'Finish a round under par', icon: '🔥', earned: false },
+  { id: 'first_round', name: 'First Round', desc: 'Complete your first round', icon: '🏌️', check: (stats: any) => stats.rounds >= 1 },
+  { id: 'five_rounds', name: 'Regulars Club', desc: 'Complete 5 rounds', icon: '🏅', check: (s: any) => s.rounds >= 5 },
+  { id: 'ten_rounds', name: 'Dedicated Golfer', desc: 'Complete 10 rounds', icon: '🔟', check: (s: any) => s.rounds >= 10 },
+  { id: 'hundred_rounds', name: 'Marathon', desc: 'Play 100 rounds', icon: '🏃', check: (s: any) => s.rounds >= 100 },
+  { id: 'under_par', name: 'Under Par', desc: 'Finish a round under par', icon: '🔥', check: (s: any) => s.bestDiff < 0 },
+  { id: 'clover_100', name: 'Clover Collector', desc: 'Earn 100 clovers', icon: '🍀', check: (s: any) => s.clovers >= 100 },
+  { id: 'clover_500', name: 'Clover Hoarder', desc: 'Earn 500 clovers', icon: '🌿', check: (s: any) => s.clovers >= 500 },
+  { id: 'ace', name: 'Ace!', desc: 'Score a hole-in-one', icon: '⛳', check: () => false },
+  { id: 'wager_win', name: 'Wager King', desc: 'Win 10 Lucky Wagers', icon: '👑', check: () => false },
+  { id: 'social', name: 'Social Butterfly', desc: 'Play with 10 different players', icon: '🦋', check: () => false },
 ];
 
 export default function Achievements() {
   const navigate = useNavigate();
-  const earned = ACHIEVEMENTS.filter(a => a.earned).length;
+  const { user, profile } = useAuth();
+  const [stats, setStats] = useState({ rounds: 0, bestDiff: 0, clovers: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase.from('rounds').select('score_diff').eq('user_id', user.id).eq('completed', true),
+    ]).then(([{ data: rounds }]) => {
+      const total = rounds?.length ?? 0;
+      const bestDiff = rounds?.length ? Math.min(...rounds.map(r => r.score_diff)) : 0;
+      setStats({ rounds: total, bestDiff, clovers: profile?.clovers ?? 0 });
+      setLoading(false);
+    });
+  }, [user, profile]);
+
+  const unlocked = ACHIEVEMENTS.filter(a => a.check(stats));
+  const earned = unlocked.length;
 
   return (
     <AppLayout>
@@ -41,18 +62,24 @@ export default function Achievements() {
             className="bg-primary h-3 rounded-full" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {ACHIEVEMENTS.map((a, i) => (
-            <motion.div key={a.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.04 }}
-              className={`glass-card p-4 text-center ${a.earned ? '' : 'opacity-50'}`}
-            >
-              <span className="text-4xl block mb-2">{a.earned ? a.icon : '🔒'}</span>
-              <p className="font-black text-sm">{a.name}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">{a.desc}</p>
-              {a.earned && a.date && <p className="text-[9px] text-primary font-bold mt-2 uppercase tracking-widest">{a.date}</p>}
-            </motion.div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {ACHIEVEMENTS.map((a, i) => {
+              const isEarned = a.check(stats);
+              return (
+                <motion.div key={a.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.04 }}
+                  className={`glass-card p-4 text-center ${isEarned ? 'border-primary/30 bg-primary/5' : 'opacity-40'}`}>
+                  <span className="text-4xl block mb-2">{isEarned ? a.icon : '🔒'}</span>
+                  <p className="font-black text-sm">{a.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{a.desc}</p>
+                  {isEarned && <p className="text-[9px] text-primary font-bold mt-2 uppercase tracking-widest">Unlocked ✓</p>}
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AppLayout>
   );
