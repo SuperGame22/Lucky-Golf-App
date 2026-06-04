@@ -1,4 +1,5 @@
 import { CloverIcon } from '@/components/icons/CloverIcon';
+import { CloverLogo } from '@/components/icons/CloverLogo';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { useWallet } from '@/contexts/WalletContext';
 import { Bell, User, Wallet } from 'lucide-react';
@@ -12,7 +13,7 @@ export function Header() {
       <div className="flex items-center justify-between h-14 px-3 max-w-lg mx-auto gap-2">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <CloverIcon className="w-7 h-7 text-primary" />
+          <CloverLogo className="w-8 h-8" />
           <span className="font-display font-bold text-base">Lucky Golf</span>
         </Link>
 

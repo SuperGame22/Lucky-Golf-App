@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CloverIcon } from "@/components/icons/CloverIcon";
+import { CloverLogo } from '@/components/icons/CloverLogo';
 import {
   Package,
   Tag,
@@ -87,7 +88,7 @@ const AdminDashboard = () => {
       <div className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CloverIcon className="w-8 h-8 text-primary" />
+            <CloverLogo className="w-8 h-8" />
             <div>
               <h1 className="text-xl font-display font-bold">Lucky Clover Admin</h1>
               <p className="text-xs text-muted-foreground">

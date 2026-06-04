@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CloverIcon } from "@/components/icons/CloverIcon";
+import { CloverLogo } from '@/components/icons/CloverLogo';
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +66,7 @@ const AdminLogin = () => {
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-4">
-              <CloverIcon className="w-16 h-16 text-primary" />
+              <CloverLogo className="w-16 h-16" />
             </div>
             <h1 className="text-3xl font-display font-bold">Admin Portal</h1>
             <p className="text-muted-foreground">Lucky Clover Management</p>

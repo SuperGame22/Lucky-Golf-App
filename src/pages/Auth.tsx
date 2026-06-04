@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
+import { CloverLogo } from '@/components/icons/CloverLogo';
 import {
   Mail,
   Lock,
@@ -84,7 +85,7 @@ export default function AuthPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <CloverIcon className="w-16 h-16 mx-auto mb-4" />
+          <CloverLogo className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-3xl font-black uppercase tracking-wider">Lucky Golf</h1>
           <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">
             {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Join the Club' : 'Reset Password'}

@@ -1,6 +1,7 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
+import { CloverLogo } from '@/components/icons/CloverLogo';
 import { useWallet } from '@/contexts/WalletContext';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -34,7 +35,7 @@ export default function HomeScreen() {
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Your Clovers</p>
               <div className="flex items-center gap-3">
-                <CloverIcon className="w-8 h-8 text-primary" />
+                <CloverLogo className="w-10 h-10" />
                 <span className="text-4xl font-black text-primary">{clovers}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Play rounds and shop to earn clovers</p>
