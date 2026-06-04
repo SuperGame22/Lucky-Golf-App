@@ -1,6 +1,7 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
+import { useWallet } from '@/contexts/WalletContext';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, Target, Gift, ShoppingBag, Sparkles, Play } from 'lucide-react';
@@ -16,7 +17,7 @@ const quickActions = [
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Golfer';
-  const clovers = profile?.clovers ?? 0;
+  const { cloverBalance: clovers } = useWallet();
   const luckyLevel = profile?.lucky_level ?? 1;
 
   return (

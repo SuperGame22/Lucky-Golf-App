@@ -1,7 +1,13 @@
 import { cn } from '@/lib/utils';
 
+// Clean 4-leaf clover. NOTE: approximation of the brand logo — the detailed
+// golfer-in-clover artwork needs the real asset (repo image files are placeholders).
 export const CloverIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={cn("w-5 h-5", className)}>
-    <path d="M12 2C10.3 2 9 3.3 9 5c0 .8.3 1.5.8 2C8.5 6.4 7 5.5 5.5 5.5 3.6 5.5 2 7.1 2 9c0 1.9 1.4 3.4 3.2 3.5C4.5 13.1 4 13.9 4 15c0 2 1.6 3.7 3.6 3.8.4 2.1 2.3 3.7 4.4 3.7s4-1.6 4.4-3.7C18.4 18.7 20 17 20 15c0-1.1-.5-1.9-1.2-2.5C20.6 12.4 22 10.9 22 9c0-1.9-1.6-3.5-3.5-3.5-1.5 0-3 .9-4.3 1.5.5-.5.8-1.2.8-2C15 3.3 13.7 2 12 2z"/>
+  <svg viewBox="0 0 100 100" className={cn('w-5 h-5', className)} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 49 C 45 40 33 40 33 31 C 33 24 41 22 46 27 C 48 29 50 32 50 32 C 50 32 52 29 54 27 C 59 22 67 24 67 31 C 67 40 55 40 50 49 Z" />
+    <g transform="rotate(90 50 50)"><path d="M50 49 C 45 40 33 40 33 31 C 33 24 41 22 46 27 C 48 29 50 32 50 32 C 50 32 52 29 54 27 C 59 22 67 24 67 31 C 67 40 55 40 50 49 Z" /></g>
+    <g transform="rotate(180 50 50)"><path d="M50 49 C 45 40 33 40 33 31 C 33 24 41 22 46 27 C 48 29 50 32 50 32 C 50 32 52 29 54 27 C 59 22 67 24 67 31 C 67 40 55 40 50 49 Z" /></g>
+    <g transform="rotate(270 50 50)"><path d="M50 49 C 45 40 33 40 33 31 C 33 24 41 22 46 27 C 48 29 50 32 50 32 C 50 32 52 29 54 27 C 59 22 67 24 67 31 C 67 40 55 40 50 49 Z" /></g>
+    <path d="M50 50 C 53 61 57 68 63 74" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
   </svg>
 );

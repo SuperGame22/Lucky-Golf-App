@@ -1,35 +1,45 @@
-import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
-import { Bell, User } from 'lucide-react';
+import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
+import { useWallet } from '@/contexts/WalletContext';
+import { Bell, User, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
 export function Header() {
-  const { profile } = useAuth();
-  const clovers = profile?.clovers ?? 0;
+  const { balance, cloverBalance, gold } = useWallet();
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
-      <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
+      <div className="flex items-center justify-between h-14 px-3 max-w-lg mx-auto gap-2">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
           <CloverIcon className="w-7 h-7 text-primary" />
-          <span className="font-display font-bold text-lg">Lucky Golf</span>
+          <span className="font-display font-bold text-base">Lucky Golf</span>
         </Link>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2">
-          {/* Clovers */}
-          <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full">
-            <CloverIcon className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-primary">{clovers}</span>
+        {/* Balances + actions */}
+        <div className="flex items-center gap-1.5">
+          {/* Cash */}
+          <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
+            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-semibold text-emerald-300">${balance.toFixed(2)}</span>
           </div>
-
+          {/* Clovers */}
+          <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 px-2 py-1 rounded-full">
+            <CloverIcon className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary">{cloverBalance}</span>
+          </div>
+          {/* Gold */}
+          <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full">
+            <GoldCoinIcon className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-xs font-semibold text-amber-300">${gold.toFixed(2)}</span>
+          </div>
           {/* Notifications */}
-          <button className="p-2 rounded-full hover:bg-muted transition-colors relative">
+          <button className="p-1.5 rounded-full hover:bg-muted transition-colors relative">
             <Bell className="w-5 h-5 text-muted-foreground" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
           </button>
-
           {/* Profile */}
-          <Link to="/career" className="p-2 rounded-full hover:bg-muted transition-colors">
+          <Link to="/career" className="p-1.5 rounded-full hover:bg-muted transition-colors">
             <User className="w-5 h-5 text-muted-foreground" />
           </Link>
         </div>
