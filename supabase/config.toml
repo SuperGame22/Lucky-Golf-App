@@ -1,0 +1,7 @@
+project_id = "ofccyghazprvpcxsqbzp"
+
+[functions.analyze-swing]
+verify_jwt = false
+
+[functions.coach-chat]
+verify_jwt = false

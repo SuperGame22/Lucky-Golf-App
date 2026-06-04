@@ -1,3 +1,39 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
-import { useAuth } from '@/components/contexts/AuthContext';
-import { LF–æ²Òg&öÒw&V7B×&÷WFW"ÖFöÒs°¦–×÷'B²W6W"Òg&öÒvÇV6–FR×&V7Bs° ¦W‡÷'B6öç7B†VFW"Ò‚’Óâ°¢6öç7B²&öf–ÆRÒÒW6TWF‚‚“°¢&WGW&â€¢Æ†VFW"6Æ74æÖSÒ'7F–6·’F÷Ó¢ÓSrÖgVÆÂ&rÖ&Æ6²óƒ&6¶G&÷Ö&ÇW"×6Ò&÷&FW"Ö"&÷&FW"Öw&VVâÓ“ó##à¢ÆF—b6Æ74æÖSÒ&Ö‚×rÖÆr×‚ÖWFò‚ÓB‚ÓbfÆW‚—FV×2Ö6VçFW"§W7F–g’Ö&WGvVVâ#à¢ÄÆ–æ²FóÒ"ò"6Æ74æÖSÒ&fÆW‚—FV×2Ö6VçFW"vÓ"#à¢Ä6Æ÷fW$–6öâ6Æ74æÖSÒ'rÓ‚‚Ó‚FW‡B×&–Ö'’"óà¢Ç7â6Æ74æÖSÒ'FW‡B×†ÂföçBÖ&Æ6²WW&66RG&6¶–ær×F–v‡B#äÇV6·’vöÆcÂ÷7ãà¢ÂôÆ–æ³à¢ÄÆ–æ²FóÒ"÷&öf–ÆRöVF—B#à¢ÆF—b6Æ74æÖSÒ'rÓ‚Ó&÷VæFVBÖgVÆÂ&rÖw&VVâÓ“ó3fÆW‚—FV×2Ö6VçFW"§W7F–g’Ö6VçFW"&÷&FW"&÷&FW"×&–Ö'’ó##à¢ÅW6W"6Æ74æÖSÒ'rÓR‚ÓRFW‡B×&–Ö'’"óà¢ÂöF—cà¢ÂôÆ–æ³à¢ÂöF—cà¢Âö†VFW#à¢“°§Ó°
+import { Bell, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+export function Header() {
+  const { profile } = useAuth();
+  const clovers = profile?.clovers ?? 0;
+
+  return (
+    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
+      <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2">
+          <CloverIcon className="w-7 h-7 text-primary" />
+          <span className="font-display font-bold text-lg">Lucky Golf</span>
+        </Link>
+
+        {/* Right side */}
+        <div className="flex items-center gap-2">
+          {/* Clovers */}
+          <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full">
+            <CloverIcon className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">{clovers}</span>
+          </div>
+
+          {/* Notifications */}
+          <button className="p-2 rounded-full hover:bg-muted transition-colors relative">
+            <Bell className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          {/* Profile */}
+          <Link to="/career" className="p-2 rounded-full hover:bg-muted transition-colors">
+            <User className="w-5 h-5 text-muted-foreground" />
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}

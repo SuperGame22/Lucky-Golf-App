@@ -23,7 +23,6 @@ function mk():Hole[]{
 
 // Organic green path + bunkers (SVG coords in 0-100 viewBox)
 const GREEN_PATH="M 12,50 C 10,30 18,12 35,8 C 50,5 65,6 78,12 C 90,18 93,35 92,50 C 91,65 88,78 75,85 C 62,92 45,94 30,90 C 18,86 14,70 12,50 Z";
-const GRID_PATH=""; // Not used but kept for compatibility
 const BUNKERS=[
   "M 2,30 C -3,18 4,6 16,4 C 24,2 32,10 28,20 C 24,28 8,38 2,30 Z",
   "M 82,62 C 88,54 98,58 96,70 C 94,80 86,84 80,78 C 76,72 78,68 82,62 Z",
@@ -39,7 +38,7 @@ function play(f:number,d:number,t:OscillatorType='sine'){
   o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);
   setTimeout(()=>c.close(),d*1000+100);
 }
-function sndLit(){play(1500,0.05,'square');play(170,0.1);}
+function sndHit(){play(1500,0.05,'square');play(170,0.1);}
 function sndSink(){play(1200,0.1);setTimeout(()=>play(1500,0.1),30);setTimeout(()=>play(1800,0.08),60);}
 
 // Point-in-SVG-path test (ray casting)
@@ -48,244 +47,242 @@ function parsePath(d:string):{x:number;y:number}[][]{
   d.replace(/([MCLZ])\s*([^MCLZ]*)/gi,(_, cmd, args)=>{
     const nums=(args.match(/-?[\d.]+/g)||[]).map(Number);
     if(cmd==='M'||cmd==='m'){if(cur.length)segs.push(cur);cur=[{x:nums[0],y:nums[1]}];}
-    else if(cmd==='C'||cmd==='c'){for(let i=0;i<nums.length;i+=2)cur.push({x:nums[i],y:nums[i+1]});}
+    else if(cmd==='C'||cmd==='c'){for(let i=0;i<nums.length;i+=6){cur.push({x:nums[i],y:nums[i+1]},{x:nums[i+2],y:nums[i+3]},{x:nums[i+4],y:nums[i+5]});}}
     else if(cmd==='L'||cmd==='l'){for(let i=0;i<nums.length;i+=2)cur.push({x:nums[i],y:nums[i+1]});}
     else if(cmd==='Z'||cmd==='z'){if(cur.length>0)cur.push(cur[0]);}
     return '';
   });
   if(cur.length)segs.push(cur);return segs;
 }
-const greenPts=parsePath(GREEN_PATH9[0]||[];
-function inGreen(px:number,py:number):bolean,
-  lowdef=false;
+const greenPts=parsePath(GREEN_PATH)[0]||[];
+function inGreen(px:number,py:number):boolean{
   let inside=false;
   for(let i=0,j=greenPts.length-1;i<greenPts.length;j=i++){
     const{x:xi,y:yi}=greenPts[i],{x:xj,y:yj}=greenPts[j];
-    if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)insede=!inside;
+    if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)inside=!inside;
   }
   return inside;
 }
-const bunkerPts=BUNKERS.map(b=>parsePath(b)[_×JNÂ™[˜İ[Ûˆ[[šÙ\Š›[X™\‹N›[X™\ŠN˜›ÛÛX[Âˆ™]\›ˆ[šÙ\”ËœÛÛYJÏOÂˆ][œÏY˜[ÙNÂˆ›ÜŠ]OL\Ë›[™İLNÚOË›[™İÚZJÊÊ^ÂˆÛÛœİŞKNZ_O\ÆÚWKŞ‹NZŸO\ÖÚ—NÂˆYŠ
-ZOœJHOOJZœJI‰œ
-‹^JJŠK^ZJKÊZ‹^ZJJŞJZ[œÏHZ[œÎÂˆBˆ™]\›ˆ[œÎÂˆJNÂŸB‚\HÔÏIØZ[Iß	Ü›Û	ß	Üİ[šÉß	Û\	ß	ÛZ\ÜÉß	ÜØ[™	ß	Ü˜XİXÙIÎÂ‚™^ÜY˜][[˜İ[Ûˆ][™ÑØ[YJ
-^ÂˆÛÛœİ˜]]\ÙS˜]šYØ]J
-NØÛÛœİÜ™Yœ™\Ú›Ùš[_O]\ÙP]]
+const bunkerPts=BUNKERS.map(b=>parsePath(b)[0]||[]);
+function inBunker(px:number,py:number):boolean{
+  return bunkerPts.some(pts=>{
+    let ins=false;
+    for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+      const{x:xi,y:yi}=pts[i],{x:xj,y:yj}=pts[j];
+      if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins;
+    }
+    return ins;
+  });
+}
 
-NÂˆÛÛœİÔ™Y]\ÙT™YS]‘[[Y[Š[
-NØÛÛœİ˜Y]\ÙT™YŠ
-NÂˆÛÛœİØÛİ\œÙWO]\ÙTİ]OÛV×OŠ
+type GS='aim'|'roll'|'sunk'|'lip'|'miss'|'sand'|'practice';
 
-OO›ZÊ
-JNÂˆÛÛœİÛ˜ËÙ]˜×O]\ÙTİ]OÛV×_[Š[
-NÂˆÛÛœİØÏ[˜ßÛİ\œÙNÂˆÛÛœİÚKÙ]WO]\ÙTİ]J
-NØÛÛœİØœÙ]œO]\ÙTİ]JŞLNJNÂˆÛÛœİÙÜËÙ]Ü×O]\ÙTİ]OÔÏŠ	ØZ[IÊNÂˆÛÛœİÜØËÙ]Ø×O]\ÙTİ]J
-NØÛÛœİÜÙ]O]\ÙTİ]J
-NØÛÛœİÜÚËÙ]Ú×O]\ÙTİ]J
-NØÛÛœİØÛÙ]ÛO]\ÙTİ]J
-NÂˆÛÛœİÙÙ]O]\ÙTİ]OŞ›[X™\ŞN›[X™\Ÿ_[Š[
-NÂˆÛÛœİËÙ]×O]\ÙTİ]OŞ›[X™\ŞN›[X™\Ÿ_[Š[
-NÂˆÛÛœİÛ\ÙËÙ]\Ù×O]\ÙTİ]Oİš[™ß[Š[
-NØÛÛœİÜİX‹Ù]İX—O]\ÙTİ]Oİš[™ß[Š[
-NÂˆÛÛœİÜ˜XËÙ]˜X×O]\ÙTİ]JYJNÂˆÛÛœİXØÖÓX]›Z[ŠKØË›[™İLJWNÂ‚ˆÛÛœİİ]\ÙPØ[˜XÚÊ
-Ş›[X™\‹ŞN›[X™\ŠOOÂˆYŠYÔ™Y‹˜İ\œ™[
-\™]\›ŞLNNØÛÛœİYÔ™Y‹˜İ\œ™[™Ù]›İ[™[™ĞÛY[™Xİ
+export default function PuttingGame(){
+  const nav=useNavigate();const{refreshProfile}=useAuth();
+  const gRef=useRef<HTMLDivElement>(null);const raf=useRef(0);
+  const[course]=useState<Hole[]>(()=>mk());
+  const[nc,setNc]=useState<Hole[]|null>(null);
+  const cc=nc||course;
+  const[hi,setHi]=useState(0);const[bp,setBp]=useState({x:50,y:88});
+  const[gs,setGs]=useState<GS>('aim');
+  const[sc,setSc]=useState(0);const[pt,setPt]=useState(0);const[sk,setSk]=useState(0);const[cl,setCl]=useState(0);
+  const[d0,setD0]=useState<{x:number;y:number}|null>(null);
+  const[dc,setDc]=useState<{x:number;y:number}|null>(null);
+  const[msg,setMsg]=useState<string|null>(null);const[sub,setSub]=useState<string|null>(null);
+  const[prac,setPrac]=useState(true);
+  const h=cc[Math.min(hi,cc.length-1)];
 
-NÂˆ™]\›ŞŠ
-Ş\‹›Y
-KÜ‹ÚY
-JŒLNŠ
-ŞK\‹Ü
-KÜ‹šZYÚ
-JŒLNÂˆK×JNÂ‚ˆÛÛœİİÛJN”™XXİ•İXÚ]™[™XXİ“[İ\ÙQ]™[
-OOÚYŠÜÈOOIØZ[IÊ\™]\›ØÛÛœİIİİXÚ\ÉÈ[ˆOÙKİXÚ\ÖÌN™NØÛÛœİ\İ
-˜ÛY[˜ÛY[JNÜÙ]
-ŠNÜÙ]ÊŠNßNÂˆÛÛœİ[İ™OJN”™XXİ•İXÚ]™[™XXİ“[İ\ÙQ]™[
-OOÚYŠYÜÈOOIØZ[IÊ\™]\›ØÛÛœİIİİXÚ\ÉÈ[ˆOÙKİXÚ\ÖÌN™NÜÙ]Êİ
-˜ÛY[˜ÛY[JJNßNÂˆÛÛœİ\J
-OOÂˆYŠYYßÜÈOOIØZ[IÊ\™]\›ÂˆÛÛœİYYËOYKYËKÏSX]›Z[ŠX]œÜ\
-
-™
-ÙJ™JKV
-NÂˆÙ]
-[
-NÜÙ]Ê[
-NÚYŠÏŒÊ\™]\›ÂˆÛÛœİOSX]˜][ŒŠK
-NÚYŠ\˜XÊ\Ù]
-O›ŠÌJNÂˆÛ™]
+  const pct=useCallback((cx:number,cy:number)=>{
+    if(!gRef.current)return{x:50,y:88};const r=gRef.current.getBoundingClientRect();
+    return{x:((cx-r.left)/r.width)*100,y:((cy-r.top)/r.height)*100};
+  },[]);
 
-NÜÚ[JX]˜ÛÜÊJJœÊ”ÒËX]œÚ[ŠJJœÊ”ÒÊNÂˆNÂ‚ˆÛÛœİ[™˜XÏJX™[œİš[™Ë]Z[œİš[™ÊOOÂˆÙ]\ÙÊX™[
-NÜÙ]İXŠ]Z[
-NÂˆÙ][Y[İ]
+  const down=(e:React.TouchEvent|React.MouseEvent)=>{if(gs!=='aim')return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
+  const move=(e:React.TouchEvent|React.MouseEvent)=>{if(!d0||gs!=='aim')return;const p='touches' in e?e.touches[0]:e;setDc(pct(p.clientX,p.clientY));};
+  const up=()=>{
+    if(!d0||!dc||gs!=='aim')return;
+    const dx=d0.x-dc.x,dy=d0.y-dc.y,pw=Math.min(Math.sqrt(dx*dx+dy*dy),MXD);
+    setD0(null);setDc(null);if(pw<0.3)return;
+    const a=Math.atan2(dy,dx);if(!prac)setPt(n=>n+1);
+    sndHit();sim(Math.cos(a)*pw*PWK,Math.sin(a)*pw*PWK);
+  };
 
+  const endPrac=(label:string,detail:string)=>{
+    setMsg(label);setSub(detail);
+    setTimeout(()=>{setMsg(null);setSub(null);setBp({x:50,y:88});setPrac(false);setGs('aim');},1600);
+  };
 
-OOÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÜÙ]œ
-ŞLNJNÜÙ]˜XÊ˜[ÙJNÜÙ]ÜÊ	ØZ[IÊNßKMŒ
-NÂˆNÂ‚ˆÛÛœİÚ[OJ]›[X™\‹]N›[X™\ŠOOÂˆÙ]ÜÊ˜XÏÉÜ˜XİXÙIÎ‰Ü›Û	ÊNÂˆ]XœOXœKZ]OZ]K\ÑLÂˆÛÛœİXÚÏJ
-OOÂˆ
-ÏZœŞ
-”ÓÎİJÏZœŞJ”ÓÎÂˆÛÛœİÜSX]œÜ\
-
-
-İJJNÂˆÛÛœİ\Ü”ÕÑ”’PËJÜ
-ŒŒ
-N”Ñ”’PËJ
-Õ\Ü
-JŒŒŠNÂˆ
-YİJYŞ
-Ï]ŞJÏ]NÂ‚ˆËÈ›İ[™\Nˆ[šÙ\ˆÜˆÙ™‹YÜ™Y[‚ˆYŠZ[‘Ü™Y[ŠJJ^ÂˆØ[˜Ù[[š[X][Û‘œ˜[YJ˜Y‹˜İ\œ™[
-NÂˆÙ]œ
-Ş“X]›X^
-‹X]›Z[ŠN
-JKN“X]›X^
-‹X]›Z[ŠNJJ_JNÂˆYŠ˜XÊ^Ù[™˜XÊ	Ô˜XİXÙHİ™\‰Ë	Ó›İÈ›ÜˆH™X[]	ÊNÜ™]\›ßBˆYŠ[[šÙ\ŠJJ^ÜÙ]ÜÊ	ÜØ[™	ÊNÜÙ]\ÙÊ	Õ˜\Y[ˆØ[™	ÊNÜÙ]İXŠ	Ğ˜[]H[šÙ\‰ÊNßBˆ[Ù^ÜÙ]ÜÊ	ÛZ\ÜÉÊNÜÙ]\ÙÊ	ÓÙ™ˆHÜ™Y[‰ÊNÜÙ]İXŠ	Ò[ÈH›İYÚ	ÊNßBˆÙ][Y[İ]
+  const sim=(ivx:number,ivy:number)=>{
+    setGs(prac?'practice':'roll');
+    let x=bp.x,y=bp.y,vx=ivx,vy=ivy,lipCD=0;
+    const tick=()=>{
+      vx+=h.sx*SLK;vy+=h.sy*SLK;
+      const spd=Math.sqrt(vx*vx+vy*vy);
+      const f=spd>STH?FRIC-(spd*0.00008):SFRIC-((STH-spd)*0.002);
+      vx*=f;vy*=f;x+=vx;y+=vy;
 
+      // Boundary: bunker or off-green
+      if(!inGreen(x,y)){
+        cancelAnimationFrame(raf.current);
+        setBp({x:Math.max(2,Math.min(98,x)),y:Math.max(2,Math.min(98,y))});
+        if(prac){endPrac('Practice Over','Now for the real putt');return;}
+        if(inBunker(x,y)){setGs('sand');setMsg('Trapped in Sand');setSub('Ball hit the bunker');}
+        else{setGs('miss');setMsg('Off the Green');setSub('Into the rough');}
+        setTimeout(()=>{setMsg(null);setSub(null);setBp({x:50,y:88});setGs('aim');},1800);
+        return;
+      }
 
-OOÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÜÙ]œ
-ŞLNJNÜÙ]ÜÊ	ØZ[IÊNßKN
-NÂˆ™]\›ÂˆB‚ˆYŠ\ÑŒ
-[\ÑKNØÛÛœİÜÏSX]œÜ\
-
-
-İJJNÂˆÛÛœİ^ZšO^KZšK\İSX]œÜ\
-
-š
-ÚJšJNÂˆYŠ\İT
-^ÂˆÛÛœİZÊ\İŒJKOZKÊ\İŒJNÂˆYŠ\İĞTÔ‰‰˜ÜÏĞTÔÊ^ÂˆØ[˜Ù[[š[X][Û‘œ˜[YJ˜Y‹˜İ\œ™[
-NÜÙ]œ
-ŞššNšš_JNÂˆYŠ˜XÊ^Ù[™˜XÊ	ÓšXÙH™XYIË	Ó›İÈH™X[]	ÊNÜ™]\›ßBˆÛ™Ú[šÊ
-NÙÔİ[šÊ
-NÜ™]\›ÂˆBˆYŠ\İ“TI‰›\ÑOOL
-^ÂˆYŠÜÏĞTÔÊŒÊ^Û\ÑLMNØÛÛœİK[KO[İ]
-
-İJNØÛÛœİ]Yİ
-L]KYİ
-NİYİ
-
-Œ\ŠŒŒÎİOYİ
-JŒ\LŠŒŒÎŞZš
-Û
-ŠT
-ÌŒÊNŞOZšJÛJŠT
-ÌŒÊNÚYŠ\˜XÊ^ÜÙ]ÜÊ	Û\	ÊNÜÙ]\ÙÊ	Ó\İ]	ÊNÜÙ]İXŠ	ÕÛÈ]XÚXÙIÊNÜÙ][Y[İ]
+      if(lipCD>0)lipCD--;const cs=Math.sqrt(vx*vx+vy*vy);
+      const hdx=x-h.hx,hdy=y-h.hy,dist=Math.sqrt(hdx*hdx+hdy*hdy);
+      if(dist<LIP){
+        const nx=hdx/(dist||0.001),ny=hdy/(dist||0.001);
+        if(dist<CAP_R&&cs<CAP_S){
+          cancelAnimationFrame(raf.current);setBp({x:h.hx,y:h.hy});
+          if(prac){endPrac('Nice Read!','Now the real putt');return;}
+          sndSink();doSunk();return;
+        }
+        if(dist>LIPI&&lipCD===0){
+          if(cs>CAP_S*3){lipCD=15;const tx=-ny,ty=nx,dot=vx*tx+vy*ty;const rv=vx-dot*tx,rvy2=vy-dot*ty;vx=dot*tx*0.8-rv*0.3;vy=dot*ty*0.8-rvy2*0.3;x=h.hx+nx*(LIP+0.3);y=h.hy+ny*(LIP+0.3);if(!prac){setGs('lip');setMsg('Lip Out');setSub('Too much pace');setTimeout(()=>{setMsg(null);setSub(null);setGs('roll');},900);}}
+          else if(cs>CAP_S){const pull=0.08+(1-dist/LIP)*0.12;vx-=nx*pull;vy-=ny*pull;vx*=0.965;vy*=0.965;}
+        }
+        if(dist<LIP*1.5&&cs<CAP_S*2){const gv=0.02*(1-dist/(LIP*1.5));vx-=nx*gv;vy-=ny*gv;}
+      }
+      setBp({x,y});
+      if(cs<STOP){
+        cancelAnimationFrame(raf.current);
+        const fd=Math.sqrt((x-h.hx)**2+(y-h.hy)**2);
+        if(fd<CAP_R+0.2){setBp({x:h.hx,y:h.hy});if(prac){endPrac('Nice Read!','Real putt next');return;}sndSink();doSunk();}
+        else if(prac){endPrac('Practice Over','Now the real putt');}
+        else{setGs('miss');setMsg(fd<LIP*1.5?'Close':'Missed');setSub(fd<LIP*1.5?'Almost':'Read the line');setTimeout(()=>{setMsg(null);setSub(null);setGs('aim');},1500);}
+        return;
+      }
+      raf.current=requestAnimationFrame(tick);
+    };
+    raf.current=requestAnimationFrame(tick);
+  };
 
+  const doSunk=async()=>{
+    setGs('sunk');setSk(n=>n+1);setSc(n=>n+h.rw*10);setCl(n=>n+h.rw);
+    setMsg('Sunk!');setSub(`+${h.rw} Clover${h.rw>1?'s':''}`);
+    await addClovers(h.rw,`Putting: Hole ${h.id}`);await refreshProfile();
+    setTimeout(()=>{setMsg(null);setSub(null);if(hi<cc.length-1){setHi(n=>n+1);setBp({x:50,y:88});setPrac(true);setGs('aim');}},2200);
+  };
+  const resetG=()=>{cancelAnimationFrame(raf.current);setNc(mk());setHi(0);setBp({x:50,y:88});setGs('aim');setSc(0);setPt(0);setSk(0);setCl(0);setMsg(null);setSub(null);setPrac(true);};
+  const retry=()=>{cancelAnimationFrame(raf.current);setBp({x:50,y:88});setGs('aim');setMsg(null);setSub(null);};
 
-OOÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÜÙ]ÜÊ	Ü›Û	ÊNßKL
-Nß_Bˆ[ÙHYŠÜÏĞTÔÊ^ØÛÛœİ[LŒ
-ÊKY\İÓT
-JŒŒLİO[
-œ[İKO[Jœ[İ
-LMNİJLMNßBˆBˆYŠ\İT
-ŒKI‰˜ÜÏĞTÔÊŒŠ^ØÛÛœİİLŒŠŠKY\İÊT
-ŒKJJNİO[
-™İİKO[J™İßBˆBˆÙ]œ
-Ş_JNÂˆYŠÜÏÕÔ
-^ÂˆØ[˜Ù[[š[X][Û‘œ˜[YJ˜Y‹˜İ\œ™[
-NÂˆÛÛœİ™SX]œÜ\
+  const aim=d0&&dc?{dx:d0.x-dc.x,dy:d0.y-dc.y}:null;
+  const pw=aim?Math.min(Math.sqrt(aim.dx**2+aim.dy**2),MXD):0;
+  const done=hi>=cc.length-1&&gs==='sunk';
+  const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
+  const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/1.6,1);
+  const bPx=BR*2,hPx=HR*2,A=5/4;
 
-Zš
-JŠŒŠÊKZšJJŠŒŠNÂˆYŠ™ĞTÔŠÌŒŠ^ÜÙ]œ
-ŞššNšš_JNÚYŠ˜XÊ^Ù[™˜XÊ	ÓšXÙH™XYIË	Ô™X[]™^	ÊNÜ™]\›ß\Û™Ú[šÊ
-NÙÔİ[šÊ
-NßBˆ[ÙHYŠ˜XÊ^Ù[™˜XÊ	Ô˜XİXÙHİ™\‰Ë	Ó›İÈH™X[]	ÊNßBˆ[Ù^ÜÙ]ÜÊ	ÛZ\ÜÉÊNÜÙ]\ÙÊ™T
-ŒKOÉĞÛÜÙIÎ‰ÓZ\ÜÙY	ÊNÜÙ]İXŠ™T
-ŒKOÉĞ[[Üİ	Î‰Ô™XYH[™IÊNÜÙ][Y[İ]
+  return(
+    <AppLayout>
+      <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={()=>nav('/practice')}><ArrowLeft className="w-5 h-5"/></Button>
+          <div className="flex-1">
+            <h1 className="text-xl font-black uppercase tracking-wider">Putting Pro</h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Hole {hi+1}/{cc.length} Â· {h.label}{hs?' Â· Break':''}</p>
+          </div>
+          {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
+        </div>
 
+        <div className="flex items-center justify-between glass-card p-2.5 text-center">
+          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">PTS</p><p className="text-lg font-black text-primary">{sc}</p></div>
+          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">PUTTS</p><p className="text-lg font-black">{pt}</p></div>
+          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">IN</p><p className="text-lg font-black text-green-400">{sk}/{cc.length}</p></div>
+          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">EARN</p><p className="text-lg font-black text-primary">+{cl}</p></div>
+        </div>
 
-OOÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÜÙ]ÜÊ	ØZ[IÊNßKML
-NßBˆ™]\›ÂˆBˆ˜Y‹˜İ\œ™[\™\]Y\İ[š[X][Û‘œ˜[YJXÚÊNÂˆNÂˆ˜Y‹˜İ\œ™[\™\]Y\İ[š[X][Û‘œ˜[YJXÚÊNÂˆNÂ‚ˆÛÛœİÔİ[šÏX\Ş[˜Ê
-OOÂˆÙ]ÜÊ	Üİ[šÉÊNÜÙ]ÚÊO›ŠÌJNÜÙ]ØÊO›ŠÚœÊŒL
-NÜÙ]Û
-O›ŠÚœÊNÂˆÙ]\ÙÊ	Ôİ[šÈIÊNÜÙ]İXŠ
-ÉÚœßHÛİ™\‰ÚœÏŒOÉÜÉÎ‰ÉßX
-NÂˆ]ØZ]YÛİ™\œÊœË][™ÎˆÛH	ÚšYX
-NØ]ØZ]™Yœ™\Ú›Ùš[J
-NÂˆÙ][Y[İ]
+        {/* Course view */}
+        <div ref={gRef} className="relative select-none touch-none cursor-crosshair" style={{aspectRatio:'3/4'}}
+          onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
+          onTouchStart={down} onTouchMove={move} onTouchEnd={up} data-testid="putting-green">
 
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            {/* Rough background */}
+            <rect x="0" y="0" width="100" height="100" fill="#1B5E20" rx="4"/>
+            {/* Bunkers */}
+            {BUNKERS.map((b,i)=><path key={i} d={b} fill="#f5f0dc" stroke="#d4c9a8" strokeWidth="0.3" opacity="0.9"/>)}
+            {/* Green */}
+            <path d={GREEN_PATH} fill="#0b560b"/>
+            <path d={GREEN_PATH} fill="url(#gGrad)" opacity="0.6"/>
+            {/* Green inner glow */}
+            <path d={GREEN_PATH} fill="none" stroke="rgba(74,222,128,0.08)" strokeWidth="0.5"/>
+            <defs>
+              <radialGradient id="gGrad" cx="50%" cy="25%" r="70%">
+                <stop offset="0%" stopColor="#0f6b0f"/><stop offset="50%" stopColor="#084808"/><stop offset="100%" stopColor="#032d03"/>
+              </radialGradient>
+            </defs>
+          </svg>
 
-OOÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÚYŠOØË›[™İLJ^ÜÙ]JO›ŠÌJNÜÙ]œ
-ŞLNJNÜÙ]˜XÊYJNÜÙ]ÜÊ	ØZ[IÊNß_KŒŒ
-NÂˆNÂ‚ˆÛÛœİZÊ
-N’ÛV×^ÂˆÛÛœİJN›[X™\‹›[X™\ŠOO˜JÓX]œ˜[™ÛJ
-JŠ‹XJK™J›[X™\ŠOO“X]œ›İ[™
-ŠŒL
-KÌLÂˆ™]\›ˆ\œ˜^K™œ›ÛJÛ[™İ_K
-ËJOOÂˆÛÛœİSX]œ›İ[™
-ŠKÍJJKOSX]œ›İ[™
-ŠX]›X^
-MKÍKZJJKX]›Z[ŠÎZJ
-JJNÂˆÛÛœİ\ÏSX]›Z[ŠŒJÚJŒŒKKŒ
-NÂˆ™]\›ÚYšJÌKX™[˜ÈX]œ›İ[™
+          {/* Topography overlays (clipped to green) */}
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+            <defs><clipPath id="gc"><path d={GREEN_PATH}/></clipPath></defs>
+            <g clipPath="url(#gc)">
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.35*it}/>}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.09*it}/>}
+              {/* Bent grid â€” Quadratic Bezier curves offset by slope */}
+              {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}</g>
+            <defs>
+              <linearGradient id="tSh" gradientTransform={`rotate(${sa})`}><stop offset="0%" stopColor="rgb(0,10,0)"/><stop offset="40%" stopColor="rgb(0,10,0)" stopOpacity="0.3"/><stop offset="100%" stopColor="rgb(0,10,0)" stopOpacity="0"/></linearGradient>
+              <linearGradient id="tHi" gradientTransform={`rotate(${la})`}><stop offset="0%" stopColor="rgb(80,200,80)"/><stop offset="30%" stopColor="rgb(80,200,80)" stopOpacity="0.3"/><stop offset="100%" stopColor="rgb(80,200,80)" stopOpacity="0"/></linearGradient>
+            </defs>
+          </svg>
 
-LZJJŒJHHKŞœ™
-Š[\Ë\ÊJKŞNœ™
-Š[\ÊŒ‹\ÊŒŠJKÎšJÌ_NÂˆJNÂˆNÂ‚ˆÛÛœİ™\Ù]ÏJ
-OOØØ[˜Ù[[š[X][Û‘œ˜[YJ˜Y‹˜İ\œ™[
-NÜÙ]ØÊ
-NÜÙ]
-
-NÜÙ]ÚÊ
-NÜÙ]Û
-
-NÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NÜÙ]˜XÊYJNßNÂˆÛÛœİ™]OJ
-OOØØ[˜Ù[[š[X][Û‘œ˜[YJ˜Y‹˜İ\œ™[
-NÜÙ]œ
-ŞLNJNÜÙ]ÜÊ	ØZ[IÊNÜÙ]\ÙÊ[
-NÜÙ]İXŠ[
-NßNÂ‚ˆÛÛœİZ[OY	‰™ÏŞÙ™YËN™KYË_N›[ÂˆÛÛœİÏXZ[OÓX]›Z[ŠX]œÜ\
-Z[K™
-ŠŒŠØZ[K™JŠŒŠKV
-NŒÂˆÛÛœİÛ™OZOXØË›[™İLI‰™ÜÏOOIÜİ[šÉÎÂˆÛÛœİÛOSX]œÜ\
-œŞ
-šœŞ
-ÚœŞJšœŞJK\ÛOŒŒNÂˆÛÛœİOZÏÓX]˜][ŒŠZœŞKZœŞ
-JŠNÓX]”JNŒLÍKØO[JÌN]SX]›Z[ŠÛKÌK‹JNÂˆÛÛœİ”P”ŠŒ‹RŠŒ‹OMKÍÂ‚ˆ™]\›Šˆ\^[İ]‚ˆ]ˆÛ\ÜÓ˜[YOH›X^]Ë[È^X]]ÈMKLÈÜXÙK^KLÈ‚ˆ]ˆÛ\ÜÓ˜[YOH™›^][\ËXÙ[\ˆØ\LÈ‚ˆ]Ûˆ˜\šX[H™ÚÜİˆÚ^™OHšXÛÛˆˆÛÛXÚÏ^Ê
-OO›˜]Š	ËÜ˜XİXÙIÊ_O\œ›İÓYÛ\ÜÓ˜[YOHËMHMH‹ÏĞ]Û‚ˆ]ˆÛ\ÜÓ˜[YOH™›^LH‚ˆHÛ\ÜÓ˜[YOH^^›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\ˆ”][™È›ÏÚO‚ˆÛ\ÜÓ˜[YOH^VÌLH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ’ÛHÚJÌ_KŞØØË›[™İH0­ÈÚ›X™[^ÚÏÉÈ2·œ™XZÉÎ‰ÉßOÜ‚ˆÙ]‚ˆÜ˜XÉ‰™ÜÏOOIØZ[IÉ‰Ü[ˆÛ\ÜÓ˜[YOH˜™Ë^Y[İËMLÌŒ^^Y[İËM^VÌLH›ÛX›XÚÈ\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İLÈKLH›İ[™YY[›Ü™\ˆ›Ü™\‹^Y[İËMLÌÌ[š[X]K\[ÙHˆ]K]\İYHœ˜XİXÙKX˜YÙH”˜XİXÙH[ÙOÜÜ[ŸBˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOH™›^][\ËXÙ[\ˆ\İYKX™]ÙY[ˆÛ\ÜËXØ\™L‹H^XÙ[\ˆ‚ˆ]Û\ÜÓ˜[YOH^VÎH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ”ÏÜÛ\ÜÓ˜[YOH^[È›ÛX›XÚÈ^\š[X\HÜØßOÜÙ]‚ˆ]Û\ÜÓ˜[YOH^VÎH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ”UÏÜÛ\ÜÓ˜[YOH^[È›ÛX›XÚÈÜOÜÙ]‚ˆ]Û\ÜÓ˜[YOH^VÎH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ’SÜÛ\ÜÓ˜[YOH^[È›ÛX›XÚÈ^YÜ™Y[‹MÜÚßKŞØØË›[™İOÜÙ]‚ˆ]Û\ÜÓ˜[YOH^VÎH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ‘PT“ÜÛ\ÜÓ˜[YOH^[È›ÛX›XÚÈ^\š[X\HŠÈØÛOÜÙ]‚ˆÙ]‚‚ˆËÊˆÛİ\œÙHšY]È
-‹ßBˆ]ˆ™Y^ÙÔ™YŸHÛ\ÜÓ˜[YOHœ™[]]™HÙ[Xİ[›Û™HİXÚ[›Û™Hİ\œÛÜ‹XÜ›ÜÜÚZ\ˆˆİ[O^ŞØ\ÜXİ˜][Î‰ÌËÍ	ß_BˆÛ“[İ\ÙQİÛ^ÙİÛŸHÛ“[İ\ÙS[İ™O^Û[İ™_HÛ“[İ\ÙU\^İ\HÛ“[İ\ÙSX]™O^İ\BˆÛ•İXÚİ\^ÙİÛŸHÛ•İXÚ[İ™O^Û[İ™_HÛ•İXÚ[™^İ\H]K]\İYHœ][™ËYÜ™Y[ˆ‚‚ˆİ™ÈšY]Ğ›ŞHŒLLˆÛ\ÜÓ˜[YOH˜XœÛÛ]H[œÙ]LËY[Y[ˆ™\Ù\™P\ÜXİ˜][ÏH››Û™H‚ˆËÊˆ›İYÚ˜XÚÙÜ›İ[™
-‹ßBˆ™XİHŒˆOHŒˆÚYHŒLˆZYÚHŒLˆš[HˆÌPQLŒˆH‹Ï‚ˆËÊˆ[šÙ\œÈ
-‹ßBˆĞ•S’ÑT”Ë›X\
+          {/* Break badge â€” larger */}
+          {hs&&<div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 z-10 flex items-center gap-2">
+            <span className="text-[10px] text-green-400 font-black uppercase tracking-widest">Break</span>
+            <svg width="22" height="22" viewBox="0 0 22 22"><line x1="11" y1="11" x2={11+h.sx*5} y2={11+h.sy*5} stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#bk)"/><defs><marker id="bk" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#4ade80"/></marker></defs></svg>
+          </div>}
 
-‹JOO]Ù^O^Ú_H^ØŸHš[HˆÙYŒÈˆİ›ÚÙOHˆÙÎXNˆİ›ÚÙUÚYHŒŒÈˆÜXÚ]OHŒH‹ÏŠ_BˆËÊˆÜ™Y[ˆ
-‹ßBˆ]^ÑÔ‘QS—ÔUHš[HˆÌ‘MÑÌˆˆİ›ÚÙOHˆÍĞQˆİ›ÚÙUÚYHŒHˆš[Ü™\H™]™[›Ù‹Ï‚ˆËÊˆÜšY[™\È
-‹ßBˆĞ\œ˜^K™œ›ÛJÛ[™İŒL_K
-ËJOOŠˆ[İ[Û‹œ]Ù^OX‹IÚ_X^ØH	Ú_K	Ú_KLHİ›ÚÙOHÚ]Hˆİ›ÚÙUÚYHŒŒHˆÜXÚ]OHŒŒMH‹Ï‚ˆ
-J_BˆĞ\œ˜^K™œ›ÛJÛ[™İŒL_K
-ËJOOŠˆ[İ[Û‹œ]Ù^OXIÚ_X^ØH	Ú_HL	Ú_XHİ›ÚÙOHÚ]Hˆİ›ÚÙUÚYHŒŒHˆÜXÚ]OHŒŒMH‹Ï‚ˆ
-J_BˆÜİ™Ï‚‚ˆËÊˆ™[ÜšY[™\È
-ÈH\ÈØØ[ÛÜJH
-‹ßBˆÚÉ‰Š[İ[Û‹™]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]H[œÙ]LÚ[\‹Y]™[Ë[›Û™Hš[š\š]^ŞÈÜXÚ]NˆØØ[NˆH_H[š[X]O^ŞÈÜXÚ]NˆKØØ[NˆH_O‚ˆİ™ÈšY]Ğ›ŞHŒLLˆÛ\ÜÓ˜[YOHËY[Y[‚ˆ[İ[Û‹œ]H“HMKLLKLˆİ›ÚÙOHœš[X\Hˆİ›ÚÙUÚYHŒŒÈˆÜXÚ]OHŒˆİ[O^ŞÈ˜[œÙ›Ü›Nˆ›İ]J	ÜØ_YYÊHØØ[V
-	Ú]JX_KÏ‚ˆ[İ[Û‹œ]H“HMKLLKLˆİ›ÚÙOHœš[X\Hˆİ›ÚÙUÚYHŒŒˆˆÜXÚ]OHŒŒˆˆİ[O^ŞÈ˜[œÙ›Ü›Nˆ›İ]J	ÜØKLLYYÊHØØ[V
-	Ú]JX_KÏ‚ˆ[İ[Û‹œ]H“HMKLLKLˆİ›ÚÙOHœš[X\Hˆİ›ÚÙUÚYHŒŒˆˆÜXÚ]OHŒŒˆˆİ[O^ŞÈ˜[œÙ›Ü›Nˆ›İ]J	ÜØJÌLYYÊHØØ[V
-	Ú]JX_KÏ‚ˆÜİ™Ï‚ˆÛ[İ[Û‹™]Š_B‚ˆËÊˆÛH
-‹ßBˆ[İ[Û‹™]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]H›İ[™YY[™ËX›XÚËÎ›Ü™\ˆ›Ü™\‹]Ú]KÍˆİ[O^ŞÈYˆš
-ÉÉIËÜˆšJÉÉIËÚYˆT
-ÉÉIËZYÚˆ
-ÉÉIËX\™Ú[“YˆRŠÉÉIËX\™Ú[•ÜˆRŠÉÉß_KÏ‚‚ˆËÊˆ˜[
-‹ßBˆ[İ[Û‹™]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]H›İ[™YY[™Ë]Ú]HÚYİË[Èˆİ[O^ŞÈYˆœ
-È	ÉIËÜˆœH
-È	ÉIËÚYˆ”
-È	ÉIËZYÚˆ”
-È	ÉIËX\™Ú[“YˆP”ˆ
-È	ÉIËX\™Ú[•ÜˆP”ˆ
-È	ÉIÈ_KÏ‚‚ˆËÊˆZ[H[™H
-‹ßBˆØZ[I‰™ÜÏOOIØZ[IÉ‰Šˆİ™ÈÛ\ÜÓ˜[YOH˜XœÛÛ]H[œÙ]LËY[Y[Ú[\‹Y]™[Ë[›Û™HˆšY]Ğ›ŞHŒLL‚ˆ[™HO^ÙHLO^Ù_H^ØœHL^Øœ_Hİ›ÚÙOHÚ]Hˆİ›ÚÙUÚYHŒHˆİ›ÚÙQ\Ú\œ˜^OHŒ‹H‹Ï‚ˆ[™HO^ØœHLO^Øœ_H^Øœ
-ØZ[K™HL^ØœZØZ[K™_Hİ›ÚÙOHœš[X\Hˆİ›ÚÙUÚYHŒÈ‹Ï‚ˆÜİ™Ï‚ˆ
-_B‚ˆËÊˆİÙ\ˆ˜\ˆ
-‹ßBˆØZ[I‰™ÜÏOOIØZ[IÉ‰Šˆ]ˆÛ\ÜÓ˜[YOH˜XœÛÛ]H›İÛKLLˆYLKÌˆ˜[œÛ]K^LKÌˆËMLˆ™ËX›XÚËÍ›İ[™YY[›Ü™\ˆ›Ü™\‹]ÚYLHİ™\™›İËZY[ˆ‚ˆ[İ[Û‹™]ˆÛ\ÜÓ˜[YOHšY[™Ë\š[X\Hˆİ[O^ŞÈÎˆ
-ËÓV
-JŒL
-ÉÉIÈ_KÏ‚ˆÙ]‚ˆ
-_B‚ˆ[š[X]T™\Ù[˜ÙO‚ˆÛ\ÙÉ‰Šˆ[İ[Û‹™]ˆ[š]X[^ŞÈÜXÚ]NˆNˆL_H[š[X]O^ŞÈÜXÚ]NˆKNˆ_H^]^ŞÈÜXÚ]Nˆ_BˆÛ\ÜÓ˜[YOH˜XœÛÛ]HÜLLˆYLKÌˆ˜[œÛ]K^LKÌˆ^XÙ[\ˆ‹LL‚ˆˆÛ\ÜÓ˜[YOH^LŞ›ÛX›XÚÈØ\][^™HÛ\ÙßOÚ‚ˆÛ\ÜÓ˜[YOH^\ÛH›Û[YY][H^^Y[İËM\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\ˆÜİXŸOÜ‚ˆÛ[İ[Û‹™]‚ˆ
-_BˆĞ[š[X]T™\Ù[˜ÙO‚ˆÙ]‚‚ˆ]ˆÛ\ÜÓ˜[YOH™›^][\ËXÙ[\ˆØ\LÈ‚ˆ]Ûˆ˜\šX[H›İ][™HˆÛ\ÜÓ˜[YOH™›^LHLLˆ›İ[™Y^ˆÛÛXÚÏ^Ü™]_H\ØX›Y^ÙÜÈOOIØZ[Iß˜XßO‚ˆ›İ]PØİÈÛ\ÜÓ˜[YOHËMM\‹Lˆ‹Ïˆ™]BˆĞ]Û‚ˆ]Ûˆ˜\šX[Hœš[X\HˆÛ\ÜÓ˜[YOH™›^LHLLˆ›İ[™Y^›ÛX›XÚÈ\\˜Ø\ÙHˆÛÛXÚÏ^Ü™\Ù]ßH\ØX›Y^ÙÜÈOOIØZ[IßO‚ˆ™^ÛBˆĞ]Û‚ˆÙ]‚‚ˆ[İ[Û‹™]ˆÛ\ÜÓ˜[YOH™Û\ÜËXØ\™M›^][\ËXÙ[\ˆ\İYKX™]ÙY[ˆ‚ˆ]‚ˆÛ\ÜÓ˜[YOH^VÌLH^[]]YY›Ü™YÜ›İ[™\\˜Ø\ÙH˜XÚÚ[™Ë]ÚY\İ”˜XİXÙHÙ\ÜÚ[ÛÜ‚ˆÛ\ÜÓ˜[YOH^\ÛH›ÛX›Û“X^H[Ü›š[™ÈŒLOÜ‚ˆÙ]‚ˆ›ÜHÛ\ÜÓ˜[YOHËMHMH^\š[X\H‹Ï‚ˆÛ[İ[Û‹™]‚ˆÙ]‚ˆĞ\^[İ]‚ˆ
-NÂŸB
+          {/* Hole */}
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+2)*2}%`,height:`${(HR+2)*2*A}%`,left:`${h.hx-HR-2}%`,top:`${h.hy-(HR+2)*A}%`,background:'radial-gradient(circle,rgba(0,0,0,0.3) 20%,transparent 65%)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+0.5)*2}%`,height:`${(HR+0.5)*2*A}%`,left:`${h.hx-HR-0.5}%`,top:`${h.hy-(HR+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
+          <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,height:`${hPx*A}%`,left:`${h.hx-HR}%`,top:`${h.hy-HR*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,height:`${hPx*0.4*A}%`,left:`${h.hx-HR*0.4}%`,top:`${h.hy-HR*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
+
+          {/* Flag */}
+          <div className="absolute pointer-events-none z-[6]" style={{left:`${h.hx+0.15}%`,top:`${h.hy-HR*A*0.2}%`,transform:'translateX(-50%)'}}>
+            <div style={{width:'1px',height:'36px',background:'linear-gradient(180deg,#ddd,#555 70%,#000)',position:'relative',top:'-30px'}}/>
+            <div className="absolute" style={{top:'-30px',left:'1px',width:'10px',height:'6px',background:'linear-gradient(140deg,#ef4444,#b91c1c)',borderRadius:'0 2px 2px 0',boxShadow:'0 1px 2px rgba(0,0,0,0.5)'}}/>
+          </div>
+
+          {/* Ball */}
+          <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
+          <div className="absolute z-20 pointer-events-none" data-testid="putting-ball" style={{width:`${bPx}%`,height:`${bPx}%`,left:`${bp.x-BR}%`,top:`calc(${bp.y}% - ${BR}vw*0.01)`,aspectRatio:'1',borderRadius:'50%',background:'radial-gradient(circle at 36% 30%,#fff,#f5f5f5 15%,#e8e8e8 30%,#d4d4d4 50%,#b8b8b8 70%,#999 90%,#777 100%)',boxShadow:'0 0.5px 2px rgba(0,0,0,0.5)'}}/>
+
+          {/* Aim */}
+          {aim&&gs==='aim'&&<svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none">
+            <line x1={bp.x} y1={bp.y} x2={bp.x+aim.dx*1.6} y2={bp.y+aim.dy*1.6} stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" strokeDasharray="1.5,1.5"/>
+            {Array.from({length:Math.min(Math.floor(pw/4),10)},(_,i)=>{const t=(i+1)/10;return<circle key={i} cx={bp.x+aim.dx*1.6*t} cy={bp.y+aim.dy*1.6*t} r={0.5+t*0.3} fill="white" opacity={0.15+t*0.5}/>;})}</svg>}
+
+          {/* Power bar */}
+          {aim&&gs==='aim'&&<div className="absolute bottom-2 left-3 right-3 z-10"><div className="bg-black/40 backdrop-blur-sm rounded-full h-1.5 overflow-hidden"><div className={`h-full rounded-full ${pw<18?'bg-green-500':pw<35?'bg-yellow-500':'bg-red-500'}`} style={{width:`${(pw/MXD)*100}%`}}/></div></div>}
+
+          {/* Practice instruction */}
+          {prac&&gs==='aim'&&!d0&&<motion.div initial={{opacity:0}} animate={{opacity:[0,0.9,0]}} transition={{duration:3,repeat:Infinity}} className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/30 rounded-lg px-3 py-1.5"><p className="text-[9px] text-yellow-300 font-bold uppercase tracking-widest">Practice shot â€” read the break</p></div></motion.div>}
+
+          {/* Result */}
+          <AnimatePresence>{msg&&<motion.div initial={{opacity:0,scale:0.5}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.5}} className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"><div className={`rounded-xl px-5 py-3 text-center backdrop-blur-md shadow-xl ${gs==='sunk'?'bg-primary/90':gs==='sand'?'bg-yellow-800/85':gs==='lip'?'bg-orange-600/85':'bg-black/65'}`}>
+            {gs==='sunk'&&<Trophy className="w-7 h-7 text-yellow-400 mx-auto mb-1"/>}
+            <p className="text-base font-black text-white uppercase tracking-wider">{msg}</p>
+            {sub&&<p className="text-[10px] text-white/70 mt-0.5">{sub}</p>}
+          </div></motion.div>}</AnimatePresence>
+        </div>
+
+        {done&&<motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="glass-card p-5 text-center border-primary/50">
+          <Trophy className="w-10 h-10 text-yellow-500 mx-auto mb-2"/><h2 className="text-lg font-black uppercase tracking-wider mb-1">Round Complete</h2>
+          <p className="text-muted-foreground text-sm">{sk}/{cc.length} sunk Â· {pt} putts</p><p className="text-primary font-black text-lg mt-1">+{cl} Clovers</p>
+        </motion.div>}
+
+        <div className="flex gap-3">
+          {(gs==='miss'||gs==='sand')&&<Button className="flex-1 font-bold uppercase tracking-wider text-xs" onClick={retry} data-testid="retry-btn"><RotateCcw className="w-4 h-4 mr-1"/> Retry</Button>}
+          <Button variant="outline" className="flex-1 font-bold uppercase tracking-wider text-xs" onClick={resetG} data-testid="reset-game-btn"><RotateCcw className="w-4 h-4 mr-1"/> New Round</Button>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}
