@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sparkles, MapPin } from "lucide-react";
-import mascotImage from "@/assets/lucky-leprechaun-mascot.png";
 interface NoMachineStateProps {
   onActivate?: () => void;
 }
@@ -38,7 +37,7 @@ export const NoMachineState = ({
             <div className="absolute inset-0 rounded-full" style={{
             background: "radial-gradient(circle, hsl(var(--primary) / 0.3) 0%, hsl(var(--primary) / 0.1) 40%, transparent 70%)"
           }} />
-            <img alt="Lucky Leprechaun" src="/lovable-uploads/15111a86-4b12-4ac2-8f1d-8f12c3c89a6b.png" className="relative w-full h-full object-contain drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)] opacity-100 border-0" />
+            <img alt="Lucky Leprechaun" src="/images/leprechaun-mascot-transparent.png" className="relative w-full h-full object-contain drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)] opacity-100 border-0" />
           </div>
         </motion.div>
 
