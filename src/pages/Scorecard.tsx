@@ -100,7 +100,7 @@ const Scorecard = () => {
       if (error) throw error;
 
       // Award clovers
-      await supabase.rpc('award_clovers', { p_user_id: user.id, p_amount: 20 });
+      await supabase.rpc('add_clovers', { p_user_id: user.id, p_amount: CLOVERS_PER_ROUND });
 
       setFinished(true);
       toast.success(`Round saved! +${CLOVERS_PER_ROUND} clovers earned 🍀`);
