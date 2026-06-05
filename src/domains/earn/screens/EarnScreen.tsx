@@ -27,11 +27,11 @@ const CATEGORIES = ['All', 'Clubs', 'Apparel', 'Accessories'];
 
 const FEATURED_PRODUCTS = [
   { id: 'lgw01-gold', name: 'V1 Gold Wedge (50\u00B0\u201360\u00B0)', price: 99.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/3_15.webp?v=1759072357', rating: 4.9, cloverReward: 25, badge: 'FEATURED' },
-  { id: 'lgd01', name: 'LGD01 Driver', price: 299.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639&width=200', rating: 4.8, cloverReward: 75, badge: 'BEST SELLER' },
-  { id: 'lgp01', name: 'LGP01 Gold Putter', price: 199.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=200', rating: 4.9, cloverReward: 50, badge: 'TOP RATED' },
-  { id: 'polo-azalea', name: 'Azalea Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=200', rating: 5.0, cloverReward: 17, badge: 'NEW' },
-  { id: 'glove-tour', name: 'Classic Tour Glove', price: 17.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_000_20220517_095432.png?v=1654540304&width=200', rating: 4.6, cloverReward: 4, badge: 'CLEARANCE' },
-  { id: 'hat-lucky', name: 'Green "LUCKY" Hat', price: 24.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=200', rating: 4.7, cloverReward: 6 },
+  { id: 'lgd01', name: 'LGD01 Driver', price: 299.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639&width=200', rating: 4.8, cloverReward: 75, badge: 'BEST SELLER', url: 'https://www.luckygolf.com/products/lucky-gold-driver-pre-order_' },
+  { id: 'lgp01', name: 'LGP01 Gold Putter', price: 199.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=200', rating: 4.9, cloverReward: 50, badge: 'TOP RATED', url: 'https://www.luckygolf.com/products/signature-gold-putters' },
+  { id: 'polo-azalea', name: 'Azalea Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=200', rating: 5.0, cloverReward: 17, badge: 'NEW', url: 'https://www.luckygolf.com/products/azalea-classic-polo' },
+  { id: 'glove-tour', name: 'Classic Tour Glove', price: 17.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_000_20220517_095432.png?v=1654540304&width=200', rating: 4.6, cloverReward: 4, badge: 'CLEARANCE', url: 'https://www.luckygolf.com/products/lucky-clover-tour-glove' },
+  { id: 'hat-lucky', name: 'Green LUCKY Hat', price: 24.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=200', rating: 4.7, cloverReward: 6, url: 'https://www.luckygolf.com/products/green-lucky-hat' },
 ];
 
 export default function EarnScreen() {
@@ -142,7 +142,7 @@ export default function EarnScreen() {
               transition={{ delay: index * 0.04 }}
               data-testid={`product-${product.id}`}
               className="glass-card overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => navigate('/earn/shop')}
+              onClick={() => window.open((product as any).url || 'https://www.luckygolf.com/collections/all', '_blank')}
             >
               <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden">
                 <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2" loading="lazy" />
