@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface CloverContextType {
   cloverBalance: number;
   isLoading: boolean;
-  triggerSpend: (amount: number) => Promise<void>;
+  addClovers: (amount: number) => Promise<void>;
   refreshBalance: () => Promise<void>;
 }
 
@@ -31,16 +31,32 @@ export function CloverProvider({ children, initialBalance = 0 }: { children: Rea
     return () => subscription.unsubscribe();
   }, []);
 
-  const triggerSpend = async (amount: number) => {
+  const addClovers = async (amount: number) => {
     if (amount <= 0) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.rpc('award_clovers', { p_user_id: user.id, p_amount: amount });
-    await refreshBalance();
+
+    // Optimistic update
+    setCloverBalance(prev => prev + amount);
+
+    const { data, error } = await supabase.rpc('add_clovers', {
+      p_user_id: user.id,
+      p_amount: amount,
+    });
+
+    if (error || !data?.success) {
+      // Revert on failure
+      setCloverBalance(prev => prev - amount);
+      console.error('Failed to add clovers:', error || data?.error);
+      return;
+    }
+
+    // Sync with confirmed DB value
+    setCloverBalance(data.new_balance);
   };
 
   return (
-    <CloverContext.Provider value={{ cloverBalance, isLoading, triggerSpend, refreshBalance }}>
+    <CloverContext.Provider value={{ cloverBalance, isLoading, addClovers, refreshBalance }}>
       {children}
     </CloverContext.Provider>
   );
