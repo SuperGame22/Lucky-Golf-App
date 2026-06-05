@@ -107,7 +107,15 @@ const GoldMachine = () => {
         </motion.div>
 
         {!hasMachine ? (
-          <NoMachineState onActivate={activateMachine} />
+          <>
+            <NoMachineState onActivate={activateMachine} />
+            <button
+              onClick={() => { setHasMachine(true); setGenerationRate(3); }}
+              className="mt-4 w-full py-2 rounded-xl border border-dashed border-yellow-500/40 text-yellow-500/70 text-xs font-bold uppercase tracking-widest hover:bg-yellow-500/10 transition-colors"
+            >
+              🧪 Test Mode — Unlock Machine
+            </button>
+          </>
         ) : (
           <>
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
