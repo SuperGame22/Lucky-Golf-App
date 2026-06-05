@@ -36,3 +36,17 @@ export const getRecentTransactions = async (limit = 5): Promise<any[]> => {
     .limit(limit);
   return data || [];
 };
+
+export const updateGoldBalance = async (goldValue: number): Promise<{ error: string | null }> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in' };
+    const { error } = await supabase
+      .from('golfer_profiles')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('user_id', user.id);
+    return { error: error?.message ?? null };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+};

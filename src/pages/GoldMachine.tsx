@@ -26,20 +26,25 @@ const GoldMachine = () => {
   const [collecting, setCollecting] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
 
-  // Load real gold balance from profile
+  // Load real gold balance from profile - machine only active if user has invested clovers
   useEffect(() => {
     const gold = (profile as any)?.gold_balance ?? (profile as any)?.gold ?? 0;
-    if (gold > 0) {
+    const invested = (profile as any)?.clovers_invested ?? 0;
+    if (gold > 0 || invested > 0) {
       setPotValue(gold);
+      // generationRate proportional to clovers invested (1-10 scale)
+      const rate = Math.min(10, Math.max(1, Math.floor(invested / 50)));
+      setGenerationRate(rate);
       setHasMachine(true);
     }
+    // If no investment, machine stays idle (hasMachine = false)
   }, [profile]);
 
   // Simulate gold generation
   useEffect(() => {
     if (!hasMachine) return;
     const interval = setInterval(() => {
-      setPotValue(prev => prev + 0.001);
+      setPotValue(prev => prev + (generationRate * 0.0001));
     }, 1000);
     return () => clearInterval(interval);
   }, [hasMachine]);

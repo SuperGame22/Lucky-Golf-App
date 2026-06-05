@@ -9,6 +9,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClover } from '@/contexts/CloverContext';
 import { addClovers } from '@/services/cloverService';
 import { Gift, Star, Sparkles, RotateCcw, Shirt, Clock, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ const prizes = [
 
 const LuckySpin = () => {
   const { refreshProfile } = useAuth();
+  const { refreshBalance } = useClover();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
@@ -63,6 +65,7 @@ const LuckySpin = () => {
         if (!error) {
           toast.success(`+${won.clovers} clovers added to your balance!`);
           await refreshProfile();
+          await refreshBalance();
         }
       }
 
