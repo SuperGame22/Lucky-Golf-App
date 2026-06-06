@@ -9,6 +9,7 @@ import { FindPlayers } from "@/components/scorecard/FindPlayers";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useClovers } from "@/contexts/CloverContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,7 +24,8 @@ const holes = Array.from({ length: 9 }, (_, i) => ({
 const CLOVERS_PER_ROUND = 5;
 
 const Scorecard = () => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const { addClovers } = useClovers();
   const navigate = useNavigate();
   const [scores, setScores] = useState<Record<number, number>>({});
   const [putts, setPutts] = useState<Record<number, number>>({});
@@ -99,8 +101,8 @@ const Scorecard = () => {
 
       if (error) throw error;
 
-      // Award clovers
-      await supabase.rpc('add_clovers', { p_user_id: user.id, p_amount: CLOVERS_PER_ROUND });
+      // Award clovers via CloverContext (add_clovers RPC → golfer_profiles.clovers)
+      await addClovers(CLOVERS_PER_ROUND, 'round_complete');
 
       setFinished(true);
       toast.success(`Round saved! +${CLOVERS_PER_ROUND} clovers earned 🍀`);
