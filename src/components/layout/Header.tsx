@@ -2,11 +2,13 @@ import { CloverIcon } from '@/components/icons/CloverIcon';
 import { CloverLogo } from '@/components/icons/CloverLogo';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { useWallet } from '@/contexts/WalletContext';
+import { useClovers } from '@/contexts/CloverContext';
 import { Bell, User, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function Header() {
-  const { balance, cloverBalance, gold } = useWallet();
+  const { balance, gold } = useWallet();
+  const { cloverBalance } = useClovers();
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
