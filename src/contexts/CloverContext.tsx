@@ -1,39 +1,33 @@
+/**
+ * CloverContext — real Supabase-backed clover balance
+ * Reads from golfer_profiles.clovers via AuthContext profile.
+ * addClovers calls the add_clovers RPC and syncs back.
+ */
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CloverContextType {
   cloverBalance: number;
-  isLoading: boolean;
-  addClovers: (amount: number) => Promise<void>;
+  addClovers: (amount: number, reason?: string) => Promise<void>;
   refreshBalance: () => Promise<void>;
 }
 
 const CloverContext = createContext<CloverContextType | null>(null);
 
 export function CloverProvider({ children, initialBalance = 0 }: { children: ReactNode; initialBalance?: number }) {
+  const { user, profile, refreshProfile } = useAuth();
   const [cloverBalance, setCloverBalance] = useState(initialBalance);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const refreshBalance = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('golfer_profiles')
-      .select('clovers')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (data?.clovers != null) setCloverBalance(data.clovers);
-  };
-
+  // Sync from profile whenever it changes
   useEffect(() => {
-    refreshBalance();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => refreshBalance());
-    return () => subscription.unsubscribe();
-  }, []);
+    if (profile?.clovers !== undefined) {
+      setCloverBalance(profile.clovers);
+    }
+  }, [profile?.clovers]);
 
-  const addClovers = async (amount: number) => {
-    if (amount <= 0) return;
-    const { data: { user } } = await supabase.auth.getUser();
+  const addClovers = async (amount: number, reason = 'app') => {
     if (!user) return;
 
     // Optimistic update
@@ -44,26 +38,43 @@ export function CloverProvider({ children, initialBalance = 0 }: { children: Rea
       p_amount: amount,
     });
 
-    if (error || !data?.success) {
-      // Revert on failure
+    if (error) {
+      console.error('add_clovers RPC error:', error);
+      // Revert optimistic update
       setCloverBalance(prev => prev - amount);
-      console.error('Failed to add clovers:', error || data?.error);
       return;
     }
 
-    // Sync with confirmed DB value
-    setCloverBalance(data.new_balance);
+    // Sync authoritative balance from DB
+    if (data?.new_balance !== undefined) {
+      setCloverBalance(data.new_balance);
+    }
+
+    // Also refresh auth profile so other components see the update
+    await refreshProfile();
+  };
+
+  const refreshBalance = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('golfer_profiles')
+      .select('clovers')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (data?.clovers !== undefined) {
+      setCloverBalance(data.clovers);
+    }
   };
 
   return (
-    <CloverContext.Provider value={{ cloverBalance, isLoading, addClovers, refreshBalance }}>
+    <CloverContext.Provider value={{ cloverBalance, addClovers, refreshBalance }}>
       {children}
     </CloverContext.Provider>
   );
 }
 
-export const useClover = () => {
+export const useClovers = () => {
   const ctx = useContext(CloverContext);
-  if (!ctx) throw new Error('useClover must be used within CloverProvider');
+  if (!ctx) throw new Error('useClovers must be used within CloverProvider');
   return ctx;
 };

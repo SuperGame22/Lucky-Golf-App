@@ -1,6 +1,7 @@
 /**
  * GOLD MACHINE — Real Supabase gold_balance integration
- * No hardcoded pot values. Starts at profile's gold_balance.
+ * Machine is OFF by default (hasMachine=false).
+ * Dev tier toggle: New Member | Clover Club | Gold Machine
  */
 
 import { useState, useEffect } from 'react';
@@ -15,6 +16,14 @@ import { updateGoldBalance } from '@/services/cloverService';
 import { Zap, Wrench, ArrowUp, Sparkles, Clock, TrendingUp, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
+type MemberTier = 'new' | 'clover' | 'gold';
+
+const TIER_CONFIG: Record<MemberTier, { label: string; hasMachine: boolean; rate: number }> = {
+  new:    { label: 'New Member',    hasMachine: false, rate: 0  },
+  clover: { label: 'Clover Club',   hasMachine: true,  rate: 3  },
+  gold:   { label: 'Gold Machine',  hasMachine: true,  rate: 6  },
+};
+
 const GoldMachine = () => {
   const { profile, refreshProfile } = useAuth();
   const [hasMachine, setHasMachine] = useState(false);
@@ -26,31 +35,33 @@ const GoldMachine = () => {
   const [collecting, setCollecting] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
 
-  // Load real gold balance from profile - machine only active if user has invested clovers
+  // Dev tier toggle — does NOT auto-activate based on profile
+  const [devTier, setDevTier] = useState<MemberTier>('new');
+
+  // Load saved pot value from profile (but don't auto-activate machine)
   useEffect(() => {
-    const gold = (profile as any)?.gold_balance ?? (profile as any)?.gold ?? 0;
-    const invested = (profile as any)?.clovers_invested ?? 0;
-    if (gold > 0 || invested > 0) {
-      setPotValue(gold);
-      // generationRate proportional to clovers invested (1-10 scale)
-      const rate = Math.min(10, Math.max(1, Math.floor(invested / 50)));
-      setGenerationRate(rate);
-      setHasMachine(true);
-    }
-    // If no investment, machine stays idle (hasMachine = false)
+    const gold = (profile as any)?.gold_balance ?? 0;
+    if (gold > 0) setPotValue(gold);
   }, [profile]);
 
-  // Simulate gold generation
+  // Gold generation — only runs when machine is active
   useEffect(() => {
     if (!hasMachine) return;
     const interval = setInterval(() => {
-      setPotValue(prev => prev + (generationRate * 0.0001));
+      // 0.0001 * generationRate per second → very slow, proportional to tier
+      setPotValue(prev => prev + 0.0001 * generationRate);
     }, 1000);
     return () => clearInterval(interval);
-  }, [hasMachine]);
+  }, [hasMachine, generationRate]);
+
+  const applyTier = (tier: MemberTier) => {
+    setDevTier(tier);
+    const cfg = TIER_CONFIG[tier];
+    setHasMachine(cfg.hasMachine);
+    setGenerationRate(cfg.rate || 6);
+  };
 
   const activateMachine = () => setShowActivation(true);
-
   const completeActivation = () => {
     setShowActivation(false);
     setHasMachine(true);
@@ -58,7 +69,6 @@ const GoldMachine = () => {
 
   const collectFlakes = async () => {
     setCollecting(true);
-    // Save current pot to profile
     await updateGoldBalance(potValue);
     await refreshProfile();
     toast.success(`${(potValue * 1000).toFixed(0)}mg of gold flakes saved!`);
@@ -69,7 +79,6 @@ const GoldMachine = () => {
     if (potValue < 0.01) return;
     setCashingOut(true);
     const amount = potValue;
-    // Zero out gold balance
     await updateGoldBalance(0);
     setPotValue(0);
     await refreshProfile();
@@ -106,16 +115,25 @@ const GoldMachine = () => {
           <p className="text-muted-foreground text-sm">Build a bigger gold machine to make more gold</p>
         </motion.div>
 
-        {!hasMachine ? (
-          <>
-            <NoMachineState onActivate={activateMachine} />
+        {/* ── Dev Tier Toggle ── */}
+        <div className="flex items-center gap-1 p-1 bg-muted rounded-xl text-xs font-bold">
+          {(Object.keys(TIER_CONFIG) as MemberTier[]).map(tier => (
             <button
-              onClick={() => { setHasMachine(true); setGenerationRate(3); }}
-              className="mt-4 w-full py-2 rounded-xl border border-dashed border-yellow-500/40 text-yellow-500/70 text-xs font-bold uppercase tracking-widest hover:bg-yellow-500/10 transition-colors"
+              key={tier}
+              onClick={() => applyTier(tier)}
+              className={`flex-1 py-2 rounded-lg transition-all ${
+                devTier === tier
+                  ? 'bg-background text-foreground shadow'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              🧪 Test Mode — Unlock Machine
+              {TIER_CONFIG[tier].label}
             </button>
-          </>
+          ))}
+        </div>
+
+        {!hasMachine ? (
+          <NoMachineState onActivate={activateMachine} />
         ) : (
           <>
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
