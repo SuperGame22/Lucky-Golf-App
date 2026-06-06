@@ -101,7 +101,7 @@ const LuckySpin = () => {
       }
 
       if (!won.rare && spinsRemaining > 1) setCanRespin(true);
-    }, 6500);
+    }, 9500);
   };
 
   const respin = () => {
@@ -127,7 +127,7 @@ const LuckySpin = () => {
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: 6.5, ease: [0.1, 0.85, 0.15, 1] }}
+            <motion.div animate={{ rotate: rotation }} transition={{ duration: 9.5, ease: [0.05, 0.72, 0.08, 1] }}
               className="relative w-96 h-96">
               <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                 {prizes.map((prize, i) => {
