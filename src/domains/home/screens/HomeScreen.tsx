@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { CloverLogo } from '@/components/icons/CloverLogo';
 import { useClovers } from '@/contexts/CloverContext';
+import { TierToggle } from '@/components/TierToggle';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, Target, Gift, ShoppingBag, Sparkles, Play } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <div className="flex justify-end -mb-2"><TierToggle /></div>
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-display font-bold">Welcome, {displayName}</h1>
           <p className="text-sm text-muted-foreground">Level {luckyLevel}</p>

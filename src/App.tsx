@@ -8,6 +8,7 @@ import { CloverProvider } from "@/contexts/CloverContext";
 import { BottomNavigation } from "@/shared/components/BottomNavigation";
 import { AmbientAudio } from "@/shared/components/AmbientAudio";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { TierProvider } from "@/contexts/TierContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Domain Screens (5-tab architecture)
@@ -65,6 +66,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+    <TierProvider>
     <CloverProvider initialBalance={0}>
       <WalletProvider>
         <TooltipProvider>
@@ -144,6 +146,7 @@ const App = () => (
         </TooltipProvider>
       </WalletProvider>
     </CloverProvider>
+    </TierProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -132,7 +132,7 @@ export default function PuttingGame(){
     const dx=d0.x-dc.x,dy=d0.y-dc.y,pw=Math.min(Math.sqrt(dx*dx+dy*dy),MXD);
     setD0(null);setDc(null);if(pw<0.3)return;
     const a=Math.atan2(dy,dx);if(!prac)setPt(n=>n+1);
-    sndHit();sim(Math.cos(a)*pw*PWK,Math.sin(a)*pw*PWK);
+    sndHit();const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;setTimeout(()=>sim(_vx,_vy),250);
   };
 
   const endPrac=(label:string,detail:string)=>{

@@ -15,12 +15,13 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { FeatureGate } from '@/core/tier-gating/FeatureGate';
+import { useTier, TIER_RANK } from '@/contexts/TierContext';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function PracticeScreen() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const userTier = profile?.lucky_level && profile.lucky_level >= 3 ? 'gold' : profile?.lucky_level && profile.lucky_level >= 2 ? 'clover' : 'free';
+  const { tier: userTier } = useTier();
 
   const features = [
     {
@@ -108,7 +109,7 @@ export default function PracticeScreen() {
 
               <div className="space-y-2">
                 {section.items.map((item) => {
-                  const isLocked = item.tier !== 'free' && userTier === 'free';
+                  const isLocked = TIER_RANK[item.tier as 'free' | 'clover' | 'gold'] > TIER_RANK[userTier];
 
                   return (
                     <div

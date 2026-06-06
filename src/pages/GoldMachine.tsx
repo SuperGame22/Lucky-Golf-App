@@ -13,15 +13,16 @@ import { NoMachineState } from '@/components/gold/NoMachineState';
 import { MachineActivation } from '@/components/gold/MachineActivation';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateGoldBalance } from '@/services/cloverService';
+import { useTier } from '@/contexts/TierContext';
 import { Zap, Wrench, ArrowUp, Sparkles, Clock, TrendingUp, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
 type MemberTier = 'new' | 'clover' | 'gold';
 
 const TIER_CONFIG: Record<MemberTier, { label: string; hasMachine: boolean; rate: number }> = {
-  new:    { label: 'New Member',    hasMachine: false, rate: 0  },
+  new:    { label: 'General Member',    hasMachine: false, rate: 0  },
   clover: { label: 'Clover Club',   hasMachine: true,  rate: 3  },
-  gold:   { label: 'Gold Machine',  hasMachine: true,  rate: 6  },
+  gold:   { label: 'Gold Club',  hasMachine: true,  rate: 6  },
 };
 
 const GoldMachine = () => {
@@ -36,7 +37,9 @@ const GoldMachine = () => {
   const [cashingOut, setCashingOut] = useState(false);
 
   // Dev tier toggle — does NOT auto-activate based on profile
-  const [devTier, setDevTier] = useState<MemberTier>('new');
+  const { tier: globalTier, setTier } = useTier();
+  const devTier: MemberTier = globalTier === 'free' ? 'new' : globalTier;
+  useEffect(() => { const cfg = TIER_CONFIG[devTier]; setHasMachine(cfg.hasMachine); setGenerationRate(cfg.rate || 6); }, [globalTier]);
 
   // Load saved pot value from profile (but don't auto-activate machine)
   useEffect(() => {
@@ -55,7 +58,7 @@ const GoldMachine = () => {
   }, [hasMachine, generationRate]);
 
   const applyTier = (tier: MemberTier) => {
-    setDevTier(tier);
+    setTier(tier === 'new' ? 'free' : tier);
     const cfg = TIER_CONFIG[tier];
     setHasMachine(cfg.hasMachine);
     setGenerationRate(cfg.rate || 6);
