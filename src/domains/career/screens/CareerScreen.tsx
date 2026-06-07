@@ -113,7 +113,7 @@ export default function CareerScreen() {
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-semibold">{feature.title}</p>
                   {feature.tier !== 'free' && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${feature.tier === "clover" ? "bg-primary/20 text-primary" : "bg-accent/20 text-accent"}`}>
                       {feature.tier.toUpperCase()}
                     </span>
                   )}
