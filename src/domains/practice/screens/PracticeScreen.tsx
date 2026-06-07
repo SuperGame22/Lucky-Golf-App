@@ -1,164 +1,93 @@
 /**
- * PRACTICE Domain - Skill Development Layer
- * Improvement, coaching, analytics, training
+ * PRACTICE — Free tier drills + coach
  */
 
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import {
-  Brain,
-  Target,
-  TrendingUp,
-  Lock,
-  Sparkles,
-  BarChart3,
-} from 'lucide-react';
-import { FeatureGate } from '@/core/tier-gating/FeatureGate';
-import { useTier, TIER_RANK } from '@/contexts/TierContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { Target, TrendingUp, Brain, Crosshair, Clock, BarChart3 } from 'lucide-react';
+
+const DRILLS = [
+  { title: 'Putting Grid', desc: '5-hole putting with physics', icon: Target, path: '/practice/putting' },
+  { title: 'Distance Control', desc: 'Hit target yardages', icon: Crosshair, path: '/practice/distance' },
+];
+
+const TRACKING = [
+  { title: 'Practice Sessions', desc: 'Your drill history', icon: Clock, path: '/practice/sessions' },
+  { title: 'Score Patterns', desc: 'Scoring trends over time', icon: BarChart3, path: '/career/patterns' },
+];
 
 export default function PracticeScreen() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const { tier: userTier } = useTier();
-
-  const features = [
-    {
-      id: 'ai-coaches',
-      title: 'AI Coaches',
-      description: 'Personal coaching powered by AI',
-      icon: Brain,
-      items: [
-        { name: 'Lucky Coach', tier: 'free', path: '/coach' },
-        { name: 'Gold Coach', tier: 'gold', feature: 'practice:ai-coach-gold' as const },
-      ],
-    },
-    {
-      id: 'simulators',
-      title: 'Skill Simulators',
-      description: 'Practice specific skills',
-      icon: Target,
-      items: [
-        { name: 'Rangefinder Simulator', tier: 'free', path: '/practice/rangefinder' },
-        { name: 'Putting Grid', tier: 'free', path: '/practice/putting' },
-        { name: 'Distance Control', tier: 'clover', path: '/practice/distance' },
-      ],
-    },
-    {
-      id: 'analytics',
-      title: 'Performance Analytics',
-      description: 'Track your improvement',
-      icon: TrendingUp,
-      items: [
-        { name: 'Practice Sessions', tier: 'free', path: '/practice/sessions' },
-        { name: 'Progress Charts', tier: 'clover', path: '/practice/progress' },
-        { name: 'Pattern Analyzer', tier: 'clover', feature: 'practice:pattern-analyzer' as const },
-      ],
-    },
-    {
-      id: 'advanced',
-      title: 'Advanced Training',
-      description: 'Premium skill development',
-      icon: Sparkles,
-      items: [
-        { name: 'Enhanced Stats', tier: 'gold', feature: 'practice:enhanced-stats' as const },
-        { name: 'Swing Modeling', tier: 'gold', feature: 'practice:advanced-swing-modeling' as const },
-      ],
-    },
-  ];
-
-  const getTierBadgeColor = (tier: string) => {
-    switch (tier) {
-      case 'gold':
-        return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
-      case 'clover':
-        return 'bg-primary/20 text-primary';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
 
   return (
     <div className="min-h-screen pb-20 bg-background">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-display font-bold">Practice</h1>
-          <p className="text-sm text-muted-foreground">Improve your game with AI-powered training</p>
+          <p className="text-sm text-muted-foreground">Sharpen your game</p>
         </div>
 
-        {/* Feature Sections */}
-        {features.map((section, sectionIndex) => {
-          const Icon = section.icon;
-          return (
-            <motion.div
-              key={section.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: sectionIndex * 0.1 }}
-              className="glass-card p-6"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <Icon className="w-6 h-6 text-primary" />
-                <div>
-                  <h2 className="font-display font-bold">{section.title}</h2>
-                  <p className="text-xs text-muted-foreground">{section.description}</p>
-                </div>
-              </div>
+        {/* AI Coach CTA */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-5 cursor-pointer hover:border-primary/50 transition-colors border-primary/20 bg-primary/5"
+          onClick={() => navigate('/coach/ace')}>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl">🏌️</div>
+            <div className="flex-1">
+              <p className="font-black uppercase tracking-wider">Coach Ace</p>
+              <p className="text-xs text-muted-foreground">AI swing coach — ask anything about your game</p>
+            </div>
+            <Brain className="w-5 h-5 text-primary" />
+          </div>
+        </motion.div>
 
-              <div className="space-y-2">
-                {section.items.map((item) => {
-                  const isLocked = TIER_RANK[item.tier as 'free' | 'clover' | 'gold'] > TIER_RANK[userTier];
+        {/* Drills */}
+        <div>
+          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Skill Drills</p>
+          <div className="grid grid-cols-2 gap-4">
+            {DRILLS.map((d, i) => {
+              const Icon = d.icon;
+              return (
+                <motion.div key={d.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="glass-card p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/50 transition-all hover:scale-105"
+                  onClick={() => navigate(d.path)}>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{d.title}</p>
+                    <p className="text-xs text-muted-foreground">{d.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
 
-                  return (
-                    <div
-                      key={item.name}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${
-                        isLocked
-                          ? 'border-border bg-muted/30'
-                          : 'border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer'
-                      } transition-colors`}
-                      onClick={() => {
-                        if (!isLocked && item.path) {
-                          navigate(item.path);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isLocked && <Lock className="w-4 h-4 text-muted-foreground" />}
-                        <span className="text-sm font-medium">{item.name}</span>
-                      </div>
-                      {item.tier !== 'free' && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getTierBadgeColor(item.tier)}`}>
-                          {item.tier.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          );
-        })}
-
-        {/* Upgrade CTA */}
-        {userTier === 'free' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="glass-card p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20"
-          >
-            <h3 className="font-display font-bold mb-2">Unlock Premium Training</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get access to AI coaches, advanced analytics, and personalized practice plans
-            </p>
-            <Button className="w-full" onClick={() => navigate('/membership')}>
-              Upgrade Now
-            </Button>
-          </motion.div>
-        )}
+        {/* Tracking */}
+        <div>
+          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Tracking</p>
+          <div className="space-y-3">
+            {TRACKING.map((t, i) => {
+              const Icon = t.icon;
+              return (
+                <motion.div key={t.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
+                  className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => navigate(t.path)}>
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

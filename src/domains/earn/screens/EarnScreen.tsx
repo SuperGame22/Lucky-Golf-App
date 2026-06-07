@@ -1,250 +1,198 @@
 /**
- * EARN Domain - Shopping-Focused + Rewards
- * Storefront first, rewards secondary
+ * UPGRADE — Waitlist tiers + Lucky Golf Shop
  */
 
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  ShoppingBag,
-  Search,
-  Star,
-  Tag,
-  Sparkles,
-  Trophy,
-  Gift,
-  Coins,
-  ArrowRight,
-  Filter,
-} from 'lucide-react';
+import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useState } from 'react';
+import { Check, X, Sparkles, Crown, ShoppingBag, ExternalLink } from 'lucide-react';
 
-const CATEGORIES = ['All', 'Clubs', 'Apparel', 'Accessories'];
+// ── Waitlist Modal ─────────────────────────────────────────────────────────────
+function WaitlistModal({ tier, onClose }: { tier: 'clover' | 'gold'; onClose: () => void }) {
+  const [joined, setJoined] = useState(false);
+  const isGold = tier === 'gold';
 
-const FEATURED_PRODUCTS = [
-  { id: 'lgw01', name: 'V1 Gold Lucky Golf Wedge', price: 99.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/3_15.webp?v=1759072357', rating: 4.9, cloverReward: 25, badge: 'FEATURED', url: 'https://www.luckygolf.com/products/v1-gold-lucky-golf-wedge' },
-  { id: 'lgw02', name: 'V2 Signature Gold Wedge', price: 109.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/Photoroom_20250106_180935.png?v=1741366122', rating: 4.9, cloverReward: 27, badge: 'NEW', url: 'https://www.luckygolf.com/products/v2-signature-gold-wedge-1' },
-  { id: 'lgd01', name: 'Lucky Gold Driver', price: 299.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639', rating: 4.8, cloverReward: 75, badge: 'BEST SELLER', url: 'https://www.luckygolf.com/products/lucky-gold-driver-pre-order_' },
-  { id: 'lgp01', name: 'Signature Gold Putter', price: 199.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=400', rating: 4.9, cloverReward: 50, badge: 'TOP RATED', url: 'https://www.luckygolf.com/products/signature-gold-putters' },
-  { id: 'lgp02', name: 'Limited Edition Mallet Putter', price: 229.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9951-Photoroom.png?v=1707080292', rating: 4.9, cloverReward: 57, url: 'https://www.luckygolf.com/products/limited-edition-mallet-putter' },
-  { id: 'hybrid', name: 'Lucky Striker Hybrid', price: 189.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/LuckyStrikerHybridBottom_CB.png?v=1733265396', rating: 4.7, cloverReward: 47, badge: 'LIMITED', url: 'https://www.luckygolf.com/products/lucky-striker-hybrid-limited-edition' },
-  { id: 'headcover', name: 'Driver Head Cover', price: 29.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/products/DriverHeadCover1.png?v=1676592799', rating: 4.6, cloverReward: 7, url: 'https://www.luckygolf.com/products/driver-head-cover' },
-  { id: 'polo-azalea', name: 'Azalea Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=400', rating: 5.0, cloverReward: 17, badge: 'NEW', url: 'https://www.luckygolf.com/products/azalea-classic-polo' },
-  { id: 'polo-blackout', name: 'Blackout Blade Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/StrokePlay1.webp?v=1779472570', rating: 4.8, cloverReward: 17, url: 'https://www.luckygolf.com/products/blackout-blade-polo' },
-  { id: 'polo-contour', name: 'Contour Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/TopographyStyle1.webp?v=1779472755', rating: 4.8, cloverReward: 17, url: 'https://www.luckygolf.com/products/contour-classic-polo' },
-  { id: 'polo-frost', name: 'Frost Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Whitecome1.webp?v=1779472662', rating: 4.8, cloverReward: 17, url: 'https://www.luckygolf.com/products/frost-classic-polo' },
-  { id: 'glove', name: 'Lucky Clover Tour Glove', price: 17.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_000_20220517_095432.png?v=1654540304&width=400', rating: 4.6, cloverReward: 4, url: 'https://www.luckygolf.com/products/lucky-clover-tour-glove' },
-  { id: 'hat', name: 'Green Lucky Hat', price: 24.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=400', rating: 4.7, cloverReward: 6, url: 'https://www.luckygolf.com/products/green-lucky-hat' },
-  { id: 'grip1', name: 'Lucky Golf Oversized Putter Grip', price: 34.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/Green_Oversized_Grip_Lucky_Golf-Photoroom.png?v=1724359296', rating: 4.7, cloverReward: 9, url: 'https://www.luckygolf.com/products/lucky-golf-oversized-putter-grip' },
-  { id: 'grip2', name: 'Clovers Oversized Putter Grip', price: 39.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/Clovers_Oversized_Grip_Lucky_Golf-Photoroom.png?v=1724359224', rating: 4.8, cloverReward: 10, url: 'https://www.luckygolf.com/products/lucky-golf-clovers-oversized-putter-grip' },
-  { id: 'tees', name: 'Lucky Golf Tees', price: 9.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/FFF_LUCKYGOLF_LO_02_SocialMedia.png?v=1724448051', rating: 4.5, cloverReward: 2, url: 'https://www.luckygolf.com/products/lucky-golf-tees' },
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+        className="bg-background border border-border rounded-2xl p-6 w-full max-w-lg"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {isGold ? <Crown className="w-5 h-5 text-yellow-500" /> : <CloverIcon className="w-5 h-5 text-primary" />}
+            <h3 className="font-black text-lg uppercase tracking-wide">
+              {isGold ? 'Gold Club' : 'Clover Club'}
+            </h3>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {joined ? (
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="text-center py-6">
+            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Check className="w-7 h-7 text-primary" />
+            </div>
+            <p className="font-black text-xl mb-2">You're on the list!</p>
+            <p className="text-muted-foreground text-sm">
+              We'll notify you when {isGold ? 'Gold Club' : 'Clover Club'} launches after MVP beta.
+            </p>
+            <Button className="mt-5 w-full" onClick={onClose}>Got it</Button>
+          </motion.div>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-sm mb-5">
+              {isGold
+                ? 'Gold Club brings advanced AI coaching, deeper performance insights, and priority access to new features. Launching after MVP beta.'
+                : 'Clover Club unlocks advanced tracking, exclusive rewards, beta perks, and early access to new features. Launching after MVP beta.'}
+            </p>
+            <Button
+              className="w-full font-black uppercase tracking-wider"
+              variant={isGold ? 'gold' : 'default'}
+              onClick={() => setJoined(true)}
+            >
+              {isGold ? <Crown className="w-4 h-4 mr-2" /> : <CloverIcon className="w-4 h-4 mr-2" />}
+              Join Waitlist
+            </Button>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Shop Products ──────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  { id: 'lgw01', name: 'V1 Gold Lucky Golf Wedge', price: 99.00, image: 'https://www.luckygolf.com/cdn/shop/files/3_15.webp?v=1759072357', badge: 'FEATURED', url: 'https://www.luckygolf.com/products/v1-gold-lucky-golf-wedge' },
+  { id: 'lgw02', name: 'V2 Signature Gold Wedge', price: 109.00, image: 'https://www.luckygolf.com/cdn/shop/files/Photoroom_20250106_180935.png?v=1741366122', badge: 'NEW', url: 'https://www.luckygolf.com/products/v2-signature-gold-wedge-1' },
+  { id: 'lgd01', name: 'Lucky Gold Driver', price: 299.00, image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639', badge: 'BEST SELLER', url: 'https://www.luckygolf.com/products/lucky-gold-driver-pre-order_' },
+  { id: 'lgp01', name: 'Signature Gold Putter', price: 199.00, image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=400', badge: 'TOP RATED', url: 'https://www.luckygolf.com/products/signature-gold-putters' },
+  { id: 'polo-azalea', name: 'Azalea Classic Polo', price: 67.00, image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=400', badge: 'NEW', url: 'https://www.luckygolf.com/products/azalea-classic-polo' },
+  { id: 'polo-blackout', name: 'Blackout Blade Polo', price: 67.00, image: 'https://www.luckygolf.com/cdn/shop/files/StrokePlay1.webp?v=1779472570', url: 'https://www.luckygolf.com/products/blackout-blade-polo' },
+  { id: 'glove', name: 'Lucky Clover Tour Glove', price: 17.95, image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_000_20220517_095432.png?v=1654540304&width=400', url: 'https://www.luckygolf.com/products/lucky-clover-tour-glove' },
+  { id: 'hat', name: 'Green Lucky Hat', price: 24.95, image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=400', url: 'https://www.luckygolf.com/products/green-lucky-hat' },
 ];
 
+// ── Main Screen ────────────────────────────────────────────────────────────────
 export default function EarnScreen() {
-  const navigate = useNavigate();
   const { profile } = useAuth();
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const cloverBalance = profile?.clovers ?? 0;
-
-  const filtered = FEATURED_PRODUCTS.filter((p) => {
-    const matchCat = activeCategory === 'All' || p.category === activeCategory;
-    const matchSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const [waitlist, setWaitlist] = useState<'clover' | 'gold' | null>(null);
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <AnimatePresence>
+        {waitlist && <WaitlistModal tier={waitlist} onClose={() => setWaitlist(null)} />}
+      </AnimatePresence>
+
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
+
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
-          <div>
-            <h1 className="text-2xl font-display font-bold">Shop & Earn</h1>
-            <p className="text-muted-foreground text-sm">Every $4 spent = 1 clover earned</p>
-          </div>
-          <Button variant="glass" size="icon" data-testid="cart-btn">
-            <ShoppingBag className="w-5 h-5" />
-          </Button>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl font-black uppercase tracking-wider">Upgrade</h1>
+          <p className="text-sm text-muted-foreground">Coming after MVP beta — join the waitlist</p>
         </motion.div>
 
-        {/* Clover Credit Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <CloverIcon className="w-10 h-10" />
+        {/* Clover Club Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="glass-card p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-emerald-900/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <CloverIcon className="w-6 h-6 text-primary" />
+            </div>
             <div>
-              <p className="text-xs text-muted-foreground">Clover Credit</p>
-              <p className="text-xl font-bold text-primary">${(cloverBalance * 0.25).toFixed(2)}</p>
+              <p className="font-black text-lg">Clover Club</p>
+              <p className="text-xs text-primary font-bold uppercase tracking-widest">Upgrade Tier</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold">{cloverBalance}</p>
-            <p className="text-[10px] text-muted-foreground">clovers</p>
-          </div>
-        </motion.div>
-
-        {/* Flash Sale Banner */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-r from-accent/20 to-primary/20 border border-accent/30 rounded-2xl p-4"
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Tag className="w-4 h-4 text-accent" />
-            <span className="text-sm font-bold text-accent">2x Clover Weekend</span>
-          </div>
-          <p className="text-xs text-muted-foreground">Double clover rewards on all purchases through Sunday</p>
-        </motion.div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search gear..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            data-testid="shop-search"
-            className="w-full h-11 pl-11 pr-10 bg-muted/50 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-          <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8">
-            <Filter className="w-4 h-4" />
+          <p className="text-sm text-muted-foreground mb-4">
+            Advanced tracking, exclusive rewards, beta perks, and first access to new features as we build them.
+          </p>
+          <ul className="space-y-1.5 mb-5">
+            {['Advanced practice analytics', 'Exclusive beta features', 'Priority clover rewards', 'Early access program'].map(f => (
+              <li key={f} className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <Button className="w-full font-black uppercase tracking-wider" onClick={() => setWaitlist('clover')}>
+            <CloverIcon className="w-4 h-4 mr-2" /> Join Waitlist
           </Button>
-        </div>
+        </motion.div>
 
-        {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              data-testid={`cat-${cat.toLowerCase()}`}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                activeCategory === cat
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Gold Club Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="glass-card p-6 border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-amber-900/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-yellow-500" />
+            </div>
+            <div>
+              <p className="font-black text-lg">Gold Club</p>
+              <p className="text-xs text-yellow-500 font-bold uppercase tracking-widest">Premium Tier</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Advanced AI coaching, deeper performance insights, priority features, and premium club benefits.
+          </p>
+          <ul className="space-y-1.5 mb-5">
+            {['AI coaching suite (Pro + Zen)', 'Swing analysis & modeling', 'Gold Machine access', 'Priority support & features'].map(f => (
+              <li key={f} className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <Button variant="gold" className="w-full font-black uppercase tracking-wider" onClick={() => setWaitlist('gold')}>
+            <Crown className="w-4 h-4 mr-2" /> Join Waitlist
+          </Button>
+        </motion.div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {filtered.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04 }}
-              data-testid={`product-${product.id}`}
-              className="glass-card overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => window.open((product as any).url || 'https://www.luckygolf.com/collections/all', '_blank')}
-            >
-              <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden">
-                <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2" loading="lazy" />
-                {product.badge && (
-                  <span className={`absolute top-2 left-2 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                    product.badge === 'FEATURED' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black shadow-lg shadow-yellow-500/30' :
-                    product.badge === 'BEST SELLER' ? 'bg-yellow-500 text-black' :
-                    product.badge === 'TOP RATED' ? 'bg-primary text-primary-foreground' :
-                    product.badge === 'NEW' ? 'bg-white text-black border border-border' :
-                    product.badge === 'CLEARANCE' ? 'bg-red-500 text-white' :
-                    'bg-accent text-accent-foreground'
-                  }`}>
-                    {product.badge}
-                  </span>
-                )}
-              </div>
-              <div className="p-3">
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                  {product.category}
-                </span>
-                <h3 className="font-medium text-sm line-clamp-1 mt-1.5">{product.name}</h3>
-                <div className="flex items-center gap-1 my-1">
-                  <Star className="w-3 h-3 text-accent fill-accent" />
-                  <span className="text-[10px] text-muted-foreground">{product.rating}</span>
+        {/* Shop */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div className="flex items-center gap-2 mb-4">
+            <ShoppingBag className="w-5 h-5 text-primary" />
+            <h2 className="font-black text-lg uppercase tracking-wider">Lucky Golf Shop</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {PRODUCTS.map((p, i) => (
+              <motion.div key={p.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + i * 0.04 }}
+                className="glass-card overflow-hidden cursor-pointer group"
+                onClick={() => window.open(p.url, '_blank')}
+              >
+                <div className="aspect-square bg-muted relative overflow-hidden">
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  {p.badge && (
+                    <span className="absolute top-2 left-2 text-[9px] font-black px-1.5 py-0.5 rounded bg-primary text-primary-foreground uppercase tracking-widest">
+                      {p.badge}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="font-bold text-sm">${product.price.toFixed(2)}</p>
-                  <div className="flex items-center gap-0.5 text-primary text-[10px] font-semibold">
-                    <CloverIcon className="w-3 h-3" />
-                    <span>+{product.cloverReward}</span>
+                <div className="p-3">
+                  <p className="text-xs font-bold line-clamp-2 leading-tight mb-1">{p.name}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-black text-primary">${p.price.toFixed(2)}</p>
+                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground text-sm">No products found</p>
-          </div>
-        )}
-
-        {/* Rewards Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display font-bold text-lg">Rewards & Games</h2>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { id: 'spin', title: 'Lucky Spin', icon: Sparkles, path: '/earn/spin', color: 'from-purple-500/20 to-pink-500/20' },
-              { id: 'gold', title: 'Gold Machine', icon: Trophy, path: '/earn/gold-machine', color: 'from-yellow-500/20 to-orange-500/20' },
-              { id: 'raffle', title: 'Raffle', icon: Gift, path: '/earn/raffle', color: 'from-blue-500/20 to-cyan-500/20' },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.id}
-                  data-testid={`reward-${item.id}`}
-                  className={`glass-card p-3 bg-gradient-to-br ${item.color} flex flex-col items-center gap-2 cursor-pointer hover:scale-105 transition-all`}
-                  onClick={() => navigate(item.path)}
-                >
-                  <Icon className="w-6 h-6 text-primary" />
-                  <span className="text-[10px] font-semibold text-center">{item.title}</span>
-                </div>
-              );
-            })}
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 
-        {/* Buy Clovers CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-card p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Coins className="w-8 h-8 text-primary" />
-            <div>
-              <p className="font-semibold text-sm">Need more clovers?</p>
-              <p className="text-xs text-muted-foreground">Buy packs starting at $4.99</p>
-            </div>
-          </div>
-          <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate('/earn/packs')}>
-            Buy <ArrowRight className="w-3 h-3" />
-          </Button>
-        </motion.div>
       </div>
     </AppLayout>
   );
