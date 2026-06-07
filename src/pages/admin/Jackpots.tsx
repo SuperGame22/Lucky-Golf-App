@@ -4,7 +4,7 @@
  * Requires golfer_profiles.role = 'admin' | 'super_admin'
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Plus, ChevronLeft, Trophy, Users, CheckCircle2,
+  Plus, ChevronLeft, Trophy, Users, CheckCircle2, Upload, Link as LinkIcon,
   XCircle, Loader2, Eye, Play, Edit3, Award, RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -63,6 +63,21 @@ export default function AdminJackpots() {
   const [saving, setSaving] = useState(false);
   const [winner, setWinner] = useState<any>(null);
   const [selectingWinner, setSelectingWinner] = useState(false);
+  const [imageMode, setImageMode] = useState<'url' | 'upload'>('url');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `prizes/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('prize-images').upload(path, file, { upsert: true });
+    if (error) { toast.error('Upload failed: ' + error.message); setUploading(false); return; }
+    const { data } = supabase.storage.from('prize-images').getPublicUrl(path);
+    setForm(f => ({ ...f, prize_image_url: data.publicUrl }));
+    toast.success('Image uploaded!');
+    setUploading(false);
+  };
 
   // Role guard
   const isAdmin = (profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin';
@@ -338,7 +353,7 @@ export default function AdminJackpots() {
                   { key: 'title', label: 'Title *', placeholder: 'Week 23 Jackpot' },
                   { key: 'prize_name', label: 'Prize Name *', placeholder: 'TaylorMade Driver' },
                   { key: 'prize_value', label: 'Prize Value ($)', placeholder: '299.99' },
-                  { key: 'prize_image_url', label: 'Prize Image URL', placeholder: 'https://...' },
+                  
                   { key: 'description', label: 'Description', placeholder: 'Optional details...' },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key}>
@@ -351,6 +366,49 @@ export default function AdminJackpots() {
                     />
                   </div>
                 ))}
+                {/* Prize Image — URL or Upload */}
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Prize Image</label>
+                  <div className="flex gap-2 mb-2">
+                    <button type="button"
+                      onClick={() => setImageMode('url')}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${imageMode === 'url' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+                      <LinkIcon className="w-3 h-3" /> URL
+                    </button>
+                    <button type="button"
+                      onClick={() => setImageMode('upload')}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${imageMode === 'upload' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+                      <Upload className="w-3 h-3" /> Upload
+                    </button>
+                  </div>
+                  {imageMode === 'url' ? (
+                    <input
+                      className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                      placeholder="https://example.com/driver.jpg"
+                      value={form.prize_image_url}
+                      onChange={e => setForm(f => ({ ...f, prize_image_url: e.target.value }))}
+                    />
+                  ) : (
+                    <div>
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} />
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="w-full flex items-center justify-center gap-2 bg-muted border border-dashed border-border rounded-lg px-3 py-4 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50">
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {uploading ? 'Uploading...' : 'Click to choose image'}
+                      </button>
+                    </div>
+                  )}
+                  {form.prize_image_url && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img src={form.prize_image_url} alt="preview" className="w-12 h-12 object-contain rounded-lg bg-muted border border-border" />
+                      <span className="text-xs text-muted-foreground truncate flex-1">{form.prize_image_url.split('/').pop()}</span>
+                      <button type="button" onClick={() => setForm(f => ({ ...f, prize_image_url: '' }))}
+                        className="text-xs text-destructive hover:underline">Remove</button>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {['starts_at', 'ends_at'].map(key => (
                     <div key={key}>
