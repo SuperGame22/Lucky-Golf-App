@@ -45,8 +45,8 @@ export default function HomeScreen() {
             <div className="space-y-2 text-right">
               <Link to="/earn/raffle">
                 <div className="bg-accent/10 border border-accent/30 rounded-xl px-3 py-2 text-right cursor-pointer hover:bg-accent/20 transition-colors">
-                  <p className="text-[10px] text-accent uppercase tracking-widest font-bold">Weekly Raffle</p>
-                  <p className="text-sm font-black text-accent">Enter Now</p>
+                  <p className="text-[10px] text-accent uppercase tracking-widest font-bold text-center">Weekly Raffle</p>
+                  <p className="text-sm font-black text-accent text-center">Enter Now</p>
                 </div>
               </Link>
               <Link to="/play/start">

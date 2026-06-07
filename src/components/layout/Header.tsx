@@ -34,7 +34,6 @@ export function Header() {
           </div>
           <button className="p-1.5 rounded-full hover:bg-muted transition-colors relative" onClick={() => navigate('/chat')}>
             <Bell className="w-5 h-5 text-muted-foreground" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
           </button>
           <Link to="/career" className="p-1.5 rounded-full hover:bg-muted transition-colors">
             <User className="w-5 h-5 text-muted-foreground" />
