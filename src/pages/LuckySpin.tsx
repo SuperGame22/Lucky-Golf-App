@@ -1,10 +1,9 @@
 /**
  * LUCKY SPIN — Real Supabase integration
  * Wins update golfer_profiles clovers. No fake winners.
- * Wheel is net-positive at $7/spin: non-clover prizes only land every 4-7 spins.
  */
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import { Gift, Star, Sparkles, RotateCcw, Shirt, Clock, Ticket } from 'lucide-re
 import { toast } from 'sonner';
 
 const prizes = [
-  { label: 'Tees', color: 'from-primary to-lucky-emerald', icon: Clock, rare: true, clovers: 0 },
+  { label: 'Tee Time', color: 'from-primary to-lucky-emerald', icon: Clock, rare: true, clovers: 0 },
   { label: '50% Off', color: 'from-accent to-amber-600', icon: Ticket, clovers: 0 },
   { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5 },
   { label: 'Polo Shirt', color: 'from-blue-600 to-indigo-600', icon: Shirt, rare: true, clovers: 0 },
@@ -33,21 +32,6 @@ const prizes = [
   { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2 },
 ];
 
-// Net-positive tuning. Clover wins are biased small; non-clover prizes are gated
-// to once per 4-7 spins and weighted toward the cheapest items.
-const CLOVER_WEIGHTS: Record<string, number> = { '+1 Clover': 40, '+2 Clovers': 28, '+3 Clovers': 20, '+5 Clovers': 9, '+10 Clovers': 3 };
-const PRIZE_WEIGHTS: Record<string, number> = { '15% Off': 22, '25% Off': 16, '50% Off': 6, 'Golf Balls': 12, 'Tees': 12, 'Glove': 10, 'Free Hat': 9, 'Polo Shirt': 5, 'Wedge': 4, 'Putter': 3, 'Driver': 1 };
-const CLOVER_IDX = prizes.map((p, i) => ({ p, i })).filter(x => x.p.clovers > 0).map(x => x.i);
-const PRIZE_IDX = prizes.map((p, i) => ({ p, i })).filter(x => x.p.clovers === 0).map(x => x.i);
-
-const weightedPick = (idx: number[], weights: Record<string, number>) => {
-  const entries = idx.map(i => ({ i, w: weights[prizes[i].label] ?? 1 }));
-  const total = entries.reduce((s, e) => s + e.w, 0);
-  let r = Math.random() * total;
-  for (const e of entries) { r -= e.w; if (r <= 0) return e.i; }
-  return entries[entries.length - 1].i;
-};
-
 const LuckySpin = () => {
   const { refreshProfile } = useAuth();
   const { addClovers } = useClovers();
@@ -57,36 +41,16 @@ const LuckySpin = () => {
   const [spinsRemaining, setSpinsRemaining] = useState(3);
   const [canRespin, setCanRespin] = useState(false);
 
-  // Spins since last non-clover prize, and the (4-7) threshold for the next one.
-  const sinceRewardRef = useRef(0);
-  const nextRewardRef = useRef(4 + Math.floor(Math.random() * 4));
-
   const spin = async () => {
     if (spinning || spinsRemaining <= 0) return;
     setSpinning(true);
     setResult(null);
     setCanRespin(false);
 
-    // Decide the winning segment FIRST, then rotate the wheel to it.
-    sinceRewardRef.current += 1;
-    let prizeIndex: number;
-    if (sinceRewardRef.current >= nextRewardRef.current) {
-      sinceRewardRef.current = 0;
-      nextRewardRef.current = 4 + Math.floor(Math.random() * 4); // next prize in 4-7 spins
-      prizeIndex = weightedPick(PRIZE_IDX, PRIZE_WEIGHTS);
-    } else {
-      prizeIndex = weightedPick(CLOVER_IDX, CLOVER_WEIGHTS);
-    }
-
-    // Align final rotation so the chosen segment stops under the pointer,
-    // regardless of the wheel's current angle (this is what was drifting before).
+    const prizeIndex = Math.floor(Math.random() * prizes.length);
     const segmentAngle = 360 / prizes.length;
-    const targetAngle = (((360 - prizeIndex * segmentAngle - segmentAngle / 2) % 360) + 360) % 360;
-    setRotation(prev => {
-      const cur = ((prev % 360) + 360) % 360;
-      const delta = (((targetAngle - cur) % 360) + 360) % 360;
-      return prev + 360 * 10 + delta;
-    });
+    const targetRotation = 360 * 5 + (360 - (prizeIndex * segmentAngle) - segmentAngle / 2);
+    setRotation(prev => prev + targetRotation);
 
     setTimeout(async () => {
       const won = prizes[prizeIndex];
@@ -94,14 +58,14 @@ const LuckySpin = () => {
       setResult(won);
       setSpinsRemaining(prev => prev - 1);
 
+      // Award clovers via CloverContext (calls add_clovers RPC + refreshes profile)
       if (won.clovers > 0) {
         await addClovers(won.clovers, `Lucky Spin: ${won.label}`);
-        await refreshProfile();
         toast.success(`+${won.clovers} clovers added to your balance!`);
       }
 
       if (!won.rare && spinsRemaining > 1) setCanRespin(true);
-    }, 9500);
+    }, 4000);
   };
 
   const respin = () => {
@@ -116,19 +80,20 @@ const LuckySpin = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           <h1 className="text-3xl font-display font-bold">Lucky Tees</h1>
-          <p className="text-muted-foreground">Spin for discounted tees & prizes!</p>
+          <p className="text-muted-foreground">Spin for discounted tee times & prizes!</p>
         </motion.div>
 
         {/* Wheel */}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative flex items-center justify-center py-6">
-          <div className="absolute w-[26rem] h-[26rem] bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-30 animate-pulse" />
-          <div className="relative">
+          className="relative flex items-center justify-center py-4 overflow-hidden">
+          <div className="absolute w-64 h-64 bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-20 animate-pulse pointer-events-none" />
+          <div className="relative flex items-center justify-center w-full">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: 9.5, ease: [0.05, 0.72, 0.08, 1] }}
-              className="relative w-96 h-96">
+            <motion.div animate={{ rotate: rotation }} transition={{ duration: 4, ease: [0.2, 0.8, 0.2, 1] }}
+              style={{ willChange: 'transform', width: 'min(320px, calc(100vw - 3rem))', height: 'min(320px, calc(100vw - 3rem))' }}
+              className="relative">
               <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                 {prizes.map((prize, i) => {
                   const angle = (360 / prizes.length) * i;
