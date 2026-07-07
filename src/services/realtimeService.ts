@@ -98,3 +98,72 @@ export function broadcastGameEnd(channel: RealtimeChannel, state: WagerSessionSt
 export function leaveChannel(channel: RealtimeChannel) {
   supabase.removeChannel(channel);
 }
+
+// ── Foursome Finder ──────────────────────────────────────────────
+export interface FoursomePost {
+  id: string;
+  title: string;
+  course_name: string;
+  tee_time: string | null;
+  skill_level: string;
+  max_players: number;
+  description: string | null;
+  invite_code: string;
+  host_id: string;
+  status: string;
+  created_at: string;
+}
+
+export async function getOpenFoursomes(): Promise<{ data: FoursomePost[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('foursome_posts')
+    .select('*')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('getOpenFoursomes error:', error.message);
+    return { data: [], error: error.message };
+  }
+  return { data: (data as FoursomePost[]) ?? [], error: null };
+}
+
+export async function createFoursomePost(post: {
+  title: string;
+  course_name: string;
+  tee_time: string;
+  skill_level: string;
+  max_players: number;
+  description: string;
+}): Promise<{ data: FoursomePost | null; error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'You must be signed in to create a foursome.' };
+  const invite_code = generateInviteCode();
+  const { data, error } = await supabase
+    .from('foursome_posts')
+    .insert({
+      title: post.title,
+      course_name: post.course_name,
+      tee_time: post.tee_time || null,
+      skill_level: post.skill_level,
+      max_players: post.max_players,
+      description: post.description || null,
+      host_id: user.id,
+      invite_code,
+      status: 'open',
+    })
+    .select()
+    .single();
+  if (error) return { data: null, error: error.message };
+  return { data: data as FoursomePost, error: null };
+}
+
+export async function joinFoursome(code: string): Promise<{ data: FoursomePost | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('foursome_posts')
+    .select('*')
+    .eq('invite_code', code.toUpperCase())
+    .maybeSingle();
+  if (error) return { data: null, error: error.message };
+  if (!data) return { data: null, error: 'No open foursome found with that code.' };
+  return { data: data as FoursomePost, error: null };
+}
