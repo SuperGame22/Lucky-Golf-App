@@ -101,26 +101,6 @@ const Scorecard = () => {
 
       if (error) throw error;
 
-      // Update golfer_profiles aggregate stats
-      const { data: allRounds } = await supabase
-        .from('rounds')
-        .select('score_diff, total_putts')
-        .eq('user_id', user.id)
-        .eq('completed', true);
-
-      if (allRounds && allRounds.length > 0) {
-        const n = allRounds.length;
-        const scoringAvg = allRounds.reduce((s: number, r: any) => s + r.score_diff, 0) / n;
-        const diffs = allRounds.map((r: any) => r.score_diff).sort((a: number, b: number) => a - b);
-        const hcpSample = diffs.slice(0, Math.min(8, diffs.length));
-        const handicap = parseFloat((hcpSample.reduce((s: number, d: number) => s + d, 0) / hcpSample.length * 0.96).toFixed(1));
-        await supabase.from('golfer_profiles').update({
-          rounds_played: n,
-          scoring_avg: parseFloat(scoringAvg.toFixed(2)),
-          handicap_index: handicap,
-        }).eq('user_id', user.id);
-      }
-
       // Award clovers via CloverContext (add_clovers RPC → golfer_profiles.clovers)
       await addClovers(CLOVERS_PER_ROUND, 'round_complete');
 
