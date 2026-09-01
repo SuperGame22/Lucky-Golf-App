@@ -249,6 +249,10 @@ export default function LuckyWagers() {
     if (!user) { navigate('/auth'); return; }
     const code = generateInviteCode();
     setMode(selectedMode);
+    setCompetitionId(null);
+    setHasPaid(false);
+    setCollecting(false);
+    setPaidUserIds(new Set());
     setView('lobby');
     connectToSession(code, true, selectedMode);
   };
@@ -262,6 +266,10 @@ export default function LuckyWagers() {
     if (joinCode.length < 6) { setError('Enter a 6-character code'); return; }
     setJoinLoading(true);
     setError(null);
+    setCompetitionId(null);
+    setHasPaid(false);
+    setCollecting(false);
+    setPaidUserIds(new Set());
     setView('lobby');
     connectToSession(joinCode.toUpperCase(), false);
     setJoinLoading(false);
@@ -542,19 +550,37 @@ export default function LuckyWagers() {
             <p className="text-[10px] text-muted-foreground mt-2">Share this code with your opponents</p>
           </div>
 
-          {/* Bet Amount (host only) */}
+          {error && (
+            <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-red-400">{error}</p>
+                {error.toLowerCase().includes('add cash') && (
+                  <button
+                    className="text-xs font-bold text-primary underline mt-1"
+                    onClick={() => navigate('/wallet/add-cash')}
+                  >
+                    Add Cash Now
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Wager Amount (host only) — real cash, deducted from your $ balance */}
           {isHost && (
             <div className="glass-card p-5">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Wager Amount</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Wager Amount (Cash)</p>
               <div className="flex items-center justify-center gap-6">
-                <Button variant="outline" size="icon" onClick={() => setBetAmount(Math.max(5, betAmount - 5))}><Minus className="w-4 h-4" /></Button>
-                <div className="flex items-center gap-2">
-                  <CloverIcon className="w-7 h-7" />
+                <Button variant="outline" size="icon" disabled={collecting || starting} onClick={() => setBetAmount(Math.max(5, betAmount - 5))}><Minus className="w-4 h-4" /></Button>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-7 h-7 text-emerald-400" />
                   <span className="text-3xl font-black">{betAmount}</span>
                 </div>
-                <Button variant="outline" size="icon" onClick={() => setBetAmount(Math.min(100, betAmount + 5))}><Plus className="w-4 h-4" /></Button>
+                <Button variant="outline" size="icon" disabled={collecting || starting} onClick={() => setBetAmount(Math.min(100, betAmount + 5))}><Plus className="w-4 h-4" /></Button>
               </div>
-              <p className="text-center text-[10px] text-muted-foreground mt-2">Per player · Pot: <span className="text-primary font-bold">{totalPot}</span></p>
+              <p className="text-center text-[10px] text-muted-foreground mt-2">Per player · Pot: <span className="text-emerald-400 font-bold">${totalPot}</span></p>
+              <p className="text-center text-[9px] text-muted-foreground mt-1">Charged to your cash balance when you lock in.</p>
             </div>
           )}
 
@@ -588,9 +614,10 @@ export default function LuckyWagers() {
           </div>
 
           {isHost && (
-            <Button className="w-full h-14 text-lg font-black uppercase tracking-wider" disabled={playerList.length < 2}
+            <Button className="w-full h-14 text-lg font-black uppercase tracking-wider" disabled={playerList.length < 2 || starting || collecting}
               onClick={startGame} data-testid="start-wager-btn">
-              <Swords className="w-5 h-5 mr-2" /> Lock In Wager
+              {starting || collecting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Swords className="w-5 h-5 mr-2" />}
+              {collecting ? 'Collecting Buy-Ins…' : starting ? 'Starting…' : `Lock In Wager · $${betAmount}/player`}
             </Button>
           )}
           {!isHost && (
@@ -634,8 +661,8 @@ export default function LuckyWagers() {
 
           {/* Pot */}
           <div className="glass-card p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2"><CloverIcon className="w-5 h-5" /><span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Pot</span></div>
-            <span className="text-lg font-black text-primary">{totalPot}</span>
+            <div className="flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-400" /><span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Cash Pot</span></div>
+            <span className="text-lg font-black text-emerald-400">${totalPot}</span>
           </div>
 
           {/* My Score Entry */}
@@ -739,7 +766,7 @@ export default function LuckyWagers() {
               {mode === 'winner-takes-all' ? 'WINNER TAKES ALL' : 'KING OF THE PARS'}
             </p>
             <h1 className="text-3xl font-black uppercase tracking-wide mb-1">{winner?.displayName} Wins!</h1>
-            <p className="text-primary font-black text-xl">+{totalPot} Clovers</p>
+            <p className="text-emerald-400 font-black text-xl">+${totalPot} Cash</p>
           </motion.div>
 
           <div className="space-y-2">
