@@ -58,9 +58,8 @@ import ProfileEditor from "./pages/ProfileEditor";
 // ── Admin ──
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
-import AdminProducts from "./pages/admin/Products";
-import AdminPromotions from "./pages/admin/Promotions";
 import AdminJackpots from "./pages/admin/Jackpots";
+import { AdminRoute } from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -135,10 +134,8 @@ const App = () => (
 
               {/* ── Admin ── */}
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
-              <Route path="/admin/promotions" element={<ProtectedRoute><AdminPromotions /></ProtectedRoute>} />
-              <Route path="/admin/jackpots" element={<ProtectedRoute><AdminJackpots /></ProtectedRoute>} />
+              <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin/jackpots" element={<AdminRoute><AdminJackpots /></AdminRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

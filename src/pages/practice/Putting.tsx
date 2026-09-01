@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { addClovers } from '@/services/cloverService';
+import { useClovers } from '@/contexts/CloverContext';
 import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
@@ -106,7 +106,7 @@ function inBunker(px:number,py:number):boolean{
 type GS='aim'|'roll'|'sunk'|'lip'|'miss'|'sand'|'practice';
 
 export default function PuttingGame(){
-  const nav=useNavigate();const{refreshProfile}=useAuth();
+  const nav=useNavigate();const{refreshProfile}=useAuth();const{addClovers}=useClovers();
   const gRef=useRef<HTMLDivElement>(null);const raf=useRef(0);
   const[course]=useState<Hole[]>(()=>mk());
   const[nc,setNc]=useState<Hole[]|null>(null);

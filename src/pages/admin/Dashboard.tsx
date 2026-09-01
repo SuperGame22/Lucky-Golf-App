@@ -37,48 +37,17 @@ const AdminDashboard = () => {
     navigate("/admin/login");
   };
 
+  // Only routes that actually exist and work today. The rest (Products,
+  // Promotions, Orders, Users, Analytics, Settings) were dead links to
+  // pages that called a backend that was never built — removed rather
+  // than shipping 404s from the admin panel.
   const menuItems = [
     {
-      title: "Products",
-      description: "Manage golf equipment & inventory",
-      icon: Package,
-      link: "/admin/products",
-      color: "text-primary"
-    },
-    {
-      title: "Promotions",
-      description: "Create flash sales & multipliers",
-      icon: Tag,
-      link: "/admin/promotions",
-      color: "text-accent"
-    },
-    {
-      title: "Orders",
-      description: "View & manage customer orders",
-      icon: ShoppingCart,
-      link: "/admin/orders",
-      color: "text-blue-500"
-    },
-    {
-      title: "Users",
-      description: "Manage users & wallets",
-      icon: Users,
-      link: "/admin/users",
-      color: "text-purple-500"
-    },
-    {
-      title: "Analytics",
-      description: "Sales reports & insights",
+      title: "Jackpots",
+      description: "Manage the weekly raffle jackpot",
       icon: TrendingUp,
-      link: "/admin/analytics",
-      color: "text-green-500"
-    },
-    {
-      title: "Settings",
-      description: "Spin prices, clover rates & more",
-      icon: Settings,
-      link: "/admin/settings",
-      color: "text-orange-500"
+      link: "/admin/jackpots",
+      color: "text-primary"
     },
   ];
 
