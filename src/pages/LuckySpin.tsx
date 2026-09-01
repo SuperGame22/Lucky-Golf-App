@@ -91,7 +91,7 @@ const prizes: Prize[] = [
     { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
     { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
     { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
+    { label: '6mo Clover Club', color: 'from-purple-600 to-fuchsia-800', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 6 },
   ]),
   ...arc(PRIZE_B_LABEL, [
     { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
@@ -199,7 +199,7 @@ const LuckySpin = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-          <h1 className="text-3xl font-display font-bold">Lucky Tees</h1>
+          <h1 className="text-3xl font-display font-bold">Lucky Spinz</h1>
           <p className="text-muted-foreground">Spin for discounted tee times & prizes!</p>
         </motion.div>
 
@@ -249,7 +249,7 @@ const LuckySpin = () => {
                 const isSand = prize.type === 'none';
                 return (
                   <div key={i}
-                    className={`absolute font-bold leading-none whitespace-nowrap ${isSand ? 'text-[4.5px]' : 'text-[6px]'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
+                    className={`absolute font-bold leading-none whitespace-nowrap ${isSand ? 'text-[4.5px]' : 'text-[18px]'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
                     style={{
                       left: `${50 + R * Math.cos(rad)}%`,
                       top: `${50 + R * Math.sin(rad)}%`,
