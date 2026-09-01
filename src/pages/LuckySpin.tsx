@@ -64,7 +64,8 @@ interface Prize {
   wheelLabel?: string;
 }
 
-const SAND_FILL = '#F2E2B3'; // light sand/cream, per reference swatch
+const SAND_FILL = '#E6D9B4'; // light sand/cream, slightly muted so it doesn't pop too hard
+const GOLD_FILL = '#FFC94A'; // brighter gold — closer to the text-gradient-gold accent used below the wheel
 
 const SAND: Pick<Prize, 'label' | 'wheelLabel' | 'color' | 'icon' | 'clovers' | 'type' | 'width'> = {
   label: 'Sand Trap', wheelLabel: 'Sand', color: 'from-amber-300 to-yellow-600', icon: Waves, clovers: 0, type: 'none', width: 0.25,
@@ -147,12 +148,15 @@ const LuckySpin = () => {
   const [canRespin, setCanRespin] = useState(false);
 
   // Heavy-flywheel physics: a big initial burst of rotations (momentum),
-  // then a very long, smooth, gradually-thinning deceleration rather than
-  // an abrupt stop — the "expo out" style curve is what reads as a heavy
-  // spinning mass coasting to a stop under friction, not a UI snap.
+  // then a smooth, continuously-thinning deceleration rather than an abrupt
+  // stop. Uses a quart-out curve rather than expo-out: expo-out's velocity
+  // drops to near-zero and stays there for a long flat tail, which is what
+  // was reading as "choppy" (any frame jitter is very visible when the
+  // wheel is barely moving) — quart-out keeps easing off smoothly all the
+  // way to the stop instead of going nearly-static early.
   const SPIN_DURATION_S = 12;
   const SPIN_ROTATIONS = 13;
-  const SPIN_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+  const SPIN_EASE: [number, number, number, number] = [0.25, 1, 0.5, 1];
 
   const spin = async () => {
     if (spinning || spinsRemaining <= 0) return;
@@ -162,10 +166,17 @@ const LuckySpin = () => {
 
     const prizeIndex = Math.floor(Math.random() * prizes.length);
     const { midDeg } = SLICE_ANGLES[prizeIndex];
-    // 10 full turns for a heavy, long-winding spin, landing the chosen
-    // slice's midpoint under the pointer (which sits at the top, 0°).
-    const targetRotation = 360 * SPIN_ROTATIONS + (360 - midDeg);
-    setRotation(prev => prev + targetRotation);
+    // Land the chosen slice's midpoint under the pointer (top, 0°). Rotation
+    // is cumulative across spins, so we have to correct for wherever the
+    // wheel already stopped last time (prev mod 360) rather than assuming
+    // it starts at 0 — otherwise each spin after the first lands on the
+    // wrong slice relative to the result shown.
+    setRotation(prev => {
+      const prevMod = ((prev % 360) + 360) % 360;
+      const targetMod = ((360 - midDeg) % 360 + 360) % 360;
+      const deltaToTarget = ((targetMod - prevMod) % 360 + 360) % 360;
+      return prev + 360 * SPIN_ROTATIONS + deltaToTarget;
+    });
 
     setTimeout(async () => {
       const won = prizes[prizeIndex];
@@ -230,19 +241,17 @@ const LuckySpin = () => {
                   const x2 = 50 + 50 * Math.cos(endAngle);
                   const y2 = 50 + 50 * Math.sin(endAngle);
                   const isSandSlice = prize.type === 'none';
-                  const fillClass = prize.rare
-                    ? 'text-accent/80'
-                    : i % 2 === 0 ? 'text-card' : 'text-muted';
+                  const fillClass = i % 2 === 0 ? 'text-card' : 'text-muted';
+                  const explicitFill = isSandSlice ? SAND_FILL : prize.rare ? GOLD_FILL : undefined;
                   return (
                     <path key={i}
                       d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                      className={isSandSlice ? '' : `fill-current ${fillClass}`}
-                      fill={isSandSlice ? SAND_FILL : undefined}
+                      className={explicitFill ? '' : `fill-current ${fillClass}`}
+                      fill={explicitFill}
                       stroke="hsl(var(--border))" strokeWidth="0.3" />
                   );
                 })}
-                <circle cx="50" cy="50" r="10" className="fill-primary" />
-                <circle cx="50" cy="50" r="6" className="fill-background" />
+                <circle cx="50" cy="50" r="8" fill={GOLD_FILL} />
               </svg>
               {/* Labels run "long ways" — radially outward, out near the rim
                   where they're actually readable, oriented along each
@@ -270,6 +279,11 @@ const LuckySpin = () => {
                 );
               })}
             </motion.div>
+            {/* Static hub logo — sits outside the rotating wheel so it
+                stays upright instead of spinning with it. */}
+            <img src="/clover-logo.png" alt="Lucky Golf" draggable={false}
+              className="absolute pointer-events-none select-none drop-shadow-md"
+              style={{ left: '50%', top: '50%', width: '11%', aspectRatio: '1 / 1', objectFit: 'contain', transform: 'translate(-50%, -50%)' }} />
           </div>
         </motion.div>
 
