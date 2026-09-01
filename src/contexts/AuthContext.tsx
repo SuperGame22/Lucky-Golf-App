@@ -13,6 +13,10 @@ interface Profile {
   clovers: number;
   total_clovers: number;
   bio: string;
+  role?: string;
+  date_of_birth?: string | null;
+  tos_accepted_at?: string | null;
+  tos_version?: string | null;
 }
 
 interface AuthState {

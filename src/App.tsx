@@ -46,6 +46,7 @@ import Shop from "./pages/Shop";
 import WeeklyRaffle from "./pages/earn/Raffle";
 import CloverPacks from "./pages/earn/Packs";
 import AddCash from "./pages/wallet/AddCash";
+import VerifyTerms from "./pages/wagers/VerifyTerms";
 
 // ── Cross-Domain ──
 import Chat from "./pages/Chat";
@@ -127,6 +128,7 @@ const App = () => (
               <Route path="/scorecard" element={<Navigate to="/play/scorecard" replace />} />
               <Route path="/course" element={<Navigate to="/play/flyover" replace />} />
               <Route path="/wallet/add-cash" element={<ProtectedRoute><AddCash /></ProtectedRoute>} />
+              <Route path="/wagers/verify" element={<ProtectedRoute><VerifyTerms /></ProtectedRoute>} />
               <Route path="/wallet" element={<Navigate to="/earn" replace />} />
               <Route path="/profile" element={<Navigate to="/career" replace />} />
 

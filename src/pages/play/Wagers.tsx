@@ -180,9 +180,13 @@ export default function LuckyWagers() {
             .then(({ data, error: rpcErr }) => {
               if (rpcErr || !data) {
                 const reason = rpcErr?.message || 'Payment failed';
-                setError(reason.includes('Insufficient funds')
-                  ? `You need $${state.betAmount} to join this wager. Add cash and try again.`
-                  : reason);
+                if (reason.includes('AGE_VERIFICATION_REQUIRED')) {
+                  navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
+                } else {
+                  setError(reason.includes('Insufficient funds')
+                    ? `You need $${state.betAmount} to join this wager. Add cash and try again.`
+                    : reason);
+                }
                 if (channelRef.current) broadcastPaymentFailed(channelRef.current, myId, reason);
               } else {
                 setHasPaid(true);
@@ -247,6 +251,10 @@ export default function LuckyWagers() {
   // ── Host: Create Session ──
   const handleCreate = (selectedMode: WagerMode) => {
     if (!user) { navigate('/auth'); return; }
+    if (!profile?.date_of_birth || !profile?.tos_accepted_at) {
+      navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
+      return;
+    }
     const code = generateInviteCode();
     setMode(selectedMode);
     setCompetitionId(null);
@@ -263,6 +271,10 @@ export default function LuckyWagers() {
 
   const handleJoin = () => {
     if (!user) { navigate('/auth'); return; }
+    if (!profile?.date_of_birth || !profile?.tos_accepted_at) {
+      navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
+      return;
+    }
     if (joinCode.length < 6) { setError('Enter a 6-character code'); return; }
     setJoinLoading(true);
     setError(null);
@@ -292,6 +304,10 @@ export default function LuckyWagers() {
     setStarting(false);
     if (rpcErr || !data?.competition_id) {
       const reason = rpcErr?.message || 'Could not start the wager';
+      if (reason.includes('AGE_VERIFICATION_REQUIRED')) {
+        navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
+        return;
+      }
       setError(reason.includes('Insufficient funds')
         ? `You need $${betAmount} to host this wager. Add cash and try again.`
         : reason);
@@ -577,7 +593,7 @@ export default function LuckyWagers() {
                   <DollarSign className="w-7 h-7 text-emerald-400" />
                   <span className="text-3xl font-black">{betAmount}</span>
                 </div>
-                <Button variant="outline" size="icon" disabled={collecting || starting} onClick={() => setBetAmount(Math.min(100, betAmount + 5))}><Plus className="w-4 h-4" /></Button>
+                <Button variant="outline" size="icon" disabled={collecting || starting} onClick={() => setBetAmount(Math.min(300, betAmount + 5))}><Plus className="w-4 h-4" /></Button>
               </div>
               <p className="text-center text-[10px] text-muted-foreground mt-2">Per player · Pot: <span className="text-emerald-400 font-bold">${totalPot}</span></p>
               <p className="text-center text-[9px] text-muted-foreground mt-1">Charged to your cash balance when you lock in.</p>
