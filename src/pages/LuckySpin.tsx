@@ -1,14 +1,17 @@
 /**
  * LUCKY SPIN — Real Supabase integration
- * One physical "Featured Prize" slot. Rest are clovers + discount codes.
- * Change FEATURED_PRIZE_LABEL to update the prize anytime.
+ * Two physical "Featured Prize" slots (opposite each other on the wheel).
+ * Rest are clovers, discount codes, free spins, and Clover Club trials.
+ * Change PRIZE_A_LABEL / PRIZE_B_LABEL to update the featured prizes anytime.
  *
  * ECONOMICS (per spin = 10 clovers = $40 in purchases):
- *   Physical prize  1/16 =  6.25% × avg $50 = $3.13 expected cost
- *   Discount codes  5/16 = 31.25% × ~$1.30  = $0.41 expected cost
- *   Clovers        10/16 = 62.50% × $0      = $0.00
+ *   Physical prizes  2/32 =  6.25% × avg $50 = $3.13 expected cost
+ *   Discount codes  12/32 = 37.50% × ~$1.30  = $0.49 expected cost
+ *   Clovers         14/32 = 43.75% × $0      = $0.00
+ *   Free spin        2/32 =  6.25% × $0      = $0.00 (costs a spin back)
+ *   Clover Club       2/32 =  6.25% × ~$5    = $0.31 expected cost
  *   ─────────────────────────────────────────────────
- *   Total expected cost per spin: ~$3.54   Revenue: $40   Net: +$36 ✓
+ *   Total expected cost per spin: ~$3.93   Revenue: $40   Net: +$36 ✓
  */
 
 import { useState } from 'react';
@@ -18,11 +21,12 @@ import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClovers } from '@/contexts/CloverContext';
-import { Gift, Star, Sparkles, RotateCcw, Ticket } from 'lucide-react';
+import { Gift, Star, Sparkles, RotateCcw, Ticket, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ── Change this to update the featured physical prize ──
-const FEATURED_PRIZE_LABEL = 'Golf Bag';
+// ── Change these to update the two featured physical prizes ──
+const PRIZE_A_LABEL = 'Lucky Wedge';
+const PRIZE_B_LABEL = 'Lucky Putter';
 
 // Discount codes shown to winners (rotate or update as needed)
 const DISCOUNT_CODES: Record<string, string> = {
@@ -33,28 +37,54 @@ const DISCOUNT_CODES: Record<string, string> = {
   '30% Off': 'LUCKY30',
 };
 
-const prizes = [
-  // ── 1 Physical Prize (6.25%) ──
-  { label: FEATURED_PRIZE_LABEL, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize' as const },
+type PrizeType = 'prize' | 'clovers' | 'discount' | 'free_spin' | 'membership';
 
-  // ── 10 Clover prizes (62.5%) ──
-  { label: '+1 Clover',  color: 'from-gray-500 to-gray-600',      icon: CloverIcon, clovers: 1,  type: 'clovers' as const },
-  { label: '+1 Clover',  color: 'from-gray-500 to-gray-600',      icon: CloverIcon, clovers: 1,  type: 'clovers' as const },
-  { label: '+2 Clovers', color: 'from-lime-500 to-green-600',     icon: CloverIcon, clovers: 2,  type: 'clovers' as const },
-  { label: '+2 Clovers', color: 'from-lime-500 to-green-600',     icon: CloverIcon, clovers: 2,  type: 'clovers' as const },
-  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600',   icon: CloverIcon, clovers: 3,  type: 'clovers' as const },
-  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600',   icon: CloverIcon, clovers: 3,  type: 'clovers' as const },
-  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600',  icon: CloverIcon, clovers: 5,  type: 'clovers' as const },
-  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600',  icon: CloverIcon, clovers: 5,  type: 'clovers' as const },
-  { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' as const },
-  { label: '+10 Clovers',color: 'from-primary to-emerald-700',    icon: CloverIcon, clovers: 10, type: 'clovers' as const },
+interface Prize {
+  label: string;
+  color: string;
+  icon: typeof Gift;
+  rare?: boolean;
+  clovers: number;
+  type: PrizeType;
+  membershipMonths?: number;
+}
 
-  // ── 5 Discount codes (31.25%) ──
-  { label: '10% Off', color: 'from-blue-400 to-cyan-500',    icon: Ticket, clovers: 0, type: 'discount' as const },
-  { label: '10% Off', color: 'from-blue-400 to-cyan-500',    icon: Ticket, clovers: 0, type: 'discount' as const },
-  { label: '15% Off', color: 'from-blue-500 to-indigo-600',  icon: Ticket, clovers: 0, type: 'discount' as const },
-  { label: '20% Off', color: 'from-indigo-500 to-violet-600',icon: Ticket, clovers: 0, type: 'discount' as const },
-  { label: '25% Off', color: 'from-violet-500 to-purple-700',icon: Ticket, clovers: 0, type: 'discount' as const },
+// 32 slices. The two featured items (index 0 and 16) sit directly opposite
+// each other on the wheel. Everything else is deliberately interleaved so
+// clovers and discounts don't clump together in one arc.
+const prizes: Prize[] = [
+  { label: PRIZE_A_LABEL, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize' },
+  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
+  { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
+  { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+  { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
+  { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
+  { label: '+10 Clovers', color: 'from-primary to-emerald-700', icon: CloverIcon, clovers: 10, type: 'clovers' },
+  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+  { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: PRIZE_B_LABEL, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize' },
+  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
+  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
+  { label: '3mo Clover Club', color: 'from-purple-500 to-fuchsia-700', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 3 },
+  { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+  { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+20 Clovers', color: 'from-primary to-emerald-800', icon: CloverIcon, clovers: 20, type: 'clovers' },
+  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+  { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+  { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
+  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+  { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
 ];
 
 const LuckySpin = () => {
@@ -91,6 +121,11 @@ const LuckySpin = () => {
         toast.success(`Your code: ${code} — use at checkout!`, { duration: 8000 });
       } else if (won.type === 'prize') {
         toast.success(`🎉 You won the ${won.label}! We'll reach out to arrange delivery.`, { duration: 10000 });
+      } else if (won.type === 'free_spin') {
+        setSpinsRemaining(prev => prev + 1);
+        toast.success(`🎁 Free spin! You've got another one on the house.`, { duration: 6000 });
+      } else if (won.type === 'membership') {
+        toast.success(`👑 ${won.label} unlocked! We'll activate it on your account.`, { duration: 10000 });
       }
 
       if (won.type !== 'prize' && spinsRemaining > 1) setCanRespin(true);
@@ -142,13 +177,20 @@ const LuckySpin = () => {
                 <circle cx="50" cy="50" r="10" className="fill-primary" />
                 <circle cx="50" cy="50" r="6" className="fill-background" />
               </svg>
+              {/* Labels run "long ways" — radially outward along each slice's
+                  centerline, anchored near the hub and rotated to lie flat
+                  along the spoke rather than tangent to the rim. */}
               {prizes.map((prize, i) => {
                 const angle = (360 / prizes.length) * i + 360 / prizes.length / 2 - 90;
-                const rad = angle * (Math.PI / 180);
                 return (
                   <div key={i}
-                    className={`absolute text-[8px] font-bold ${prize.rare ? 'text-accent-foreground' : 'text-foreground'}`}
-                    style={{ left: `${50 + 35 * Math.cos(rad)}%`, top: `${50 + 35 * Math.sin(rad)}%`, transform: `translate(-50%, -50%) rotate(${angle + 90}deg)` }}>
+                    className={`absolute text-[6.5px] font-bold leading-none whitespace-nowrap ${prize.rare ? 'text-accent-foreground' : 'text-foreground'}`}
+                    style={{
+                      left: '50%', top: '50%',
+                      width: '42%',
+                      transformOrigin: '0% 50%',
+                      transform: `rotate(${angle}deg) translateX(14%) translateY(-50%)`,
+                    }}>
                     {prize.label}
                   </div>
                 );
@@ -181,6 +223,17 @@ const LuckySpin = () => {
                     <Star className="w-4 h-4" /><span className="text-sm font-black uppercase tracking-wider">Featured Prize!</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">We'll reach out to arrange delivery</p>
+                </div>
+              )}
+              {result.type === 'free_spin' && (
+                <p className="text-sm text-cyan-400 mt-1 font-bold">+1 spin added — go again!</p>
+              )}
+              {result.type === 'membership' && (
+                <div className="flex items-center justify-center gap-1 mt-3 flex-col">
+                  <div className="flex items-center gap-1 text-fuchsia-400">
+                    <Crown className="w-4 h-4" /><span className="text-sm font-black uppercase tracking-wider">Clover Club</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">We'll activate this on your account</p>
                 </div>
               )}
               {canRespin && spinsRemaining > 0 && (
