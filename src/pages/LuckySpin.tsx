@@ -59,12 +59,15 @@ interface Prize {
   membershipMonths?: number;
   /** Relative angular weight. 1 = a normal full-width slice. Defaults to 1. */
   width?: number;
-  /** Too thin to fit a label on the wheel itself — still shown in results. */
-  hideLabel?: boolean;
+  /** Short text for the wheel itself, when different from `label` (used
+   *  in toasts/results) — for slices too thin for the full label. */
+  wheelLabel?: string;
 }
 
-const SAND: Pick<Prize, 'label' | 'color' | 'icon' | 'clovers' | 'type' | 'width' | 'hideLabel'> = {
-  label: 'Sand Trap', color: 'from-yellow-200 to-amber-400', icon: Waves, clovers: 0, type: 'none', width: 0.25, hideLabel: true,
+const SAND_FILL = '#D8B776'; // a real sand-tan, not just a pale yellow
+
+const SAND: Pick<Prize, 'label' | 'wheelLabel' | 'color' | 'icon' | 'clovers' | 'type' | 'width'> = {
+  label: 'Sand Trap', wheelLabel: 'Sand', color: 'from-amber-300 to-yellow-600', icon: Waves, clovers: 0, type: 'none', width: 0.25,
 };
 
 const gold = (label: string): Prize => ({
@@ -137,10 +140,13 @@ const LuckySpin = () => {
   const [spinsRemaining, setSpinsRemaining] = useState(3);
   const [canRespin, setCanRespin] = useState(false);
 
-  // Heavy-flywheel physics: long spin, most of it spent on a slow, gradual
-  // deceleration tail rather than stopping abruptly.
-  const SPIN_DURATION_S = 9;
-  const SPIN_EASE: [number, number, number, number] = [0.11, 0.85, 0.15, 1];
+  // Heavy-flywheel physics: a big initial burst of rotations (momentum),
+  // then a very long, smooth, gradually-thinning deceleration rather than
+  // an abrupt stop — the "expo out" style curve is what reads as a heavy
+  // spinning mass coasting to a stop under friction, not a UI snap.
+  const SPIN_DURATION_S = 12;
+  const SPIN_ROTATIONS = 13;
+  const SPIN_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
   const spin = async () => {
     if (spinning || spinsRemaining <= 0) return;
@@ -152,7 +158,7 @@ const LuckySpin = () => {
     const { midDeg } = SLICE_ANGLES[prizeIndex];
     // 10 full turns for a heavy, long-winding spin, landing the chosen
     // slice's midpoint under the pointer (which sits at the top, 0°).
-    const targetRotation = 360 * 10 + (360 - midDeg);
+    const targetRotation = 360 * SPIN_ROTATIONS + (360 - midDeg);
     setRotation(prev => prev + targetRotation);
 
     setTimeout(async () => {
@@ -206,7 +212,7 @@ const LuckySpin = () => {
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
             <motion.div animate={{ rotate: rotation }} transition={{ duration: SPIN_DURATION_S, ease: SPIN_EASE }}
-              style={{ willChange: 'transform', width: 'min(320px, calc(100vw - 3rem))', height: 'min(320px, calc(100vw - 3rem))' }}
+              style={{ willChange: 'transform', width: '100%', aspectRatio: '1 / 1' }}
               className="relative">
               <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                 {prizes.map((prize, i) => {
@@ -217,15 +223,15 @@ const LuckySpin = () => {
                   const y1 = 50 + 50 * Math.sin(startAngle);
                   const x2 = 50 + 50 * Math.cos(endAngle);
                   const y2 = 50 + 50 * Math.sin(endAngle);
+                  const isSandSlice = prize.type === 'none';
                   const fillClass = prize.rare
                     ? 'text-accent/80'
-                    : prize.type === 'none'
-                      ? 'text-amber-200/70'
-                      : i % 2 === 0 ? 'text-card' : 'text-muted';
+                    : i % 2 === 0 ? 'text-card' : 'text-muted';
                   return (
                     <path key={i}
                       d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                      className={`fill-current ${fillClass}`}
+                      className={isSandSlice ? '' : `fill-current ${fillClass}`}
+                      fill={isSandSlice ? SAND_FILL : undefined}
                       stroke="hsl(var(--border))" strokeWidth="0.3" />
                   );
                 })}
@@ -234,22 +240,22 @@ const LuckySpin = () => {
               </svg>
               {/* Labels run "long ways" — radially outward, out near the rim
                   where they're actually readable, oriented along each
-                  slice's centerline. Sliver slices (sand traps) are too
-                  thin for a label and are skipped (hideLabel). */}
+                  slice's centerline. Sand slivers use a short "Sand"
+                  wheelLabel at a smaller size since they're still thin. */}
               {prizes.map((prize, i) => {
-                if (prize.hideLabel) return null;
                 const angle = SLICE_ANGLES[i].midDeg - 90;
                 const rad = angle * (Math.PI / 180);
                 const R = 37; // out of 50 — well past the hub, just inside the rim
+                const isSand = prize.type === 'none';
                 return (
                   <div key={i}
-                    className={`absolute text-[6px] font-bold leading-none whitespace-nowrap ${prize.rare ? 'text-accent-foreground' : 'text-foreground'}`}
+                    className={`absolute font-bold leading-none whitespace-nowrap ${isSand ? 'text-[4.5px]' : 'text-[6px]'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
                     style={{
                       left: `${50 + R * Math.cos(rad)}%`,
                       top: `${50 + R * Math.sin(rad)}%`,
                       transform: `translate(-50%, -50%) rotate(${angle}deg)`,
                     }}>
-                    {prize.label}
+                    {prize.wheelLabel ?? prize.label}
                   </div>
                 );
               })}
