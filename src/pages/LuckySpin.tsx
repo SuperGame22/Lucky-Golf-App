@@ -1,17 +1,26 @@
 /**
  * LUCKY SPIN — Real Supabase integration
- * Two physical "Featured Prize" slots (opposite each other on the wheel).
- * Rest are clovers, discount codes, free spins, and Clover Club trials.
- * Change PRIZE_A_LABEL / PRIZE_B_LABEL to update the featured prizes anytime.
+ * Three featured physical prizes, each a half-width gold slice flanked by
+ * two thin "sand bunker" slivers, spaced an even 120° apart around the
+ * wheel. Rest of each 120° arc is clovers, discounts, free spins, and
+ * Clover Club trials.
  *
- * ECONOMICS (per spin = 10 clovers = $40 in purchases):
- *   Physical prizes  2/32 =  6.25% × avg $50 = $3.13 expected cost
- *   Discount codes  12/32 = 37.50% × ~$1.30  = $0.49 expected cost
- *   Clovers         14/32 = 43.75% × $0      = $0.00
- *   Free spin        2/32 =  6.25% × $0      = $0.00 (costs a spin back)
- *   Clover Club       2/32 =  6.25% × ~$5    = $0.31 expected cost
+ * Slice angular width is weight-based (see `width` on Prize / SLICE_ANGLES
+ * below) — NOT uniform per-index — so the gold/sand pieces can be thinner
+ * than a normal slice while everything still sums to exactly 360°. Landing
+ * odds are still uniform per array entry (1/36 each), independent of a
+ * slice's visual width — a thin gold sliver has the same odds as a full
+ * filler slice, it's just visually smaller.
+ *
+ * ECONOMICS (36 slices, per spin = 10 clovers = $40 in purchases):
+ *   Physical prizes  3/36 =  8.3% × avg $50  = $4.17 expected cost
+ *   Sand Trap        6/36 = 16.7% × $0       = $0.00 (no win, keeps it fair)
+ *   Clovers         13/36 = 36.1% × $0       = $0.00
+ *   Discount codes  10/36 = 27.8% × ~$1.30   = $0.36 expected cost
+ *   Free spin        2/36 =  5.6% × $0       = $0.00 (costs a spin back)
+ *   Clover Club       2/36 =  5.6% × ~$5     = $0.28 expected cost
  *   ─────────────────────────────────────────────────
- *   Total expected cost per spin: ~$3.93   Revenue: $40   Net: +$36 ✓
+ *   Total expected cost per spin: ~$4.81   Revenue: $40   Net: +$35 ✓
  */
 
 import { useState } from 'react';
@@ -21,12 +30,13 @@ import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClovers } from '@/contexts/CloverContext';
-import { Gift, Star, Sparkles, RotateCcw, Ticket, Crown } from 'lucide-react';
+import { Gift, Star, Sparkles, RotateCcw, Ticket, Crown, Waves } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ── Change these to update the two featured physical prizes ──
+// ── Change these to update the three featured physical prizes ──
 const PRIZE_A_LABEL = 'Lucky Wedge';
 const PRIZE_B_LABEL = 'Lucky Putter';
+const PRIZE_C_LABEL = 'Lucky Driver';
 
 // Discount codes shown to winners (rotate or update as needed)
 const DISCOUNT_CODES: Record<string, string> = {
@@ -37,7 +47,7 @@ const DISCOUNT_CODES: Record<string, string> = {
   '30% Off': 'LUCKY30',
 };
 
-type PrizeType = 'prize' | 'clovers' | 'discount' | 'free_spin' | 'membership';
+type PrizeType = 'prize' | 'clovers' | 'discount' | 'free_spin' | 'membership' | 'none';
 
 interface Prize {
   label: string;
@@ -47,45 +57,76 @@ interface Prize {
   clovers: number;
   type: PrizeType;
   membershipMonths?: number;
+  /** Relative angular weight. 1 = a normal full-width slice. Defaults to 1. */
+  width?: number;
+  /** Too thin to fit a label on the wheel itself — still shown in results. */
+  hideLabel?: boolean;
 }
 
-// 32 slices. The two featured items (index 0 and 16) sit directly opposite
-// each other on the wheel. Everything else is deliberately interleaved so
-// clovers and discounts don't clump together in one arc.
+const SAND: Pick<Prize, 'label' | 'color' | 'icon' | 'clovers' | 'type' | 'width' | 'hideLabel'> = {
+  label: 'Sand Trap', color: 'from-yellow-200 to-amber-400', icon: Waves, clovers: 0, type: 'none', width: 0.25, hideLabel: true,
+};
+
+const gold = (label: string): Prize => ({
+  label, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize', width: 0.5,
+});
+
+// One 120° arc: a sand/gold/sand cluster (weight 1, same as a normal slice)
+// plus 9 normal-weight filler slices — 10 weight-units per arc, so all three
+// arcs (identical total weight) land exactly 120° apart automatically.
+function arc(goldLabel: string, fillers: Prize[]): Prize[] {
+  return [{ ...SAND }, gold(goldLabel), { ...SAND }, ...fillers];
+}
+
 const prizes: Prize[] = [
-  { label: PRIZE_A_LABEL, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize' },
-  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
-  { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
-  { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
-  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
-  { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
-  { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
-  { label: '+10 Clovers', color: 'from-primary to-emerald-700', icon: CloverIcon, clovers: 10, type: 'clovers' },
-  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-  { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: PRIZE_B_LABEL, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize' },
-  { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
-  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
-  { label: '3mo Clover Club', color: 'from-purple-500 to-fuchsia-700', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 3 },
-  { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
-  { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+20 Clovers', color: 'from-primary to-emerald-800', icon: CloverIcon, clovers: 20, type: 'clovers' },
-  { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-  { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-  { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
-  { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
-  { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
-  { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
+  ...arc(PRIZE_A_LABEL, [
+    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
+    { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
+    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+    { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
+  ]),
+  ...arc(PRIZE_B_LABEL, [
+    { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
+    { label: '+10 Clovers', color: 'from-primary to-emerald-700', icon: CloverIcon, clovers: 10, type: 'clovers' },
+    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+    { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
+    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
+    { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
+  ]),
+  ...arc(PRIZE_C_LABEL, [
+    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+    { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+20 Clovers', color: 'from-primary to-emerald-800', icon: CloverIcon, clovers: 20, type: 'clovers' },
+    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
+    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+    { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+    { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
+    { label: '3mo Clover Club', color: 'from-purple-500 to-fuchsia-700', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 3 },
+  ]),
 ];
+
+// Cumulative weight -> start/mid/end angle (degrees, 0° = wheel-top) for
+// every slice. Computed once at module scope since `prizes` is static.
+const SLICE_ANGLES = (() => {
+  const totalWeight = prizes.reduce((sum, p) => sum + (p.width ?? 1), 0);
+  let cumWeight = 0;
+  return prizes.map((p) => {
+    const w = p.width ?? 1;
+    const startDeg = (cumWeight / totalWeight) * 360;
+    cumWeight += w;
+    const endDeg = (cumWeight / totalWeight) * 360;
+    return { startDeg, endDeg, midDeg: (startDeg + endDeg) / 2 };
+  });
+})();
 
 const LuckySpin = () => {
   const { refreshProfile } = useAuth();
@@ -96,6 +137,11 @@ const LuckySpin = () => {
   const [spinsRemaining, setSpinsRemaining] = useState(3);
   const [canRespin, setCanRespin] = useState(false);
 
+  // Heavy-flywheel physics: long spin, most of it spent on a slow, gradual
+  // deceleration tail rather than stopping abruptly.
+  const SPIN_DURATION_S = 9;
+  const SPIN_EASE: [number, number, number, number] = [0.11, 0.85, 0.15, 1];
+
   const spin = async () => {
     if (spinning || spinsRemaining <= 0) return;
     setSpinning(true);
@@ -103,8 +149,10 @@ const LuckySpin = () => {
     setCanRespin(false);
 
     const prizeIndex = Math.floor(Math.random() * prizes.length);
-    const segmentAngle = 360 / prizes.length;
-    const targetRotation = 360 * 5 + (360 - (prizeIndex * segmentAngle) - segmentAngle / 2);
+    const { midDeg } = SLICE_ANGLES[prizeIndex];
+    // 10 full turns for a heavy, long-winding spin, landing the chosen
+    // slice's midpoint under the pointer (which sits at the top, 0°).
+    const targetRotation = 360 * 10 + (360 - midDeg);
     setRotation(prev => prev + targetRotation);
 
     setTimeout(async () => {
@@ -126,10 +174,12 @@ const LuckySpin = () => {
         toast.success(`🎁 Free spin! You've got another one on the house.`, { duration: 6000 });
       } else if (won.type === 'membership') {
         toast.success(`👑 ${won.label} unlocked! We'll activate it on your account.`, { duration: 10000 });
+      } else if (won.type === 'none') {
+        toast(`🏖️ Sand Trap — no prize this time.`, { duration: 5000 });
       }
 
       if (won.type !== 'prize' && spinsRemaining > 1) setCanRespin(true);
-    }, 4000);
+    }, SPIN_DURATION_S * 1000);
   };
 
   const respin = () => {
@@ -155,41 +205,49 @@ const LuckySpin = () => {
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: 4, ease: [0.2, 0.8, 0.2, 1] }}
+            <motion.div animate={{ rotate: rotation }} transition={{ duration: SPIN_DURATION_S, ease: SPIN_EASE }}
               style={{ willChange: 'transform', width: 'min(320px, calc(100vw - 3rem))', height: 'min(320px, calc(100vw - 3rem))' }}
               className="relative">
               <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                 {prizes.map((prize, i) => {
-                  const angle = (360 / prizes.length) * i;
-                  const startAngle = (angle - 90) * (Math.PI / 180);
-                  const endAngle = (angle + 360 / prizes.length - 90) * (Math.PI / 180);
+                  const { startDeg, endDeg } = SLICE_ANGLES[i];
+                  const startAngle = (startDeg - 90) * (Math.PI / 180);
+                  const endAngle = (endDeg - 90) * (Math.PI / 180);
                   const x1 = 50 + 50 * Math.cos(startAngle);
                   const y1 = 50 + 50 * Math.sin(startAngle);
                   const x2 = 50 + 50 * Math.cos(endAngle);
                   const y2 = 50 + 50 * Math.sin(endAngle);
+                  const fillClass = prize.rare
+                    ? 'text-accent/80'
+                    : prize.type === 'none'
+                      ? 'text-amber-200/70'
+                      : i % 2 === 0 ? 'text-card' : 'text-muted';
                   return (
                     <path key={i}
                       d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                      className={`fill-current ${prize.rare ? 'text-accent/80' : i % 2 === 0 ? 'text-card' : 'text-muted'}`}
+                      className={`fill-current ${fillClass}`}
                       stroke="hsl(var(--border))" strokeWidth="0.3" />
                   );
                 })}
                 <circle cx="50" cy="50" r="10" className="fill-primary" />
                 <circle cx="50" cy="50" r="6" className="fill-background" />
               </svg>
-              {/* Labels run "long ways" — radially outward along each slice's
-                  centerline, anchored near the hub and rotated to lie flat
-                  along the spoke rather than tangent to the rim. */}
+              {/* Labels run "long ways" — radially outward, out near the rim
+                  where they're actually readable, oriented along each
+                  slice's centerline. Sliver slices (sand traps) are too
+                  thin for a label and are skipped (hideLabel). */}
               {prizes.map((prize, i) => {
-                const angle = (360 / prizes.length) * i + 360 / prizes.length / 2 - 90;
+                if (prize.hideLabel) return null;
+                const angle = SLICE_ANGLES[i].midDeg - 90;
+                const rad = angle * (Math.PI / 180);
+                const R = 37; // out of 50 — well past the hub, just inside the rim
                 return (
                   <div key={i}
-                    className={`absolute text-[6.5px] font-bold leading-none whitespace-nowrap ${prize.rare ? 'text-accent-foreground' : 'text-foreground'}`}
+                    className={`absolute text-[6px] font-bold leading-none whitespace-nowrap ${prize.rare ? 'text-accent-foreground' : 'text-foreground'}`}
                     style={{
-                      left: '50%', top: '50%',
-                      width: '42%',
-                      transformOrigin: '0% 50%',
-                      transform: `rotate(${angle}deg) translateX(14%) translateY(-50%)`,
+                      left: `${50 + R * Math.cos(rad)}%`,
+                      top: `${50 + R * Math.sin(rad)}%`,
+                      transform: `translate(-50%, -50%) rotate(${angle}deg)`,
                     }}>
                     {prize.label}
                   </div>
@@ -205,7 +263,9 @@ const LuckySpin = () => {
             <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20 }} className="glass-card p-6 text-center glow-gold">
               <Sparkles className="w-12 h-12 text-accent mx-auto mb-4" />
-              <h3 className="text-2xl font-display font-bold text-gradient-gold mb-2">You Won!</h3>
+              <h3 className="text-2xl font-display font-bold text-gradient-gold mb-2">
+                {result.type === 'none' ? 'So Close!' : 'You Won!'}
+              </h3>
               <p className="text-xl font-semibold">{result.label}</p>
               {result.type === 'clovers' && result.clovers > 0 && (
                 <p className="text-sm text-primary mt-1 font-bold">+{result.clovers} clovers added to your balance</p>
@@ -235,6 +295,9 @@ const LuckySpin = () => {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">We'll activate this on your account</p>
                 </div>
+              )}
+              {result.type === 'none' && (
+                <p className="text-xs text-muted-foreground mt-1">Landed in the bunker — no prize this spin.</p>
               )}
               {canRespin && spinsRemaining > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
