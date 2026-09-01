@@ -20,10 +20,10 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
+          <Link to="/wallet/add-cash" className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
             <Wallet className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-xs font-semibold text-emerald-300">${balance.toFixed(2)}</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 px-2 py-1 rounded-full">
             <CloverIcon className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">{cloverBalance}</span>

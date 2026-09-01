@@ -11,6 +11,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   generateInviteCode,
   subscribeToWager,
@@ -19,6 +20,9 @@ import {
   broadcastScoreUpdate,
   broadcastGameStart,
   broadcastGameEnd,
+  broadcastCollecting,
+  broadcastPaymentConfirmed,
+  broadcastPaymentFailed,
   leaveChannel,
   type WagerPlayer,
   type WagerSessionState,
@@ -26,7 +30,7 @@ import {
 import { RealtimeChannel } from '@supabase/supabase-js';
 import {
   Trophy, Crown, Users, Plus, Minus, Zap, Flag, ChevronRight, Check, X,
-  Swords, ArrowLeft, Copy, Hash, Loader2, AlertCircle, Wifi, WifiOff,
+  Swords, ArrowLeft, Copy, Hash, Loader2, AlertCircle, Wifi, WifiOff, DollarSign,
 } from 'lucide-react';
 
 type WagerMode = 'winner-takes-all' | 'king-of-pars';
@@ -56,14 +60,35 @@ export default function LuckyWagers() {
   // Local score entry for this hole
   const [myHoleScore, setMyHoleScore] = useState(HOLE_PARS[0]);
 
+  // Real-money buy-in state. competitionId is set once create_competition()
+  // has run for the host; 'collecting' is the brief window where guests are
+  // paying into it before the game actually goes live.
+  const [competitionId, setCompetitionId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [collecting, setCollecting] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [paidUserIds, setPaidUserIds] = useState<Set<string>>(new Set());
+
+  // Refs mirroring the state above so the realtime callbacks (created once
+  // per connectToSession call) never act on stale values.
+  const isHostRef = useRef(false);
+  const competitionIdRef = useRef<string | null>(null);
+  const hasPaidRef = useRef(false);
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
+  useEffect(() => { competitionIdRef.current = competitionId; }, [competitionId]);
+  useEffect(() => { hasPaidRef.current = hasPaid; }, [hasPaid]);
+
   const myId = user?.id || '';
   const myName = profile?.display_name || user?.email?.split('@')[0] || 'Guest';
   const playerList = Object.values(players);
   const totalPot = betAmount * playerList.length;
 
-  // Host: rebroadcast state when players change so joiners stay synced
+  // Host: rebroadcast state when players change so joiners stay synced.
+  // Only while still in the free lobby (not once buy-ins are being collected
+  // or the game is live) — otherwise this would stomp the 'collecting'/
+  // 'active' status with a stale 'lobby' one.
   useEffect(() => {
-    if (isHost && channelRef.current && gameStatus === 'lobby' && playerList.length > 0) {
+    if (isHost && channelRef.current && gameStatus === 'lobby' && !collecting && playerList.length > 0) {
       const timer = setTimeout(() => {
         broadcastStateSync(channelRef.current!, {
           mode: mode || 'winner-takes-all',
@@ -72,11 +97,12 @@ export default function LuckyWagers() {
           status: gameStatus,
           players,
           hostId: myId,
+          competitionId: null,
         });
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [isHost, playerList.length, betAmount, mode]);
+  }, [isHost, collecting, playerList.length, betAmount, mode]);
 
   // ── Cleanup channel on unmount ──
   useEffect(() => {
@@ -93,14 +119,17 @@ export default function LuckyWagers() {
       onStateSync: (state) => {
         setPlayers(state.players);
         setCurrentHole(state.currentHole);
-        setGameStatus(state.status);
+        setGameStatus(state.status === 'collecting' ? 'lobby' : state.status);
         setBetAmount(state.betAmount);
         setMode(state.mode);
+        setCompetitionId(state.competitionId ?? null);
         if (state.status === 'active') {
           setView('active');
           setMyHoleScore(HOLE_PARS[state.currentHole - 1]);
         } else if (state.status === 'results') {
           setView('results');
+        } else if (state.status === 'collecting') {
+          setCollecting(true);
         }
       },
       onPlayerJoin: (player) => {
@@ -118,6 +147,8 @@ export default function LuckyWagers() {
         });
       },
       onGameStart: (state) => {
+        setCollecting(false);
+        setCompetitionId(state.competitionId ?? null);
         setPlayers(state.players);
         setCurrentHole(1);
         setGameStatus('active');
@@ -132,6 +163,49 @@ export default function LuckyWagers() {
       onPresenceSync: (ids) => {
         setOnlineUsers(ids);
         setConnected(true);
+      },
+      // ── Buy-in collection (real money via Stripe-funded cash balance) ──
+      onCollecting: (state) => {
+        setPlayers(state.players);
+        setMode(state.mode);
+        setBetAmount(state.betAmount);
+        setCompetitionId(state.competitionId ?? null);
+        setCollecting(true);
+
+        // The host already paid in via create_competition(); everyone else
+        // pays their buy-in now by joining that same competition.
+        if (!isHostRef.current && !hasPaidRef.current && state.competitionId) {
+          const compId = state.competitionId;
+          supabase.rpc('join_competition', { p_competition_id: compId, p_user_id: myId })
+            .then(({ data, error: rpcErr }) => {
+              if (rpcErr || !data) {
+                const reason = rpcErr?.message || 'Payment failed';
+                setError(reason.includes('Insufficient funds')
+                  ? `You need $${state.betAmount} to join this wager. Add cash and try again.`
+                  : reason);
+                if (channelRef.current) broadcastPaymentFailed(channelRef.current, myId, reason);
+              } else {
+                setHasPaid(true);
+                hasPaidRef.current = true;
+                setError(null);
+                if (channelRef.current) broadcastPaymentConfirmed(channelRef.current, myId);
+              }
+            });
+        }
+      },
+      onPaymentConfirmed: (userId) => {
+        if (!isHostRef.current) return;
+        setPaidUserIds(prev => new Set(prev).add(userId));
+      },
+      onPaymentFailed: ({ userId, reason }) => {
+        if (!isHostRef.current) return;
+        setPlayers(prev => {
+          if (!prev[userId]) return prev;
+          setError(`${prev[userId].displayName} couldn't pay in (${reason}) — removed from the wager.`);
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
       },
     });
 
@@ -193,23 +267,85 @@ export default function LuckyWagers() {
     setJoinLoading(false);
   };
 
-  // ── Host: Start Game ──
-  const startGame = () => {
-    if (!channelRef.current || playerList.length < 2) return;
-    const resetPlayers: Record<string, WagerPlayer> = {};
-    playerList.forEach(p => {
-      resetPlayers[p.userId] = { ...p, scores: [], totalScore: 0, parsWon: 0 };
+  // ── Host: Lock in the wager — this is where real money moves. ──
+  // create_competition() deducts the host's buy-in from wallets.balance
+  // right away; everyone else pays in during the brief 'collecting' phase
+  // once they see it, and only once every current player has paid does the
+  // game actually go live (see the effect below).
+  const startGame = async () => {
+    if (!channelRef.current || playerList.length < 2 || !mode) return;
+    setStarting(true);
+    setError(null);
+    const { data, error: rpcErr } = await supabase.rpc('create_competition', {
+      p_user_id: myId,
+      p_buy_in: betAmount,
+      p_course_name: 'Lucky Wagers',
     });
-    const state: WagerSessionState = {
-      mode: mode!,
-      betAmount,
-      currentHole: 1,
-      status: 'active',
-      players: resetPlayers,
-      hostId: myId,
-    };
-    broadcastGameStart(channelRef.current, state);
+    setStarting(false);
+    if (rpcErr || !data?.competition_id) {
+      const reason = rpcErr?.message || 'Could not start the wager';
+      setError(reason.includes('Insufficient funds')
+        ? `You need $${betAmount} to host this wager. Add cash and try again.`
+        : reason);
+      return;
+    }
+    const compId = data.competition_id as string;
+    setCompetitionId(compId);
+    setHasPaid(true);
+    hasPaidRef.current = true;
+    setCollecting(true);
+    setPaidUserIds(new Set([myId]));
+    broadcastCollecting(channelRef.current, {
+      mode, betAmount, currentHole: 1, status: 'collecting',
+      players, hostId: myId, competitionId: compId,
+    });
   };
+
+  // ── Host: once every current player has paid their buy-in, go live for
+  // real. If someone couldn't pay and got dropped, carry on with whoever's
+  // left (min 2); if that leaves only the host, refund them and cancel. ──
+  useEffect(() => {
+    if (!isHost || !collecting || !competitionId || !channelRef.current) return;
+    const ids = Object.keys(players);
+    if (ids.length === 0 || !ids.every(id => paidUserIds.has(id))) return;
+
+    if (ids.length < 2) {
+      (async () => {
+        const { error: refundErr } = await supabase.rpc('settle_competition', {
+          p_competition_id: competitionId,
+          p_winner_user_id: myId,
+        });
+        if (refundErr) console.error('Refund on cancelled wager failed:', refundErr.message);
+        setError('Not enough paid players — wager cancelled and your buy-in was refunded.');
+        setCollecting(false);
+        setCompetitionId(null);
+        setHasPaid(false);
+        setPaidUserIds(new Set());
+        if (channelRef.current) leaveChannel(channelRef.current);
+        setView('mode-select');
+        setPlayers({});
+      })();
+      return;
+    }
+
+    const resetPlayers: Record<string, WagerPlayer> = {};
+    ids.forEach(id => { resetPlayers[id] = { ...players[id], scores: [], totalScore: 0, parsWon: 0 }; });
+    const state: WagerSessionState = {
+      mode: mode!, betAmount, currentHole: 1, status: 'active',
+      players: resetPlayers, hostId: myId, competitionId,
+    };
+    setCollecting(false);
+    setPaidUserIds(new Set());
+    broadcastGameStart(channelRef.current, state);
+    // self:false means the host never receives its own broadcast — drive
+    // its own transition to 'active' directly.
+    setPlayers(resetPlayers);
+    setCurrentHole(1);
+    setGameStatus('active');
+    setView('active');
+    setMyHoleScore(HOLE_PARS[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, collecting, competitionId, players, paidUserIds]);
 
   // ── Submit my score for current hole ──
   const submitMyScore = () => {
@@ -219,6 +355,18 @@ export default function LuckyWagers() {
       hole: currentHole,
       score: myHoleScore,
     });
+    // self:false means we don't get our own broadcast back — update
+    // locally too, otherwise our own submission never registers and
+    // allScoresIn/iSubmitted can never go true for whoever just scored.
+    setPlayers(prev => {
+      const p = prev[myId];
+      if (!p) return prev;
+      const scores = [...p.scores];
+      scores[currentHole - 1] = myHoleScore;
+      const totalScore = scores.reduce((a, b) => a + b, 0);
+      const parsWon = scores.filter((s, i) => s <= HOLE_PARS[i]).length;
+      return { ...prev, [myId]: { ...p, scores, totalScore, parsWon } };
+    });
   };
 
   // ── Host: Advance to next hole ──
@@ -226,18 +374,37 @@ export default function LuckyWagers() {
     if (!channelRef.current) return;
     const nextHole = currentHole + 1;
     if (nextHole > 9) {
-      // Game over
+      // Game over — pay the pot to the winner's cash balance before telling
+      // everyone. settle_competition is idempotent (safe if this ever fires
+      // twice) and only the host (a paid participant) is allowed to call it.
+      if (competitionId) {
+        const winner = getWinner();
+        if (winner) {
+          supabase.rpc('settle_competition', {
+            p_competition_id: competitionId,
+            p_winner_user_id: winner.userId,
+          }).then(({ error: settleErr }) => {
+            if (settleErr) {
+              console.error('settle_competition failed:', settleErr.message);
+              setError(`Payout failed to process automatically: ${settleErr.message}`);
+            }
+          });
+        }
+      }
       const endState: WagerSessionState = {
         mode: mode!, betAmount, currentHole, status: 'results',
-        players, hostId: myId,
+        players, hostId: myId, competitionId,
       };
       broadcastGameEnd(channelRef.current, endState);
+      // self:false — drive our own transition too.
+      setGameStatus('results');
+      setView('results');
     } else {
       setCurrentHole(nextHole);
       setMyHoleScore(HOLE_PARS[nextHole - 1]);
       const syncState: WagerSessionState = {
         mode: mode!, betAmount, currentHole: nextHole, status: 'active',
-        players, hostId: myId,
+        players, hostId: myId, competitionId,
       };
       broadcastStateSync(channelRef.current, syncState);
     }
@@ -595,7 +762,7 @@ export default function LuckyWagers() {
                     </div>
                   </div>
                   <span className={`font-black text-lg ${isWinner ? 'text-green-400' : 'text-red-400'}`}>
-                    {isWinner ? `+${totalPot}` : `-${betAmount}`}
+                    {isWinner ? `+$${totalPot}` : `-$${betAmount}`}
                   </span>
                 </motion.div>
               );

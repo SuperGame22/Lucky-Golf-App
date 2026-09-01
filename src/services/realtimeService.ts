@@ -19,9 +19,13 @@ export interface WagerSessionState {
   mode: 'winner-takes-all' | 'king-of-pars';
   betAmount: number;
   currentHole: number;
-  status: 'lobby' | 'active' | 'results';
+  status: 'lobby' | 'collecting' | 'active' | 'results';
   players: Record<string, WagerPlayer>;
   hostId: string;
+  // Real-money buy-in: set once the host locks in the wager and
+  // create_competition() has run. Guests use this id to pay in via
+  // join_competition(). Null while still in the free 'lobby' phase.
+  competitionId: string | null;
 }
 
 interface WagerCallbacks {
@@ -31,6 +35,9 @@ interface WagerCallbacks {
   onGameStart?: (state: WagerSessionState) => void;
   onGameEnd?: (state: WagerSessionState) => void;
   onPresenceSync?: (userIds: string[]) => void;
+  onCollecting?: (state: WagerSessionState) => void;
+  onPaymentConfirmed?: (userId: string) => void;
+  onPaymentFailed?: (payload: { userId: string; reason: string }) => void;
 }
 
 export function generateInviteCode(): string {
@@ -60,6 +67,15 @@ export function subscribeToWager(code: string, callbacks: WagerCallbacks): Realt
     })
     .on('broadcast', { event: 'game-end' }, ({ payload }) => {
       callbacks.onGameEnd?.(payload as WagerSessionState);
+    })
+    .on('broadcast', { event: 'collecting' }, ({ payload }) => {
+      callbacks.onCollecting?.(payload as WagerSessionState);
+    })
+    .on('broadcast', { event: 'payment-confirmed' }, ({ payload }) => {
+      callbacks.onPaymentConfirmed?.((payload as { userId: string }).userId);
+    })
+    .on('broadcast', { event: 'payment-failed' }, ({ payload }) => {
+      callbacks.onPaymentFailed?.(payload as { userId: string; reason: string });
     })
     .on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
@@ -93,6 +109,18 @@ export function broadcastGameStart(channel: RealtimeChannel, state: WagerSession
 
 export function broadcastGameEnd(channel: RealtimeChannel, state: WagerSessionState) {
   channel.send({ type: 'broadcast', event: 'game-end', payload: state });
+}
+
+export function broadcastCollecting(channel: RealtimeChannel, state: WagerSessionState) {
+  channel.send({ type: 'broadcast', event: 'collecting', payload: state });
+}
+
+export function broadcastPaymentConfirmed(channel: RealtimeChannel, userId: string) {
+  channel.send({ type: 'broadcast', event: 'payment-confirmed', payload: { userId } });
+}
+
+export function broadcastPaymentFailed(channel: RealtimeChannel, userId: string, reason: string) {
+  channel.send({ type: 'broadcast', event: 'payment-failed', payload: { userId, reason } });
 }
 
 export function leaveChannel(channel: RealtimeChannel) {
