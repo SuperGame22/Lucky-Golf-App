@@ -64,7 +64,7 @@ interface Prize {
   wheelLabel?: string;
 }
 
-const SAND_FILL = '#D8B776'; // a real sand-tan, not just a pale yellow
+const SAND_FILL = '#F2E2B3'; // light sand/cream, per reference swatch
 
 const SAND: Pick<Prize, 'label' | 'wheelLabel' | 'color' | 'icon' | 'clovers' | 'type' | 'width'> = {
   label: 'Sand Trap', wheelLabel: 'Sand', color: 'from-amber-300 to-yellow-600', icon: Waves, clovers: 0, type: 'none', width: 0.25,
@@ -72,6 +72,12 @@ const SAND: Pick<Prize, 'label' | 'wheelLabel' | 'color' | 'icon' | 'clovers' | 
 
 const gold = (label: string): Prize => ({
   label, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize', width: 0.5,
+});
+
+// A full-width filler slice that's just sand — same light color as the
+// slivers flanking the gold slices, but a normal-size, normal-width slot.
+const sandBunker = (): Prize => ({
+  label: 'Sand Bunker', color: 'from-amber-200 to-yellow-400', icon: Waves, clovers: 0, type: 'none',
 });
 
 // One 120° arc: a sand/gold/sand cluster (weight 1, same as a normal slice)
@@ -85,33 +91,33 @@ const prizes: Prize[] = [
   ...arc(PRIZE_A_LABEL, [
     { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
     { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
+    sandBunker(),
     { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
     { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
     { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+    sandBunker(),
     { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
     { label: '6mo Clover Club', color: 'from-purple-600 to-fuchsia-800', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 6 },
   ]),
   ...arc(PRIZE_B_LABEL, [
-    { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
+    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
     { label: '+10 Clovers', color: 'from-primary to-emerald-700', icon: CloverIcon, clovers: 10, type: 'clovers' },
-    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
+    sandBunker(),
     { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
     { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
     { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
-    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
+    sandBunker(),
     { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
     { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
   ]),
   ...arc(PRIZE_C_LABEL, [
-    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
+    { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
     { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+20 Clovers', color: 'from-primary to-emerald-800', icon: CloverIcon, clovers: 20, type: 'clovers' },
+    sandBunker(),
     { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
     { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
     { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+7 Clovers', color: 'from-primary to-lucky-green-light', icon: CloverIcon, clovers: 7, type: 'clovers' },
+    sandBunker(),
     { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
     { label: '3mo Clover Club', color: 'from-purple-500 to-fuchsia-700', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 3 },
   ]),
@@ -247,9 +253,13 @@ const LuckySpin = () => {
                 const rad = angle * (Math.PI / 180);
                 const R = 37; // out of 50 — well past the hub, just inside the rim
                 const isSand = prize.type === 'none';
+                // Only the thin sand slivers flanking the gold slices (width
+                // 0.25) need the tiny label; full-width Sand Bunker fillers
+                // read fine at the normal (now smaller) size.
+                const isThinSliver = isSand && (prize.width ?? 1) < 1;
                 return (
                   <div key={i}
-                    className={`absolute font-bold leading-none whitespace-nowrap ${isSand ? 'text-[4.5px]' : 'text-[18px]'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
+                    className={`absolute leading-none whitespace-nowrap ${isThinSliver ? 'text-[4.5px] font-bold' : 'text-[12px] font-semibold'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
                     style={{
                       left: `${50 + R * Math.cos(rad)}%`,
                       top: `${50 + R * Math.sin(rad)}%`,
