@@ -3,25 +3,48 @@ import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
-import { Search, ExternalLink, Tag } from 'lucide-react';
+import { Search, ExternalLink, Tag, Circle } from 'lucide-react';
 
-const BASE = 'https://www.luckygolf.com/products';
+const BASE = 'https://www.luckygolf.com';
+const CDN = 'https://cdn.shopify.com/s/files/1/2286/3149';
 
-const PRODUCTS = [
-  { id: 'wedge', name: 'V1 Gold Lucky Golf Wedge', price: 99.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/3_15.webp?v=1759072357', cloverReward: 25, badge: 'FEATURED', url: `${BASE}/v1-gold-lucky-golf-wedge` },
-  { id: 'driver', name: 'Lucky Gold Driver', price: 299.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639&width=300', cloverReward: 75, badge: 'NEW', url: `${BASE}/lucky-gold-driver-pre-order_` },
-  { id: 'putter', name: 'Signature Gold Putter', price: 199.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=300', cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/signature-gold-putters` },
-  { id: 'mallet', name: 'Limited Edition Mallet Putter', price: 229.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/files/PhotoRoom_20230204_160908_7d44cf4e-171c-4270-b983-8ff4006f2ce1.png?v=1697769977&width=300', cloverReward: 57, url: `${BASE}/limited-edition-mallet-putter` },
-  { id: 'hybrid', name: 'Lucky Striker Hybrid', price: 189.00, category: 'Clubs', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_20220428_103621.png?v=1703705639&width=300', cloverReward: 47, badge: 'LIMITED', url: `${BASE}/lucky-striker-hybrid-limited-edition` },
-  { id: 'polo-azalea', name: 'Azalea Classic Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=300', cloverReward: 17, badge: 'NEW', url: `${BASE}/azalea-classic-polo` },
-  { id: 'polo-blackout', name: 'Blackout Blade Polo', price: 67.00, category: 'Apparel', image: 'https://www.luckygolf.com/cdn/shop/files/Flower1.webp?v=1779472480&width=300', cloverReward: 17, url: `${BASE}/blackout-blade-polo` },
-  { id: 'glove', name: 'Lucky Clover Tour Glove', price: 17.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/products/PhotoRoom_000_20220517_095432.png?v=1654540304&width=300', cloverReward: 4, url: `${BASE}/lucky-clover-tour-glove` },
-  { id: 'hat', name: 'Green Lucky Hat', price: 24.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=300', cloverReward: 6, url: `${BASE}/green-lucky-hat` },
-  { id: 'grip', name: 'Oversized Putter Grip', price: 34.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=300', cloverReward: 9, url: `${BASE}/lucky-golf-oversized-putter-grip` },
-  { id: 'tees', name: 'Lucky Golf Tees', price: 9.95, category: 'Accessories', image: 'https://www.luckygolf.com/cdn/shop/files/3M6A9896.jpg?v=1703705685&width=300', cloverReward: 2, url: `${BASE}/lucky-golf-tees` },
+interface ProductCategory {
+  id: string;
+  name: string;
+  category: 'Clubs' | 'Apparel' | 'Accessories' | 'Gift Cards';
+  /** How many distinct colorways/models this category collapses into one card. */
+  variantCount: number;
+  variantLabel: string; // e.g. "Designs", "Models"
+  priceFrom: number;
+  image: string | null;
+  cloverReward: number;
+  badge?: string;
+  url: string;
+}
+
+// Pulled from luckygolf.com's live catalog (collection + product counts) —
+// one card per category; specific colorways/lofts/sizes are picked at
+// checkout on luckygolf.com rather than listed individually here.
+const CATEGORIES: ProductCategory[] = [
+  // Clubs
+  { id: 'wedges', name: 'Wedges', category: 'Clubs', variantCount: 3, variantLabel: 'Designs', priceFrom: 99, image: `${CDN}/files/11_26414fab-14b8-41ae-8ad7-a801c2f646fb.webp?v=1782597869`, cloverReward: 25, badge: 'FEATURED', url: `${BASE}/products/v1-gold-lucky-golf-wedge` },
+  { id: 'putters', name: 'Putters', category: 'Clubs', variantCount: 2, variantLabel: 'Designs', priceFrom: 199, image: `${CDN}/files/1_7fbd8d34-2c10-48fc-bcfb-b00b50dfbfab.webp?v=1782599091`, cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/products/signature-gold-putters` },
+  { id: 'hybrids', name: 'Hybrids', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 209, image: `${CDN}/files/11_0464f85e-ccad-487c-bb2a-1c0a5c7b673c.webp?v=1782597493`, cloverReward: 52, badge: 'LIMITED', url: `${BASE}/products/lucky-striker-hybrid-limited-edition` },
+  // Apparel
+  { id: 'classic-polos', name: 'Classic Polos', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 67, image: `${CDN}/files/Flower1.webp?v=1779472480`, cloverReward: 17, badge: 'NEW', url: `${BASE}/collections/classic-polos` },
+  { id: 'blade-polos', name: 'Blade Polos', category: 'Apparel', variantCount: 3, variantLabel: 'Designs', priceFrom: 67, image: `${CDN}/files/StrokePlay1.webp?v=1779472570`, cloverReward: 17, url: `${BASE}/collections/blade-polos` },
+  { id: 'hats', name: 'Hats', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 29, image: `${CDN}/files/79.webp?v=1784585346`, cloverReward: 7, url: `${BASE}/collections/hats` },
+  // Accessories
+  { id: 'gloves', name: 'Gloves', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 17.95, image: `${CDN}/products/PhotoRoom_000_20220517_095432.png?v=1654540304`, cloverReward: 4, url: `${BASE}/products/lucky-clover-tour-glove` },
+  { id: 'head-covers', name: 'Head Covers', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 29.95, image: `${CDN}/products/MalletCoverBottom.png?v=1612818851`, cloverReward: 7, url: `${BASE}/collections/head-covers` },
+  { id: 'tees', name: 'Tees', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 9.95, image: null, cloverReward: 2, url: `${BASE}/products/lucky-golf-tees` },
+  { id: 'club-grips', name: 'Club Grips', category: 'Accessories', variantCount: 5, variantLabel: 'Designs', priceFrom: 9.95, image: `${CDN}/files/3M6A0847.jpg?v=1701474055`, cloverReward: 2, url: `${BASE}/collections/performance-x2` },
+  { id: 'putter-grips', name: 'Putter Grips', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 19.95, image: `${CDN}/files/Clovers_Oversized_Grip_Lucky_Golf-Photoroom.png?v=1724359224`, cloverReward: 5, url: `${BASE}/collections/putter-grips` },
+  // Gift Cards
+  { id: 'gift-cards', name: 'Gift Cards', category: 'Gift Cards', variantCount: 0, variantLabel: 'Any Amount', priceFrom: 10, image: `${CDN}/products/IMG_0107.png?v=1566506212`, cloverReward: 2, url: `${BASE}/products/lucky-wedges-gift-card` },
 ];
 
-const CATEGORIES = ['All', 'Clubs', 'Apparel', 'Accessories'];
+const FILTERS = ['All', 'Clubs', 'Apparel', 'Accessories', 'Gift Cards'];
 
 export default function Shop() {
   const { profile } = useAuth();
@@ -29,7 +52,7 @@ export default function Shop() {
   const [search, setSearch] = useState('');
   const clovers = profile?.clovers ?? 0;
 
-  const filtered = PRODUCTS.filter(p => {
+  const filtered = CATEGORIES.filter(p => {
     const matchCat = activeCategory === 'All' || p.category === activeCategory;
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
@@ -61,7 +84,7 @@ export default function Shop() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {CATEGORIES.map(cat => (
+          {FILTERS.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
                 activeCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -79,17 +102,32 @@ export default function Shop() {
                   <span className="text-[9px] font-black uppercase tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{product.badge}</span>
                 </div>
               )}
-              <div className="relative bg-muted/30 aspect-square overflow-hidden">
-                <img src={product.image} alt={product.name} className="w-full h-full object-contain p-3" loading="lazy"
-                  onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+              {/* Military-green swatch behind every product image — keeps the
+                  grid visually consistent instead of the product photos'
+                  own white studio backgrounds showing through. */}
+              <div className="relative bg-military-green aspect-square overflow-hidden">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-contain p-4" loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Circle className="w-10 h-10 text-primary/40" />
+                  </div>
+                )}
                 <div className="absolute top-2 right-2 opacity-50">
-                  <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                  <ExternalLink className="w-3 h-3 text-white" />
                 </div>
               </div>
               <div className="p-3">
-                <p className="text-xs font-semibold leading-tight mb-1 line-clamp-2">{product.name}</p>
+                <p className="text-xs font-semibold leading-tight mb-0.5">{product.name}</p>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  {product.category === 'Gift Cards' ? product.variantLabel : `${product.variantCount} ${product.variantLabel}`}
+                </p>
                 <div className="flex items-center justify-between">
-                  <span className="font-black text-sm">${product.price.toFixed(2)}</span>
+                  <span className="font-black text-sm">
+                    {product.category === 'Clubs' || product.category === 'Accessories' || product.category === 'Gift Cards' ? 'From ' : ''}
+                    ${product.priceFrom.toFixed(2)}
+                  </span>
                   <div className="flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded-full">
                     <CloverIcon className="w-3 h-3 text-primary" />
                     <span className="text-[10px] font-bold text-primary">+{product.cloverReward}</span>

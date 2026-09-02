@@ -28,6 +28,7 @@
     --radius: 0.75rem;
     --lucky-green: 152 76% 40%;
     --lucky-gold: 43 96% 56%;
+    --military-green: 82 22% 20%;
   }
 }
 
@@ -43,6 +44,7 @@
   .glow-gold { box-shadow: 0 0 30px hsl(43 96% 56% / 0.4); }
   .text-gradient-gold { background: linear-gradient(135deg, hsl(43 96% 56%), hsl(35 100% 50%)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .bg-celtic-knot { background-image: url('/images/clover-pattern.png'); }
+  .bg-military-green { background-color: hsl(var(--military-green)); }
   .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
 }
 
