@@ -10,6 +10,7 @@ import { AmbientAudio } from "@/shared/components/AmbientAudio";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TierProvider } from "@/contexts/TierContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Domain Screens (5-tab architecture)
 import HomeScreen from "@/domains/home/screens/HomeScreen";
@@ -75,6 +76,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* ── Auth (public) ── */}
               <Route path="/auth" element={<Auth />} />

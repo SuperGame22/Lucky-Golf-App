@@ -27,22 +27,22 @@ interface ProductCategory {
 // checkout on luckygolf.com rather than listed individually here.
 const CATEGORIES: ProductCategory[] = [
   // Clubs
-  { id: 'wedges', name: 'Wedges', category: 'Clubs', variantCount: 3, variantLabel: 'Designs', priceFrom: 99, image: `${CDN}/files/11_26414fab-14b8-41ae-8ad7-a801c2f646fb.webp?v=1782597869`, cloverReward: 25, badge: 'FEATURED', url: `${BASE}/products/v1-gold-lucky-golf-wedge` },
-  { id: 'putters', name: 'Putters', category: 'Clubs', variantCount: 2, variantLabel: 'Designs', priceFrom: 199, image: `${CDN}/files/1_7fbd8d34-2c10-48fc-bcfb-b00b50dfbfab.webp?v=1782599091`, cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/products/signature-gold-putters` },
-  { id: 'drivers', name: 'Drivers', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 299, image: `${CDN}/products/PhotoRoom_20220428_103621.png?v=1703705639`, cloverReward: 75, badge: 'PRE-ORDER', url: `${BASE}/products/lucky-gold-driver-pre-order_` },
-  { id: 'hybrids', name: 'Hybrids', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 209, image: `${CDN}/files/11_0464f85e-ccad-487c-bb2a-1c0a5c7b673c.webp?v=1782597493`, cloverReward: 52, badge: 'LIMITED', url: `${BASE}/products/lucky-striker-hybrid-limited-edition` },
+  { id: 'wedges', name: 'Wedges', category: 'Clubs', variantCount: 3, variantLabel: 'Designs', priceFrom: 99, image: '/products/wedges.png', cloverReward: 25, badge: 'FEATURED', url: `${BASE}/products/v1-gold-lucky-golf-wedge` },
+  { id: 'putters', name: 'Putters', category: 'Clubs', variantCount: 2, variantLabel: 'Designs', priceFrom: 199, image: '/products/putters.png', cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/products/signature-gold-putters` },
+  { id: 'drivers', name: 'Drivers', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 299, image: '/products/drivers.png', cloverReward: 75, badge: 'PRE-ORDER', url: `${BASE}/products/lucky-gold-driver-pre-order_` },
+  { id: 'hybrids', name: 'Hybrids', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 209, image: '/products/hybrids.png', cloverReward: 52, badge: 'LIMITED', url: `${BASE}/products/lucky-striker-hybrid-limited-edition` },
   // Apparel
-  { id: 'classic-polos', name: 'Classic Polos', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 67, image: `${CDN}/files/Flower1.webp?v=1779472480`, cloverReward: 17, badge: 'NEW', url: `${BASE}/collections/classic-polos` },
-  { id: 'blade-polos', name: 'Blade Polos', category: 'Apparel', variantCount: 3, variantLabel: 'Designs', priceFrom: 67, image: `${CDN}/files/StrokePlay1.webp?v=1779472570`, cloverReward: 17, url: `${BASE}/collections/blade-polos` },
-  { id: 'hats', name: 'Hats', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 29, image: `${CDN}/files/79.webp?v=1784585346`, cloverReward: 7, url: `${BASE}/collections/hats` },
+  { id: 'classic-polos', name: 'Classic Polos', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 67, image: '/products/classic-polos.png', cloverReward: 17, badge: 'NEW', url: `${BASE}/collections/classic-polos` },
+  { id: 'blade-polos', name: 'Blade Polos', category: 'Apparel', variantCount: 3, variantLabel: 'Designs', priceFrom: 67, image: '/products/blade-polos.png', cloverReward: 17, url: `${BASE}/collections/blade-polos` },
+  { id: 'hats', name: 'Hats', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 29, image: '/products/hats.png', cloverReward: 7, url: `${BASE}/collections/hats` },
   // Accessories
-  { id: 'gloves', name: 'Gloves', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 17.95, image: `${CDN}/products/PhotoRoom_000_20220517_095432.png?v=1654540304`, cloverReward: 4, url: `${BASE}/products/lucky-clover-tour-glove` },
-  { id: 'head-covers', name: 'Head Covers', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 29.95, image: `${CDN}/products/MalletCoverBottom.png?v=1612818851`, cloverReward: 7, url: `${BASE}/collections/head-covers` },
+  { id: 'gloves', name: 'Gloves', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 17.95, image: '/products/gloves.png', cloverReward: 4, url: `${BASE}/products/lucky-clover-tour-glove` },
+  { id: 'head-covers', name: 'Head Covers', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 29.95, image: '/products/head-covers.png', cloverReward: 7, url: `${BASE}/collections/head-covers` },
   { id: 'tees', name: 'Tees', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 9.95, image: null, cloverReward: 2, url: `${BASE}/products/lucky-golf-tees` },
-  { id: 'club-grips', name: 'Club Grips', category: 'Accessories', variantCount: 5, variantLabel: 'Designs', priceFrom: 9.95, image: `${CDN}/files/3M6A0847.jpg?v=1701474055`, cloverReward: 2, url: `${BASE}/collections/performance-x2` },
-  { id: 'putter-grips', name: 'Putter Grips', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 19.95, image: `${CDN}/files/Clovers_Oversized_Grip_Lucky_Golf-Photoroom.png?v=1724359224`, cloverReward: 5, url: `${BASE}/collections/putter-grips` },
+  { id: 'club-grips', name: 'Club Grips', category: 'Accessories', variantCount: 5, variantLabel: 'Designs', priceFrom: 9.95, image: '/products/club-grips.png', cloverReward: 2, url: `${BASE}/collections/performance-x2` },
+  { id: 'putter-grips', name: 'Putter Grips', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 19.95, image: '/products/putter-grips.png', cloverReward: 5, url: `${BASE}/collections/putter-grips` },
   // Gift Cards
-  { id: 'gift-cards', name: 'Gift Cards', category: 'Gift Cards', variantCount: 0, variantLabel: 'Any Amount', priceFrom: 10, image: `${CDN}/products/IMG_0107.png?v=1566506212`, cloverReward: 2, url: `${BASE}/products/lucky-wedges-gift-card` },
+  { id: 'gift-cards', name: 'Gift Cards', category: 'Gift Cards', variantCount: 0, variantLabel: 'Any Amount', priceFrom: 10, image: '/products/gift-cards.png', cloverReward: 2, url: `${BASE}/products/lucky-wedges-gift-card` },
 ];
 
 const FILTERS = ['All', 'Clubs', 'Apparel', 'Accessories', 'Gift Cards'];
@@ -108,15 +108,10 @@ export default function Shop() {
                   own white studio backgrounds showing through. */}
               <div className="relative bg-military-green aspect-square overflow-hidden">
                 {product.image ? (
-                  // Product photos sit in a rounded white card inset within
-                  // the military-green swatch, like a framed photo — that
-                  // keeps a visible, consistent green margin on every card
-                  // without tinting/darkening the product itself the way a
-                  // blend mode over the whole photo did.
-                  <div className="absolute inset-3 rounded-xl bg-white overflow-hidden">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2" loading="lazy"
-                      onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
-                  </div>
+                  // Real cut-out PNGs (transparent background) — sit directly
+                  // on the military-green swatch, no white card needed.
+                  <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-contain p-4" loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Circle className="w-10 h-10 text-primary/40" />
