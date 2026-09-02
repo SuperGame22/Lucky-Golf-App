@@ -29,6 +29,7 @@ const CATEGORIES: ProductCategory[] = [
   // Clubs
   { id: 'wedges', name: 'Wedges', category: 'Clubs', variantCount: 3, variantLabel: 'Designs', priceFrom: 99, image: `${CDN}/files/11_26414fab-14b8-41ae-8ad7-a801c2f646fb.webp?v=1782597869`, cloverReward: 25, badge: 'FEATURED', url: `${BASE}/products/v1-gold-lucky-golf-wedge` },
   { id: 'putters', name: 'Putters', category: 'Clubs', variantCount: 2, variantLabel: 'Designs', priceFrom: 199, image: `${CDN}/files/1_7fbd8d34-2c10-48fc-bcfb-b00b50dfbfab.webp?v=1782599091`, cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/products/signature-gold-putters` },
+  { id: 'drivers', name: 'Drivers', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 299, image: `${CDN}/products/PhotoRoom_20220428_103621.png?v=1703705639`, cloverReward: 75, badge: 'PRE-ORDER', url: `${BASE}/products/lucky-gold-driver-pre-order_` },
   { id: 'hybrids', name: 'Hybrids', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 209, image: `${CDN}/files/11_0464f85e-ccad-487c-bb2a-1c0a5c7b673c.webp?v=1782597493`, cloverReward: 52, badge: 'LIMITED', url: `${BASE}/products/lucky-striker-hybrid-limited-edition` },
   // Apparel
   { id: 'classic-polos', name: 'Classic Polos', category: 'Apparel', variantCount: 10, variantLabel: 'Designs', priceFrom: 67, image: `${CDN}/files/Flower1.webp?v=1779472480`, cloverReward: 17, badge: 'NEW', url: `${BASE}/collections/classic-polos` },
@@ -107,12 +108,15 @@ export default function Shop() {
                   own white studio backgrounds showing through. */}
               <div className="relative bg-military-green aspect-square overflow-hidden">
                 {product.image ? (
-                  // mix-blend-multiply merges the product photos' own white
-                  // studio backgrounds into the military-green swatch below
-                  // them (white * green = green) instead of leaving a stark
-                  // white square inside the card.
-                  <img src={product.image} alt={product.name} className="w-full h-full object-contain p-4 mix-blend-multiply" loading="lazy"
-                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                  // Product photos sit in a rounded white card inset within
+                  // the military-green swatch, like a framed photo — that
+                  // keeps a visible, consistent green margin on every card
+                  // without tinting/darkening the product itself the way a
+                  // blend mode over the whole photo did.
+                  <div className="absolute inset-3 rounded-xl bg-white overflow-hidden">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2" loading="lazy"
+                      onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Circle className="w-10 h-10 text-primary/40" />
