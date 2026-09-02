@@ -115,7 +115,23 @@ Always be encouraging but honest. Use golf terminology naturally. Include lucky/
     });
 
     if (!response.ok) {
+      // OpenAI reports both true rate-limiting AND an exhausted/zero credit
+      // balance as HTTP 429 (with a distinguishing `code` in the body) rather
+      // than 402 — check the body so a billing problem doesn't get
+      // misreported to the user as a transient rate limit.
       if (response.status === 429) {
+        let isQuota = false;
+        try {
+          const body = await response.clone().json();
+          isQuota = body?.error?.code === "insufficient_quota" || body?.error?.code === "credit_balance_exhausted" || body?.error?.type === "insufficient_quota";
+        } catch { /* not json */ }
+        if (isQuota) {
+          const text = await response.text();
+          console.error("AI gateway error (quota):", response.status, text);
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds to the OpenAI account." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
