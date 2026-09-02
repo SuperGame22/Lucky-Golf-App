@@ -107,7 +107,11 @@ export default function Shop() {
                   own white studio backgrounds showing through. */}
               <div className="relative bg-military-green aspect-square overflow-hidden">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} className="w-full h-full object-contain p-4" loading="lazy"
+                  // mix-blend-multiply merges the product photos' own white
+                  // studio backgrounds into the military-green swatch below
+                  // them (white * green = green) instead of leaving a stark
+                  // white square inside the card.
+                  <img src={product.image} alt={product.name} className="w-full h-full object-contain p-4 mix-blend-multiply" loading="lazy"
                     onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
