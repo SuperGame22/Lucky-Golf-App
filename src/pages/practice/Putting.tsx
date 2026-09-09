@@ -69,6 +69,31 @@ function sndSink(){
   play(880,0.12);setTimeout(()=>play(1100,0.1),60);setTimeout(()=>play(1320,0.15),120);
 }
 
+// ---- Putter (visual only) — sits behind the ball, pulls back on aim, ----
+// ---- swings forward through the ball on release. ----
+type PutterType = 'blade' | 'mallet';
+const PUTTER_TYPE: PutterType = 'blade'; // swap to 'mallet' to use the other head
+const CLUB_LEN = 6.2, REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 22; // degrees
+const CLUB_GOLD_L = '#f0d48a', CLUB_GOLD_D = '#8a6a1f', SHAFT_COL = '#cfd8d0';
+
+function ClubHead({ type }: { type: PutterType }) {
+  if (type === 'mallet') return (
+    <g>
+      <path d="M0.1,-0.95 Q0.1,-1.15 0.35,-1.15 L0.95,-1.15 Q1.2,-1.15 1.2,-0.9 L1.2,0.9 Q1.2,1.15 0.95,1.15 L0.35,1.15 Q0.1,1.15 0.1,0.95 L0.1,0.55 Q0.55,0.4 0.55,0 Q0.55,-0.4 0.1,-0.55 Z"
+        fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
+      <line x1="0.65" y1="0" x2={CLUB_LEN} y2="0" stroke={SHAFT_COL} strokeWidth="0.14" strokeLinecap="round" />
+    </g>
+  );
+  return (
+    <g>
+      <rect x="0.15" y="-0.8" width="0.5" height="1.6" rx="0.15" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
+      <rect x="0.03" y="-0.8" width="0.28" height="0.4" rx="0.08" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
+      <rect x="0.03" y="0.4" width="0.28" height="0.4" rx="0.08" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
+      <line x1="0.4" y1="-0.35" x2={CLUB_LEN} y2="-0.35" stroke={SHAFT_COL} strokeWidth="0.14" strokeLinecap="round" />
+    </g>
+  );
+}
+
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
   const segs:any[]=[];let cur:{x:number;y:number}[]=[];
@@ -116,6 +141,7 @@ export default function PuttingGame(){
   const[sc,setSc]=useState(0);const[pt,setPt]=useState(0);const[sk,setSk]=useState(0);const[cl,setCl]=useState(0);
   const[d0,setD0]=useState<{x:number;y:number}|null>(null);
   const[dc,setDc]=useState<{x:number;y:number}|null>(null);
+  const[swing,setSwing]=useState<{angle:number;pw:number}|null>(null); // frozen release pose for the forward-swing animation
   const[msg,setMsg]=useState<string|null>(null);const[sub,setSub]=useState<string|null>(null);
   const[prac,setPrac]=useState(true);
   const h=cc[Math.min(hi,cc.length-1)];
@@ -132,7 +158,12 @@ export default function PuttingGame(){
     const dx=d0.x-dc.x,dy=d0.y-dc.y,pw=Math.min(Math.sqrt(dx*dx+dy*dy),MXD);
     setD0(null);setDc(null);if(pw<0.3)return;
     const a=Math.atan2(dy,dx);if(!prac)setPt(n=>n+1);
-    sndHit();const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;setTimeout(()=>sim(_vx,_vy),250);
+    // Freeze the pulled-back club pose, then let it swing forward — the hit
+    // sound and ball simulation fire together, timed to when the club face
+    // reaches the ball at the end of that swing.
+    setSwing({angle:a,pw});
+    const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;
+    setTimeout(()=>{sndHit();setSwing(null);sim(_vx,_vy);},220);
   };
 
   const endPrac=(label:string,detail:string)=>{
@@ -201,6 +232,19 @@ export default function PuttingGame(){
   const aim=d0&&dc?{dx:d0.x-dc.x,dy:d0.y-dc.y}:null;
   const pw=aim?Math.min(Math.sqrt(aim.dx**2+aim.dy**2),MXD):0;
   const done=hi>=cc.length-1&&gs==='sunk';
+
+  // Putter pose: aims at the hole by default, tracks the pull instantly
+  // while dragging, then eases back to rest (transition duration below)
+  // while `swing` plays out the forward stroke.
+  const idleAngle=Math.atan2(h.hy-bp.y,h.hx-bp.x);
+  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):idleAngle);
+  const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
+  const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
+  const stanceDeg=stanceRad*180/Math.PI;
+  const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
+  const clubHeadY=bp.y+Math.sin(stanceRad)*pullDist;
+  const showClub=gs==='aim'||!!swing;
+  const clubDur=swing?0.22:0;
 
   // Log completed session to DB
   useEffect(() => {
@@ -297,6 +341,14 @@ export default function PuttingGame(){
           {/* Ball */}
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
           <div className="absolute z-20 pointer-events-none" data-testid="putting-ball" style={{width:`${bPx}%`,height:`${bPx}%`,left:`${bp.x-BR}%`,top:`calc(${bp.y}% - ${BR}vw*0.01)`,aspectRatio:'1',borderRadius:'50%',background:'radial-gradient(circle at 36% 30%,#fff,#f5f5f5 15%,#e8e8e8 30%,#d4d4d4 50%,#b8b8b8 70%,#999 90%,#777 100%)',boxShadow:'0 0.5px 2px rgba(0,0,0,0.5)'}}/>
+
+          {/* Putter — addresses the ball, pulls back on aim, swings through on release */}
+          {showClub&&<svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-[17]" preserveAspectRatio="none">
+            <defs><linearGradient id="clubGoldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={CLUB_GOLD_L}/><stop offset="100%" stopColor={CLUB_GOLD_D}/></linearGradient></defs>
+            <motion.g animate={{x:clubHeadX,y:clubHeadY,rotate:stanceDeg}} transition={{duration:clubDur,ease:'easeIn'}}>
+              <ClubHead type={PUTTER_TYPE}/>
+            </motion.g>
+          </svg>}
 
           {/* Aim */}
           {aim&&gs==='aim'&&<svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none">
