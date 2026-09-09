@@ -27,7 +27,7 @@ interface ProductCategory {
 // checkout on luckygolf.com rather than listed individually here.
 const CATEGORIES: ProductCategory[] = [
   // Clubs
-  { id: 'wedges', name: 'Wedges', category: 'Clubs', variantCount: 3, variantLabel: 'Designs', priceFrom: 99, image: '/products/wedges.png', cloverReward: 25, badge: 'FEATURED', url: `${BASE}/products/v1-gold-lucky-golf-wedge` },
+  { id: 'wedges', name: 'Signature Gold Wedge', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 109, image: '/products/wedges.png', cloverReward: 27, badge: 'NEW', url: `${BASE}/products/lucky-golf-lgw02-gold` },
   { id: 'putters', name: 'Putters', category: 'Clubs', variantCount: 2, variantLabel: 'Designs', priceFrom: 199, image: '/products/putters.png', cloverReward: 50, badge: 'TOP RATED', url: `${BASE}/products/signature-gold-putters` },
   { id: 'drivers', name: 'Drivers', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 299, image: '/products/drivers.png', cloverReward: 75, badge: 'PRE-ORDER', url: `${BASE}/products/lucky-gold-driver-pre-order_` },
   { id: 'hybrids', name: 'Hybrids', category: 'Clubs', variantCount: 1, variantLabel: 'Design', priceFrom: 209, image: '/products/hybrids.png', cloverReward: 52, badge: 'LIMITED', url: `${BASE}/products/lucky-striker-hybrid-limited-edition` },
@@ -38,7 +38,7 @@ const CATEGORIES: ProductCategory[] = [
   // Accessories
   { id: 'gloves', name: 'Gloves', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 17.95, image: '/products/gloves.png', cloverReward: 4, url: `${BASE}/products/lucky-clover-tour-glove` },
   { id: 'head-covers', name: 'Head Covers', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 29.95, image: '/products/head-covers.png', cloverReward: 7, url: `${BASE}/collections/head-covers` },
-  { id: 'tees', name: 'Tees', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 9.95, image: null, cloverReward: 2, url: `${BASE}/products/lucky-golf-tees` },
+  { id: 'tees', name: 'Tees', category: 'Accessories', variantCount: 1, variantLabel: 'Design', priceFrom: 9.95, image: '/products/tees.png', cloverReward: 2, url: `${BASE}/products/lucky-golf-tees` },
   { id: 'club-grips', name: 'Club Grips', category: 'Accessories', variantCount: 5, variantLabel: 'Designs', priceFrom: 9.95, image: '/products/club-grips.png', cloverReward: 2, url: `${BASE}/collections/performance-x2` },
   { id: 'putter-grips', name: 'Putter Grips', category: 'Accessories', variantCount: 3, variantLabel: 'Designs', priceFrom: 19.95, image: '/products/putter-grips.png', cloverReward: 5, url: `${BASE}/collections/putter-grips` },
   // Gift Cards
@@ -100,7 +100,7 @@ export default function Shop() {
               className="glass-card overflow-hidden hover:border-primary/50 transition-all active:scale-95 block relative">
               {product.badge && (
                 <div className="absolute top-2 left-2 z-10">
-                  <span className="text-[9px] font-black uppercase tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{product.badge}</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded-full">{product.badge}</span>
                 </div>
               )}
               {/* Military-green swatch behind every product image — keeps the
