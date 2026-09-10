@@ -10,14 +10,14 @@ import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
-const FRIC=0.9965,SFRIC=0.993,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.25;
+const FRIC=0.9965,SFRIC=0.993,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.175; // PWK: -30% launch power vs. drag distance
 
 interface Hole{id:number;label:string;hx:number;hy:number;sx:number;sy:number;rw:number}
 function mk():Hole[]{
   const r=(a:number,b:number)=>a+Math.random()*(b-a),rd=(n:number)=>Math.round(n*10)/10;
   return Array.from({length:5},(_,i)=>{
     const hx=Math.round(r(25,75)),hy=Math.round(r(Math.max(15,35-i*5),Math.min(38,40-i*4)));
-    const ms=Math.min(0.1+i*0.25,1.0);
+    const ms=Math.min(0.1+i*0.25,0.7); // capped -30% off the old 1.0 max so no slope is unmakeable
     return{id:i+1,label:`${Math.round((90-hy)*0.45)} ft`,hx,hy,sx:rd(r(-ms,ms)),sy:rd(r(-ms*0.6,ms*0.6)),rw:i+1};
   });
 }
@@ -87,7 +87,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // the sprite at any target angle is just: rotate = targetAngle + 90.
 const MALLET_FACE_NORMAL0 = -90; // degrees
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
-const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 0; // degrees — 0 = face points exactly at the hole
+const REST_GAP = 0.85, MAX_PULL = 6, STANCE_SKEW = 0; // degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
@@ -234,8 +234,17 @@ export default function PuttingGame(){
   // Square to the target by default (real address position), tracks the
   // drag while aiming, and freezes at the release angle during the swing.
   const idleAngle=Math.atan2(h.hy-bp.y,h.hx-bp.x);
-  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):idleAngle);
-  const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
+  // Ignore the very first pixels of a drag for aiming — right at mousedown
+  // pw is ~0 and atan2(0,0) would snap the club to a bogus angle before
+  // snapping back once real movement starts. Below this threshold it just
+  // keeps facing the hole, same as idle.
+  const AIM_DEADZONE=1.2;
+  const shotAngle=swing?swing.angle:(aim&&pw>AIM_DEADZONE?Math.atan2(aim.dy,aim.dx):idleAngle);
+  // Pull sensitivity: +30% — the club reaches full pull-back with 30% less
+  // drag distance than before (paired with the -30% PWK above, so a full
+  // pull now looks bigger but hits softer — less twitchy overall).
+  const PULL_SENS=1/0.7;
+  const pullDist=aim?REST_GAP+Math.min((pw/MXD)*PULL_SENS,1)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
   const clubRotDeg=shotAngle*180/Math.PI-MALLET_FACE_NORMAL0;
   const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
