@@ -77,8 +77,11 @@ function sndSink(){
 // ANCHOR is the front-of-head point (closest to the ball at address); THETA0
 // is that same sprite's baked-in front->grip angle, used to re-aim it.
 const MALLET_IMG = '/putting/mallet-putter.png';
-const MALLET_ANCHOR_X_PCT = 96.76, MALLET_ANCHOR_Y_PCT = 54.87;
-const MALLET_THETA0 = -165.75; // degrees
+// Anchor = the flat face's centerline (the sightline groove, mid-width of
+// the head, on the leading/top edge) — this is where the ball addresses,
+// not a corner of the head, so rotation pivots naturally around the ball.
+const MALLET_ANCHOR_X_PCT = 67.93, MALLET_ANCHOR_Y_PCT = 20.35;
+const MALLET_THETA0 = -174.51; // degrees — sprite's baked-in face-center->grip angle
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
 const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 22; // degrees
 
@@ -224,14 +227,14 @@ export default function PuttingGame(){
   // Putter pose: aims at the hole by default, tracks the pull instantly
   // while dragging, then eases back to rest (transition duration below)
   // while `swing` plays out the forward stroke.
-  // The club never rotates — it always stays in its own natural photographed
-  // pose (rotate: 0). Only its position moves: straight back off the ball
-  // as you pull, straight toward it as it swings through on release.
-  const NEUTRAL_SHOT_ANGLE=(MALLET_THETA0-180-STANCE_SKEW)*Math.PI/180;
-  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):NEUTRAL_SHOT_ANGLE);
+  // Square to the target by default (real address position), tracks the
+  // drag while aiming, and freezes at the release angle during the swing.
+  const idleAngle=Math.atan2(h.hy-bp.y,h.hx-bp.x);
+  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):idleAngle);
   const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
-  const stanceDeg=stanceRad*180/Math.PI; void stanceDeg;
+  const stanceDeg=stanceRad*180/Math.PI;
+  const clubRotDeg=stanceDeg-MALLET_THETA0;
   const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
   const clubHeadY=bp.y+Math.sin(stanceRad)*pullDist;
   const showClub=gs==='aim'||!!swing;
@@ -341,7 +344,7 @@ export default function PuttingGame(){
             alt=""
             className="absolute pointer-events-none z-[17]"
             style={{width:`${CLUB_IMG_W}%`,height:'auto',transformOrigin:`${MALLET_ANCHOR_X_PCT}% ${MALLET_ANCHOR_Y_PCT}%`}}
-            animate={{left:`${clubHeadX}%`,top:`${clubHeadY}%`,x:`-${MALLET_ANCHOR_X_PCT}%`,y:`-${MALLET_ANCHOR_Y_PCT}%`,rotate:0}}
+            animate={{left:`${clubHeadX}%`,top:`${clubHeadY}%`,x:`-${MALLET_ANCHOR_X_PCT}%`,y:`-${MALLET_ANCHOR_Y_PCT}%`,rotate:clubRotDeg}}
             transition={{duration:clubDur,ease:'easeIn'}}
             initial={false}
           />}
