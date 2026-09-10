@@ -10,14 +10,14 @@ import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
-const FRIC=0.9965,SFRIC=0.993,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.1575; // PWK: -30% then another -10% launch power vs. drag distance
+const FRIC=0.997025,SFRIC=0.99405,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.133875; // PWK: -30%,-10%,-15% launch power; FRIC/SFRIC: -15% rolling friction (rolls further)
 
 interface Hole{id:number;label:string;hx:number;hy:number;sx:number;sy:number;rw:number}
 function mk():Hole[]{
   const r=(a:number,b:number)=>a+Math.random()*(b-a),rd=(n:number)=>Math.round(n*10)/10;
   return Array.from({length:5},(_,i)=>{
     const hx=Math.round(r(25,75)),hy=Math.round(r(Math.max(15,35-i*5),Math.min(38,40-i*4)));
-    const ms=Math.min(0.1+i*0.25,0.7); // capped -30% off the old 1.0 max so no slope is unmakeable
+    const ms=Math.min(0.1+i*0.25,0.595); // capped -30% then another -15% off the old 1.0 max so no slope is unmakeable
     return{id:i+1,label:`${Math.round((90-hy)*0.45)} ft`,hx,hy,sx:rd(r(-ms,ms)),sy:rd(r(-ms*0.6,ms*0.6)),rw:i+1};
   });
 }
@@ -87,7 +87,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // the sprite at any target angle is just: rotate = targetAngle + 90.
 const MALLET_FACE_NORMAL0 = -90; // degrees
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
-const REST_GAP = 1.05, MAX_PULL = 9, STANCE_SKEW = 0; // MAX_PULL: +50% travel per pull; degrees — 0 = face points exactly at the hole
+const REST_GAP = 0.525, MAX_PULL = 9, STANCE_SKEW = 0; // REST_GAP: -50% gap (smaller sliver); MAX_PULL: +50% travel per pull; degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
@@ -172,7 +172,7 @@ export default function PuttingGame(){
     const tick=()=>{
       vx+=h.sx*SLK;vy+=h.sy*SLK;
       const spd=Math.sqrt(vx*vx+vy*vy);
-      const f=spd>STH?FRIC-(spd*0.00008):SFRIC-((STH-spd)*0.002);
+      const f=spd>STH?FRIC-(spd*0.000068):SFRIC-((STH-spd)*0.0017);
       vx*=f;vy*=f;x+=vx;y+=vy;
 
       // Boundary: bunker or off-green
