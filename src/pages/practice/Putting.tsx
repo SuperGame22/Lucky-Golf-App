@@ -10,7 +10,7 @@ import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
-const FRIC=0.9965,SFRIC=0.993,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.175; // PWK: -30% launch power vs. drag distance
+const FRIC=0.9965,SFRIC=0.993,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.1575; // PWK: -30% then another -10% launch power vs. drag distance
 
 interface Hole{id:number;label:string;hx:number;hy:number;sx:number;sy:number;rw:number}
 function mk():Hole[]{
@@ -87,7 +87,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // the sprite at any target angle is just: rotate = targetAngle + 90.
 const MALLET_FACE_NORMAL0 = -90; // degrees
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
-const REST_GAP = 0.85, MAX_PULL = 6, STANCE_SKEW = 0; // degrees — 0 = face points exactly at the hole
+const REST_GAP = 1.05, MAX_PULL = 9, STANCE_SKEW = 0; // MAX_PULL: +50% travel per pull; degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
@@ -346,7 +346,8 @@ export default function PuttingGame(){
 
           {/* Ball */}
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
-          <div className="absolute z-20 pointer-events-none" data-testid="putting-ball" style={{width:`${bPx}%`,height:`${bPx}%`,left:`${bp.x-BR}%`,top:`calc(${bp.y}% - ${BR}vw*0.01)`,aspectRatio:'1',borderRadius:'50%',background:'radial-gradient(circle at 36% 30%,#fff,#f5f5f5 15%,#e8e8e8 30%,#d4d4d4 50%,#b8b8b8 70%,#999 90%,#777 100%)',boxShadow:'0 0.5px 2px rgba(0,0,0,0.5)'}}/>
+          <img src="/putting/golf-ball.png" alt="" className="absolute z-20 pointer-events-none" data-testid="putting-ball"
+            style={{width:`${bPx}%`,height:'auto',aspectRatio:'1',left:`${bp.x}%`,top:`${bp.y}%`,transform:'translate(-50%,-50%)',filter:'drop-shadow(0 0.5px 1.5px rgba(0,0,0,0.45))'}}/>
 
           {/* Putter — addresses the ball, pulls back on aim, swings through on release.
               Real transparent-PNG head; x/y hold the anchor at its own origin so
