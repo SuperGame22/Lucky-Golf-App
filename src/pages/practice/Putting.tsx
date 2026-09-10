@@ -77,11 +77,15 @@ function sndSink(){
 // ANCHOR is the front-of-head point (closest to the ball at address); THETA0
 // is that same sprite's baked-in front->grip angle, used to re-aim it.
 const MALLET_IMG = '/putting/mallet-putter.png';
-// Anchor = the flat face's centerline (the sightline groove, mid-width of
-// the head, on the leading/top edge) — this is where the ball addresses,
-// not a corner of the head, so rotation pivots naturally around the ball.
+// Anchor = the flat face's centerline (the sight-bead, mid-width of the
+// head, on the leading/top edge) — this is where the ball addresses, not a
+// corner of the head, so rotation pivots naturally around the ball.
 const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, precisely located
-const MALLET_THETA0 = -172.91; // degrees — sprite's baked-in bead->grip angle
+// In the source photo (rotate: 0) the face's outward normal — the direction
+// a struck ball leaves the face — points straight up (-90deg): the flat
+// top edge runs left-right with the solid head body below it. So facing
+// the sprite at any target angle is just: rotate = targetAngle + 90.
+const MALLET_FACE_NORMAL0 = -90; // degrees
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
 const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 0; // degrees — 0 = face points exactly at the hole
 
@@ -233,8 +237,7 @@ export default function PuttingGame(){
   const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):idleAngle);
   const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
-  const stanceDeg=stanceRad*180/Math.PI;
-  const clubRotDeg=stanceDeg-MALLET_THETA0;
+  const clubRotDeg=shotAngle*180/Math.PI-MALLET_FACE_NORMAL0;
   const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
   const clubHeadY=bp.y+Math.sin(stanceRad)*pullDist;
   const showClub=gs==='aim'||!!swing;
