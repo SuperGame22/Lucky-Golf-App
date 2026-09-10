@@ -224,8 +224,11 @@ export default function PuttingGame(){
   // Putter pose: aims at the hole by default, tracks the pull instantly
   // while dragging, then eases back to rest (transition duration below)
   // while `swing` plays out the forward stroke.
-  const idleAngle=Math.atan2(h.hy-bp.y,h.hx-bp.x);
-  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):idleAngle);
+  // At rest (no drag yet) the club just sits in its own natural photographed
+  // pose — not rotated to aim at the hole — so it always matches the
+  // reference asset exactly until the player actually starts pulling back.
+  const NEUTRAL_SHOT_ANGLE=(MALLET_THETA0-180-STANCE_SKEW)*Math.PI/180;
+  const shotAngle=swing?swing.angle:(aim?Math.atan2(aim.dy,aim.dx):NEUTRAL_SHOT_ANGLE);
   const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
   const stanceDeg=stanceRad*180/Math.PI;
