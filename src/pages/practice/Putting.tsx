@@ -10,7 +10,7 @@ import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
-const FRIC=0.997025,SFRIC=0.99405,STH=0.8,STOP=0.025,SLK=0.018,MXD=50,PWK=0.133875; // PWK: -30%,-10%,-15% launch power; FRIC/SFRIC: -15% rolling friction (rolls further)
+const FRIC=0.997025,SFRIC=0.99405,STH=0.8,STOP=0.025,SLK=0.0115,MXD=50,PWK=0.133875; // PWK: -30%,-10%,-15% launch power; FRIC/SFRIC: -15% rolling friction; SLK: -36% break force (no more reversing uphill)
 
 interface Hole{id:number;label:string;hx:number;hy:number;sx:number;sy:number;rw:number}
 function mk():Hole[]{
@@ -268,7 +268,7 @@ export default function PuttingGame(){
   }, [done]);
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
-  const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/1.6,1);
+  const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/0.7,1);
   const bPx=BR*2,hPx=HR*2,A=0.75;
 
   return(
@@ -316,8 +316,8 @@ export default function PuttingGame(){
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
             <defs><clipPath id="gc"><path d={GREEN_PATH}/></clipPath></defs>
             <g clipPath="url(#gc)">
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.35*it}/>}
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.09*it}/>}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.55*it}/>}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.2*it}/>}
               {/* Bent grid — Quadratic Bezier curves offset by slope */}
               {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}</g>
             <defs>
