@@ -71,28 +71,16 @@ function sndSink(){
 
 // ---- Putter (visual only) — sits behind the ball, pulls back on aim, ----
 // ---- swings forward through the ball on release. ----
-type PutterType = 'blade' | 'mallet';
-const PUTTER_TYPE: PutterType = 'blade'; // swap to 'mallet' to use the other head
-const CLUB_LEN = 6.2, REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 22; // degrees
-const CLUB_GOLD_L = '#f0d48a', CLUB_GOLD_D = '#8a6a1f', SHAFT_COL = '#cfd8d0';
-
-function ClubHead({ type }: { type: PutterType }) {
-  if (type === 'mallet') return (
-    <g>
-      <path d="M0.1,-0.95 Q0.1,-1.15 0.35,-1.15 L0.95,-1.15 Q1.2,-1.15 1.2,-0.9 L1.2,0.9 Q1.2,1.15 0.95,1.15 L0.35,1.15 Q0.1,1.15 0.1,0.95 L0.1,0.55 Q0.55,0.4 0.55,0 Q0.55,-0.4 0.1,-0.55 Z"
-        fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
-      <line x1="0.65" y1="0" x2={CLUB_LEN} y2="0" stroke={SHAFT_COL} strokeWidth="0.14" strokeLinecap="round" />
-    </g>
-  );
-  return (
-    <g>
-      <rect x="0.15" y="-0.8" width="0.5" height="1.6" rx="0.15" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
-      <rect x="0.03" y="-0.8" width="0.28" height="0.4" rx="0.08" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
-      <rect x="0.03" y="0.4" width="0.28" height="0.4" rx="0.08" fill="url(#clubGoldGrad)" stroke="#5c4715" strokeWidth="0.05" />
-      <line x1="0.4" y1="-0.35" x2={CLUB_LEN} y2="-0.35" stroke={SHAFT_COL} strokeWidth="0.14" strokeLinecap="round" />
-    </g>
-  );
-}
+// Real photoreal Lucky Mallet Putter (transparent PNG, bird's-eye — same
+// perspective as the reference photo). The whole sprite translates + rotates
+// as one rigid piece so the baked-in photo lighting/perspective stays intact.
+// ANCHOR is the front-of-head point (closest to the ball at address); THETA0
+// is that same sprite's baked-in front->grip angle, used to re-aim it.
+const MALLET_IMG = '/putting/mallet-putter.png';
+const MALLET_ANCHOR_X_PCT = 96.76, MALLET_ANCHOR_Y_PCT = 54.87;
+const MALLET_THETA0 = -165.75; // degrees
+const CLUB_IMG_W = 8.5; // sprite width, % of course width
+const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 22; // degrees
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
@@ -241,6 +229,7 @@ export default function PuttingGame(){
   const pullDist=aim?REST_GAP+(pw/MXD)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
   const stanceDeg=stanceRad*180/Math.PI;
+  const clubRotDeg=stanceDeg-MALLET_THETA0;
   const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
   const clubHeadY=bp.y+Math.sin(stanceRad)*pullDist;
   const showClub=gs==='aim'||!!swing;
@@ -342,13 +331,18 @@ export default function PuttingGame(){
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
           <div className="absolute z-20 pointer-events-none" data-testid="putting-ball" style={{width:`${bPx}%`,height:`${bPx}%`,left:`${bp.x-BR}%`,top:`calc(${bp.y}% - ${BR}vw*0.01)`,aspectRatio:'1',borderRadius:'50%',background:'radial-gradient(circle at 36% 30%,#fff,#f5f5f5 15%,#e8e8e8 30%,#d4d4d4 50%,#b8b8b8 70%,#999 90%,#777 100%)',boxShadow:'0 0.5px 2px rgba(0,0,0,0.5)'}}/>
 
-          {/* Putter — addresses the ball, pulls back on aim, swings through on release */}
-          {showClub&&<svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-[17]" preserveAspectRatio="none">
-            <defs><linearGradient id="clubGoldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={CLUB_GOLD_L}/><stop offset="100%" stopColor={CLUB_GOLD_D}/></linearGradient></defs>
-            <motion.g animate={{x:clubHeadX,y:clubHeadY,rotate:stanceDeg}} transition={{duration:clubDur,ease:'easeIn'}}>
-              <ClubHead type={PUTTER_TYPE}/>
-            </motion.g>
-          </svg>}
+          {/* Putter — addresses the ball, pulls back on aim, swings through on release.
+              Real transparent-PNG head; x/y hold the anchor at its own origin so
+              `rotate` spins the sprite around the front-of-head point, not its corner. */}
+          {showClub&&<motion.img
+            src={MALLET_IMG}
+            alt=""
+            className="absolute pointer-events-none z-[17]"
+            style={{width:`${CLUB_IMG_W}%`,height:'auto',transformOrigin:`${MALLET_ANCHOR_X_PCT}% ${MALLET_ANCHOR_Y_PCT}%`}}
+            animate={{left:`${clubHeadX}%`,top:`${clubHeadY}%`,x:`-${MALLET_ANCHOR_X_PCT}%`,y:`-${MALLET_ANCHOR_Y_PCT}%`,rotate:clubRotDeg}}
+            transition={{duration:clubDur,ease:'easeIn'}}
+            initial={false}
+          />}
 
           {/* Aim */}
           {aim&&gs==='aim'&&<svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none">
