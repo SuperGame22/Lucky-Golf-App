@@ -80,10 +80,10 @@ const MALLET_IMG = '/putting/mallet-putter.png';
 // Anchor = the flat face's centerline (the sightline groove, mid-width of
 // the head, on the leading/top edge) — this is where the ball addresses,
 // not a corner of the head, so rotation pivots naturally around the ball.
-const MALLET_ANCHOR_X_PCT = 67.93, MALLET_ANCHOR_Y_PCT = 20.35;
-const MALLET_THETA0 = -174.51; // degrees — sprite's baked-in face-center->grip angle
+const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, precisely located
+const MALLET_THETA0 = -172.91; // degrees — sprite's baked-in bead->grip angle
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
-const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 22; // degrees
+const REST_GAP = 0.5, MAX_PULL = 6, STANCE_SKEW = 0; // degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
