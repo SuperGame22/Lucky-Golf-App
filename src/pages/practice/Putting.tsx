@@ -57,16 +57,19 @@ function sndHitSynth(){
     setTimeout(()=>ctx.close(),400);
   } catch {}
 }
-// Sink chime — stays pleasant
+// Sink sound — one of three real recordings, picked at random each time
+// (never repeating the previous pick, so across sinks they cycle/alternate).
+const SINK_SOUNDS=['/sounds/hole-sink-1.m4a','/sounds/hole-sink-2.m4a','/sounds/hole-sink-3.m4a'];
+let lastSink=-1;
 function sndSink(){
-  function play(f:number,d:number){
-    const c=new AudioContext();const o=c.createOscillator();const g=c.createGain();
-    o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(0.4,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+d);
-    o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);
-    setTimeout(()=>c.close(),d*1000+100);
-  }
-  play(880,0.12);setTimeout(()=>play(1100,0.1),60);setTimeout(()=>play(1320,0.15),120);
+  try {
+    let i=Math.floor(Math.random()*SINK_SOUNDS.length);
+    if(SINK_SOUNDS.length>1&&i===lastSink) i=(i+1)%SINK_SOUNDS.length;
+    lastSink=i;
+    const a=new Audio(SINK_SOUNDS[i]);
+    a.volume=0.85;
+    a.play().catch(()=>{});
+  } catch {}
 }
 
 // ---- Putter (visual only) — sits behind the ball, pulls back on aim, ----
@@ -337,12 +340,6 @@ export default function PuttingGame(){
           <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+0.5)*2}%`,aspectRatio:'1',left:`${h.hx-HR-0.5}%`,top:`${h.hy-(HR+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
           <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,aspectRatio:'1',left:`${h.hx-HR}%`,top:`${h.hy-HR*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
           <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,aspectRatio:'1',left:`${h.hx-HR*0.4}%`,top:`${h.hy-HR*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
-
-          {/* Flag */}
-          <div className="absolute pointer-events-none z-[6]" style={{left:`${h.hx+0.15}%`,top:`${h.hy-HR*A*0.2}%`,transform:'translateX(-50%)'}}>
-            <div style={{width:'1px',height:'36px',background:'linear-gradient(180deg,#ddd,#555 70%,#000)',position:'relative',top:'-30px'}}/>
-            <div className="absolute" style={{top:'-30px',left:'1px',width:'10px',height:'6px',background:'linear-gradient(140deg,#ef4444,#b91c1c)',borderRadius:'0 2px 2px 0',boxShadow:'0 1px 2px rgba(0,0,0,0.5)'}}/>
-          </div>
 
           {/* Ball */}
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
