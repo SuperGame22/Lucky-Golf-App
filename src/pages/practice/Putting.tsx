@@ -10,7 +10,7 @@ import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
-const FRIC=0.997025,SFRIC=0.99405,STH=0.8,STOP=0.025,SLK=0.0115,MXD=50,PWK=0.133875; // PWK: -30%,-10%,-15% launch power; FRIC/SFRIC: -15% rolling friction; SLK: -36% break force (no more reversing uphill)
+const FRIC=0.997025,STOP=0.014,SLK=0.0115,MXD=50,PWK=0.133875; // PWK: -30%,-10%,-15% launch power; FRIC: -15% rolling friction; SLK: -36% break force (no more reversing uphill); STOP lowered so the finish crawls out further before it's called
 
 interface Hole{id:number;label:string;hx:number;hy:number;sx:number;sy:number;rw:number}
 function mk():Hole[]{
@@ -175,7 +175,12 @@ export default function PuttingGame(){
     const tick=()=>{
       vx+=h.sx*SLK;vy+=h.sy*SLK;
       const spd=Math.sqrt(vx*vx+vy*vy);
-      const f=spd>STH?FRIC-(spd*0.000068):SFRIC-((STH-spd)*0.0017);
+      // Single smooth curve (no speed branch) — the old version jumped to a
+      // different, harsher formula below a speed threshold that actually
+      // increased friction as the ball slowed, which is why it snapped to a
+      // stop instead of gently coasting out. This eases toward FRIC as speed
+      // drops, so the last bit of roll tapers off instead of cutting short.
+      const f=FRIC-spd*0.00006;
       vx*=f;vy*=f;x+=vx;y+=vy;
 
       // Boundary: bunker or off-green
@@ -271,7 +276,13 @@ export default function PuttingGame(){
   }, [done]);
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
-  const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/0.7,1);
+  // Real direction always (not just above the "Break" badge threshold), so even a
+  // near-flat hole gets a faint, honest tint instead of a hard on/off cutoff.
+  const la=Math.atan2(-h.sy,-h.sx)*(180/Math.PI),sa=la+180;
+  // Concave curve (exponent < 1): boosts low-severity holes so they're not
+  // invisible, and compresses high-severity holes toward the same ceiling so the
+  // dark/light spread doesn't keep growing more extreme the steeper it gets.
+  const it=Math.pow(Math.min(sm/0.7,1),0.55);
   const bPx=BR*2,HR_VIS=HR*1.12,hPx=HR_VIS*2,A=0.75; // HR_VIS: hole rendered ~12% larger than its physics radius (visual only)
 
   return(
@@ -323,7 +334,7 @@ export default function PuttingGame(){
                   high (uphill) end reads lighter green, the low (downhill) end reads
                   darker/black, exactly like a contour map, instead of two separate
                   overlapping tints that were easy to lose against the turf. */}
-              {hs&&<rect x="0" y="0" width="100" height="100" fill="url(#tSlope)" opacity={0.5+0.5*it}/>}
+              <rect x="0" y="0" width="100" height="100" fill="url(#tSlope)" opacity={0.16+0.44*it}/>
               {/* Bent grid — kept only as a faint texture cue now that the elevation
                   shade carries the actual break information (dimmed ~80%). */}
               {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.02+0.07*it}/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.02+0.07*it}/>;})}</g>
