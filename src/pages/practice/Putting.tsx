@@ -319,13 +319,18 @@ export default function PuttingGame(){
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
             <defs><clipPath id="gc"><path d={GREEN_PATH}/></clipPath></defs>
             <g clipPath="url(#gc)">
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.55*it}/>}
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.2*it}/>}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.85*it}/>}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.55*it}/>}
               {/* Bent grid — Quadratic Bezier curves offset by slope */}
-              {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#4ade80" strokeWidth="0.15" opacity="0.05"/>;})}</g>
+              {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.1+0.35*it}/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.1+0.35*it}/>;})}</g>
             <defs>
-              <linearGradient id="tSh" gradientTransform={`rotate(${sa})`}><stop offset="0%" stopColor="rgb(0,10,0)"/><stop offset="40%" stopColor="rgb(0,10,0)" stopOpacity="0.3"/><stop offset="100%" stopColor="rgb(0,10,0)" stopOpacity="0"/></linearGradient>
-              <linearGradient id="tHi" gradientTransform={`rotate(${la})`}><stop offset="0%" stopColor="rgb(80,200,80)"/><stop offset="30%" stopColor="rgb(80,200,80)" stopOpacity="0.3"/><stop offset="100%" stopColor="rgb(80,200,80)" stopOpacity="0"/></linearGradient>
+              {/* Rotate around the box CENTER (0.5,0.5) — the previous version rotated around
+                  the origin corner, which for most slope angles swung the visible light/dark
+                  bands almost entirely outside the green, making the shading read as invisible.
+                  Colors are also now black/gold instead of green-on-green, for real contrast
+                  against the turf instead of blending into it. */}
+              <linearGradient id="tSh" gradientTransform={`rotate(${sa} 0.5 0.5)`}><stop offset="0%" stopColor="rgb(0,0,0)"/><stop offset="45%" stopColor="rgb(0,0,0)" stopOpacity="0.4"/><stop offset="100%" stopColor="rgb(0,0,0)" stopOpacity="0"/></linearGradient>
+              <linearGradient id="tHi" gradientTransform={`rotate(${la} 0.5 0.5)`}><stop offset="0%" stopColor="rgb(250,204,21)"/><stop offset="35%" stopColor="rgb(250,204,21)" stopOpacity="0.35"/><stop offset="100%" stopColor="rgb(250,204,21)" stopOpacity="0"/></linearGradient>
             </defs>
           </svg>
 
