@@ -49,15 +49,26 @@ let audioUnlocked = false;
 function unlockAudio(){
   if (audioUnlocked) return;
   audioUnlocked = true;
+  // Play-then-immediately-pause, SYNCHRONOUSLY, at normal (non-zero) volume —
+  // not muted, and not waiting for the play() promise to resolve before
+  // pausing. Safari specifically does NOT grant an element "user activated"
+  // status from a muted play (muted autoplay is separately exempt from the
+  // gesture requirement, but doesn't unlock later unmuted playback), and
+  // pausing only after the promise resolves (in a .then()) can land outside
+  // the gesture's call stack on some versions. Pausing in the same tick
+  // means no sound is actually audible, but the browser still credits the
+  // gesture, so a later play() from deep in a rAF/setTimeout chain works.
   [HIT_SOUND, ...SINK_AUDIO].forEach(a => {
     try {
-      const prevVol = a.volume;
-      a.volume = 0;
-      a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = prevVol; }).catch(() => { a.volume = prevVol; });
+      const p = a.play();
+      a.pause();
+      a.currentTime = 0;
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch {}
   });
 }
 function playSound(a: HTMLAudioElement){
+  unlockAudio(); // no-op if already unlocked; a safety net for any trigger path that isn't a direct green touch
   try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
 }
 // Putter hit — real recording
