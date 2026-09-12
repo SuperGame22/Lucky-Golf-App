@@ -31,14 +31,37 @@ const BUNKERS=[
   "M 74,2 C 80,-2 90,2 92,10 C 94,18 88,22 82,18 C 76,14 70,6 74,2 Z",
 ];
 
-// Putter hit — try real MP3, fall back to synthesis
-function sndHit(){
-  try {
-    const a = new Audio('/sounds/putter-hit.mp3');
-    a.volume = 0.8;
-    a.play().catch(() => {});
-  } catch {}
+// All game sound effects are pre-created once (not `new Audio()` per play) and
+// "unlocked" on the player's first touch/click of the green (see `unlockAudio`
+// below). Mobile Safari in particular can silently refuse to play an
+// HTMLMediaElement that's created fresh deep inside a later setTimeout/
+// requestAnimationFrame callback — like the sink sound, which fires a couple
+// seconds after the original drag once the ball has finished rolling — unless
+// that element already played (even silently) during a direct user gesture
+// earlier in the page's lifetime. Reusing pre-unlocked elements is the
+// standard fix and makes playback reliable regardless of how far the trigger
+// is from the original tap.
+const HIT_SOUND = new Audio('/sounds/putter-hit.mp3');
+HIT_SOUND.volume = 0.8;
+const SINK_SOUNDS=['/sounds/hole-sink-1.m4a','/sounds/hole-sink-2.m4a','/sounds/hole-sink-3.m4a'];
+const SINK_AUDIO = SINK_SOUNDS.map(src => { const a = new Audio(src); a.volume = 0.85; return a; });
+let audioUnlocked = false;
+function unlockAudio(){
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  [HIT_SOUND, ...SINK_AUDIO].forEach(a => {
+    try {
+      const prevVol = a.volume;
+      a.volume = 0;
+      a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = prevVol; }).catch(() => { a.volume = prevVol; });
+    } catch {}
+  });
 }
+function playSound(a: HTMLAudioElement){
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
+}
+// Putter hit — real recording
+function sndHit(){ playSound(HIT_SOUND); }
 function sndHitSynth(){
   try {
     const ctx=new AudioContext();const now=ctx.currentTime;
@@ -59,17 +82,12 @@ function sndHitSynth(){
 }
 // Sink sound — one of three real recordings, picked at random each time
 // (never repeating the previous pick, so across sinks they cycle/alternate).
-const SINK_SOUNDS=['/sounds/hole-sink-1.m4a','/sounds/hole-sink-2.m4a','/sounds/hole-sink-3.m4a'];
 let lastSink=-1;
 function sndSink(){
-  try {
-    let i=Math.floor(Math.random()*SINK_SOUNDS.length);
-    if(SINK_SOUNDS.length>1&&i===lastSink) i=(i+1)%SINK_SOUNDS.length;
-    lastSink=i;
-    const a=new Audio(SINK_SOUNDS[i]);
-    a.volume=0.85;
-    a.play().catch(()=>{});
-  } catch {}
+  let i=Math.floor(Math.random()*SINK_AUDIO.length);
+  if(SINK_AUDIO.length>1&&i===lastSink) i=(i+1)%SINK_AUDIO.length;
+  lastSink=i;
+  playSound(SINK_AUDIO[i]);
 }
 
 // ---- Putter (visual only) — sits behind the ball, pulls back on aim, ----
@@ -84,6 +102,13 @@ const MALLET_IMG = '/putting/mallet-putter.png';
 // head, on the leading/top edge) — this is where the ball addresses, not a
 // corner of the head, so rotation pivots naturally around the ball.
 const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, precisely located
+
+// Sunk-putt jiggle: a quick, decaying rattle (like the ball bouncing around the
+// cup) that settles to still within ~1s. Percent offsets are relative to the
+// ball's own size via framer's x/y, so they scale correctly at any zoom level.
+const SUNK_JIGGLE = { x: ["0%","6%","-5%","4%","-3%","2%","-1%","0%"], y: ["0%","-5%","6%","-4%","3%","-2%","1%","0%"] };
+const SUNK_JIGGLE_TRANSITION = { duration: 1, times: [0,0.1,0.24,0.38,0.52,0.66,0.82,1], ease: 'easeOut' as const };
+const ZERO_JIGGLE = { x: 0, y: 0 };
 // In the source photo (rotate: 0) the face's outward normal — the direction
 // a struck ball leaves the face — points straight up (-90deg): the flat
 // top edge runs left-right with the solid head body below it. So facing
@@ -149,7 +174,7 @@ export default function PuttingGame(){
     return{x:((cx-r.left)/r.width)*100,y:((cy-r.top)/r.height)*100};
   },[]);
 
-  const down=(e:React.TouchEvent|React.MouseEvent)=>{if(gs!=='aim')return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
+  const down=(e:React.TouchEvent|React.MouseEvent)=>{unlockAudio();if(gs!=='aim')return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
   const move=(e:React.TouchEvent|React.MouseEvent)=>{if(!d0||gs!=='aim')return;const p='touches' in e?e.touches[0]:e;setDc(pct(p.clientX,p.clientY));};
   const up=()=>{
     if(!d0||!dc||gs!=='aim')return;
@@ -368,8 +393,17 @@ export default function PuttingGame(){
 
           {/* Ball */}
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>
-          <img src="/putting/golf-ball.png" alt="" className="absolute z-20 pointer-events-none" data-testid="putting-ball"
-            style={{width:`${bPx}%`,height:'auto',aspectRatio:'1',left:`${bp.x}%`,top:`${bp.y}%`,transform:'translate(-50%,-50%)',filter:'drop-shadow(0 0.5px 1.5px rgba(0,0,0,0.45))'}}/>
+          {/* Outer div handles position/size/centering (untouched by the jiggle);
+              the inner motion.img is what actually rattles on sink, via framer's
+              x/y layered on top — kept separate so it doesn't fight the static
+              translate(-50%,-50%) centering transform. */}
+          <div className="absolute z-20 pointer-events-none" style={{width:`${bPx}%`,aspectRatio:'1',left:`${bp.x}%`,top:`${bp.y}%`,transform:'translate(-50%,-50%)'}}>
+            <motion.img src="/putting/golf-ball.png" alt="" className="w-full h-full" data-testid="putting-ball"
+              style={{filter:'drop-shadow(0 0.5px 1.5px rgba(0,0,0,0.45))'}}
+              animate={gs==='sunk'?SUNK_JIGGLE:ZERO_JIGGLE}
+              transition={gs==='sunk'?SUNK_JIGGLE_TRANSITION:{duration:0}}
+              initial={false}/>
+          </div>
 
           {/* Putter — addresses the ball, pulls back on aim, swings through on release.
               Real transparent-PNG head; x/y hold the anchor at its own origin so
