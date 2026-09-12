@@ -90,7 +90,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // the sprite at any target angle is just: rotate = targetAngle + 90.
 const MALLET_FACE_NORMAL0 = -90; // degrees
 const CLUB_IMG_W = 8.5; // sprite width, % of course width
-const REST_GAP = 0.525, MAX_PULL = 9, STANCE_SKEW = 0; // REST_GAP: -50% gap (smaller sliver); MAX_PULL: +50% travel per pull; degrees — 0 = face points exactly at the hole
+const REST_GAP = 0.525, MAX_PULL = 9, STANCE_SKEW = 0, CONTACT_DIP = 0.15; // REST_GAP: -50% gap (smaller sliver); MAX_PULL: +50% travel per pull; CONTACT_DIP: club lands slightly closer than REST_GAP at impact, for a touch of depth on contact; degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
@@ -247,7 +247,7 @@ export default function PuttingGame(){
   // drag distance than before (paired with the -30% PWK above, so a full
   // pull now looks bigger but hits softer — less twitchy overall).
   const PULL_SENS=1/0.7;
-  const pullDist=aim?REST_GAP+Math.min((pw/MXD)*PULL_SENS,1)*MAX_PULL:REST_GAP;
+  const pullDist=swing?REST_GAP-CONTACT_DIP:aim?REST_GAP+Math.min((pw/MXD)*PULL_SENS,1)*MAX_PULL:REST_GAP;
   const stanceRad=shotAngle+Math.PI+STANCE_SKEW*Math.PI/180;
   const clubRotDeg=shotAngle*180/Math.PI-MALLET_FACE_NORMAL0;
   const clubHeadX=bp.x+Math.cos(stanceRad)*pullDist;
@@ -272,7 +272,7 @@ export default function PuttingGame(){
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
   const la=hs?Math.atan2(-h.sy,-h.sx)*(180/Math.PI):135,sa=la+180,it=Math.min(sm/0.7,1);
-  const bPx=BR*2,hPx=HR*2,A=0.75;
+  const bPx=BR*2,HR_VIS=HR*1.12,hPx=HR_VIS*2,A=0.75; // HR_VIS: hole rendered ~12% larger than its physics radius (visual only)
 
   return(
     <AppLayout>
@@ -335,11 +335,12 @@ export default function PuttingGame(){
             <svg width="22" height="22" viewBox="0 0 22 22"><line x1="11" y1="11" x2={11+h.sx*5} y2={11+h.sy*5} stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#bk)"/><defs><marker id="bk" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#4ade80"/></marker></defs></svg>
           </div>}
 
-          {/* Hole */}
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+2)*2}%`,aspectRatio:'1',left:`${h.hx-HR-2}%`,top:`${h.hy-(HR+2)*A}%`,background:'radial-gradient(circle,rgba(0,0,0,0.3) 20%,transparent 65%)'}}/>
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR+0.5)*2}%`,aspectRatio:'1',left:`${h.hx-HR-0.5}%`,top:`${h.hy-(HR+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
-          <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,aspectRatio:'1',left:`${h.hx-HR}%`,top:`${h.hy-HR*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
-          <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,aspectRatio:'1',left:`${h.hx-HR*0.4}%`,top:`${h.hy-HR*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
+          {/* Hole — rendered at HR_VIS (~12% larger than HR); HR itself still drives
+              physics (lip/capture) so this is a pure visual bump, not an easier hole. */}
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR_VIS+2)*2}%`,aspectRatio:'1',left:`${h.hx-HR_VIS-2}%`,top:`${h.hy-(HR_VIS+2)*A}%`,background:'radial-gradient(circle,rgba(0,0,0,0.3) 20%,transparent 65%)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${(HR_VIS+0.5)*2}%`,aspectRatio:'1',left:`${h.hx-HR_VIS-0.5}%`,top:`${h.hy-(HR_VIS+0.5)*A}%`,background:'radial-gradient(circle at 42% 35%,#0c520c,#053005)',boxShadow:'inset 0 0.5px 1.5px rgba(255,255,255,0.07)'}}/>
+          <div className="absolute rounded-full pointer-events-none" data-testid="putting-hole" style={{width:`${hPx}%`,aspectRatio:'1',left:`${h.hx-HR_VIS}%`,top:`${h.hy-HR_VIS*A}%`,background:'radial-gradient(circle at 50% 38%,#0a0a0a,#000)',boxShadow:'inset 0 3px 8px rgba(0,0,0,1)'}}/>
+          <div className="absolute rounded-full pointer-events-none" style={{width:`${hPx*0.4}%`,aspectRatio:'1',left:`${h.hx-HR_VIS*0.4}%`,top:`${h.hy-HR_VIS*0.4*A+0.2}%`,background:'radial-gradient(circle,#000,rgba(0,0,0,0.6))'}}/>
 
           {/* Ball */}
           <div className="absolute rounded-full pointer-events-none z-[18]" style={{width:`${BR*3}%`,height:`${BR*1.5*A}%`,left:`${bp.x-BR*1.5}%`,top:`${bp.y+BR*A*0.3}%`,background:'radial-gradient(ellipse,rgba(0,0,0,0.35),transparent 65%)'}}/>

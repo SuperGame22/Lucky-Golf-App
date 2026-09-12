@@ -217,7 +217,6 @@ const LuckySpin = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           <h1 className="text-3xl font-display font-bold">Lucky Spinz</h1>
-          <p className="text-muted-foreground">Spin for discounted tee times & prizes!</p>
         </motion.div>
 
         {/* Wheel */}
@@ -287,6 +286,20 @@ const LuckySpin = () => {
           </div>
         </motion.div>
 
+        {/* Spin Button — stays directly under the wheel; the result card (below)
+            renders underneath it instead of pushing it down the page. */}
+        <Button variant="gold" size="xl" className="w-full" onClick={spin}
+          disabled={spinning || spinsRemaining <= 0} data-testid="spin-btn">
+          {spinning ? (
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+              <CloverIcon className="w-6 h-6" />
+            </motion.div>
+          ) : (<><Gift className="w-6 h-6" /> Use a Spin</>)}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Earn 10 clovers to unlock your next spin'}
+        </p>
+
         {/* Result */}
         <AnimatePresence>
           {result && (
@@ -340,19 +353,6 @@ const LuckySpin = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Spin Button */}
-        <Button variant="gold" size="xl" className="w-full" onClick={spin}
-          disabled={spinning || spinsRemaining <= 0} data-testid="spin-btn">
-          {spinning ? (
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-              <CloverIcon className="w-6 h-6" />
-            </motion.div>
-          ) : (<><Gift className="w-6 h-6" /> Use a Spin</>)}
-        </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Earn 10 clovers to unlock your next spin'}
-        </p>
 
         {/* No fake Recent Winners — show empty state */}
         <div className="glass-card p-5">
