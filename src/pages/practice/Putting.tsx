@@ -319,18 +319,26 @@ export default function PuttingGame(){
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
             <defs><clipPath id="gc"><path d={GREEN_PATH}/></clipPath></defs>
             <g clipPath="url(#gc)">
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tSh)`} opacity={0.85*it}/>}
-              {hs&&<rect x="0" y="0" width="100" height="100" fill={`url(#tHi)`} opacity={0.55*it}/>}
-              {/* Bent grid — Quadratic Bezier curves offset by slope */}
-              {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.1+0.35*it}/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.1+0.35*it}/>;})}</g>
+              {/* Elevation shade: one continuous gradient along the slope axis — the
+                  high (uphill) end reads lighter green, the low (downhill) end reads
+                  darker/black, exactly like a contour map, instead of two separate
+                  overlapping tints that were easy to lose against the turf. */}
+              {hs&&<rect x="0" y="0" width="100" height="100" fill="url(#tSlope)" opacity={0.5+0.5*it}/>}
+              {/* Bent grid — kept only as a faint texture cue now that the elevation
+                  shade carries the actual break information (dimmed ~80%). */}
+              {Array.from({length:7},(_,i)=>{const y=(i/6)*100;const cx=50+h.sx*12;const cy=y+h.sy*8;return<path key={`h${i}`} d={`M 0 ${y} Q ${cx} ${cy} 100 ${y}`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.02+0.07*it}/>;})}{Array.from({length:6},(_,i)=>{const x=(i/5)*100;const cx=x+h.sx*8;const cy=50+h.sy*12;return<path key={`v${i}`} d={`M ${x} 0 Q ${cx} ${cy} ${x} 100`} fill="none" stroke="#eab308" strokeWidth="0.3" opacity={0.02+0.07*it}/>;})}</g>
             <defs>
-              {/* Rotate around the box CENTER (0.5,0.5) — the previous version rotated around
-                  the origin corner, which for most slope angles swung the visible light/dark
-                  bands almost entirely outside the green, making the shading read as invisible.
-                  Colors are also now black/gold instead of green-on-green, for real contrast
-                  against the turf instead of blending into it. */}
-              <linearGradient id="tSh" gradientTransform={`rotate(${sa} 0.5 0.5)`}><stop offset="0%" stopColor="rgb(0,0,0)"/><stop offset="45%" stopColor="rgb(0,0,0)" stopOpacity="0.4"/><stop offset="100%" stopColor="rgb(0,0,0)" stopOpacity="0"/></linearGradient>
-              <linearGradient id="tHi" gradientTransform={`rotate(${la} 0.5 0.5)`}><stop offset="0%" stopColor="rgb(250,204,21)"/><stop offset="35%" stopColor="rgb(250,204,21)" stopOpacity="0.35"/><stop offset="100%" stopColor="rgb(250,204,21)" stopOpacity="0"/></linearGradient>
+              {/* Single gradient along the downhill axis (rotated around the box CENTER,
+                  0.5 0.5 — rotating around the default origin corner was the earlier bug:
+                  it swung the visible band almost entirely outside the green). 0% is the
+                  uphill/high end (lighter green), 100% is the downhill/low end (near-black),
+                  with a transparent middle band so flat ground in between stays true green. */}
+              <linearGradient id="tSlope" gradientTransform={`rotate(${sa} 0.5 0.5)`}>
+                <stop offset="0%" stopColor="rgb(214,255,178)" stopOpacity="0.6"/>
+                <stop offset="42%" stopColor="rgb(214,255,178)" stopOpacity="0"/>
+                <stop offset="58%" stopColor="rgb(0,0,0)" stopOpacity="0"/>
+                <stop offset="100%" stopColor="rgb(0,0,0)" stopOpacity="0.85"/>
+              </linearGradient>
             </defs>
           </svg>
 
