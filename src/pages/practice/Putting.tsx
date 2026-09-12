@@ -89,7 +89,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // top edge runs left-right with the solid head body below it. So facing
 // the sprite at any target angle is just: rotate = targetAngle + 90.
 const MALLET_FACE_NORMAL0 = -90; // degrees
-const CLUB_IMG_W = 8.5; // sprite width, % of course width
+const CLUB_IMG_W = 6.375; // sprite width, % of course width (-25% club head size)
 const REST_GAP = 0.525, MAX_PULL = 9, STANCE_SKEW = 0, CONTACT_DIP = 0.15; // REST_GAP: -50% gap (smaller sliver); MAX_PULL: +50% travel per pull; CONTACT_DIP: club lands slightly closer than REST_GAP at impact, for a touch of depth on contact; degrees — 0 = face points exactly at the hole
 
 // Point-in-SVG-path test (ray casting)
