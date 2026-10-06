@@ -46,6 +46,7 @@ import LuckySpin from "./pages/LuckySpin";
 import Shop from "./pages/Shop";
 import WeeklyRaffle from "./pages/earn/Raffle";
 import CloverPacks from "./pages/earn/Packs";
+import PuttingPacks from "./pages/earn/PuttingPacks";
 import AddCash from "./pages/wallet/AddCash";
 import VerifyTerms from "./pages/wagers/VerifyTerms";
 
@@ -122,6 +123,7 @@ const App = () => (
               <Route path="/earn/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
               <Route path="/earn/raffle" element={<ProtectedRoute><WeeklyRaffle /></ProtectedRoute>} />
               <Route path="/earn/packs" element={<ProtectedRoute><CloverPacks /></ProtectedRoute>} />
+              <Route path="/earn/putting-packs" element={<ProtectedRoute><PuttingPacks /></ProtectedRoute>} />
 
               {/* ── Legacy Route Aliases ── */}
               <Route path="/spin" element={<Navigate to="/earn/spin" replace />} />

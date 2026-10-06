@@ -6,7 +6,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClovers } from '@/contexts/CloverContext';
-import { ArrowLeft, RotateCcw, Trophy } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -204,6 +205,39 @@ type GS='aim'|'roll'|'sunk'|'lip'|'miss'|'sand'|'practice';
 
 export default function PuttingGame(){
   const nav=useNavigate();const{refreshProfile}=useAuth();const{addClovers}=useClovers();
+  const{toast}=useToast();
+  // Putt credits: each real (non-practice) putt costs 1, bought at $1 each or in Putting Packs.
+  const[credits,setCredits]=useState(0);const[hasCard,setHasCard]=useState(false);const[buying,setBuying]=useState(false);
+  const spendingRef=useRef(false);
+  const refreshPuttStatus=useCallback(async()=>{
+    const{data}=await (supabase as any).rpc('get_putt_status');
+    if(data){setCredits(data.credits??0);setHasCard(!!data.has_card);}
+    return data;
+  },[]);
+  useEffect(()=>{
+    refreshPuttStatus();
+    // Back from Stripe Checkout: the webhook credits the putt a moment later, so poll briefly.
+    if(new URLSearchParams(window.location.search).get('putt')==='success'){
+      let n=0;const t=setInterval(()=>{refreshPuttStatus();if(++n>=8)clearInterval(t);},1500);
+      return()=>clearInterval(t);
+    }
+  },[refreshPuttStatus]);
+  const buyPutt=async()=>{
+    if(buying)return;setBuying(true);
+    try{
+      const{data,error}=await supabase.functions.invoke('buy-putt',{body:{nonce:crypto.randomUUID()}});
+      if(error)throw error;
+      if(data?.success){setCredits(data.credits??0);setHasCard(true);toast({title:'+1 Putt',description:'Charged $1 to your saved card.'});}
+      else if(data?.needs_checkout){
+        const r=await supabase.functions.invoke('create-checkout',{body:{mode:'putt'}});
+        if(r.error)throw r.error;if(!r.data?.url)throw new Error('No checkout URL returned');
+        window.location.href=r.data.url;return;
+      }else throw new Error(data?.error||'Purchase failed');
+    }catch(e){
+      toast({title:'Could not buy putt',description:e instanceof Error?e.message:'Please try again.',variant:'destructive'});
+    }
+    setBuying(false);
+  };
   const gRef=useRef<HTMLDivElement>(null);const raf=useRef(0);
   const[course]=useState<Hole[]>(()=>mk());
   const[nc,setNc]=useState<Hole[]|null>(null);
@@ -226,16 +260,28 @@ export default function PuttingGame(){
   const down=(e:React.TouchEvent|React.MouseEvent)=>{unlockAudio();if(gs!=='aim')return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
   const move=(e:React.TouchEvent|React.MouseEvent)=>{if(!d0||gs!=='aim')return;const p='touches' in e?e.touches[0]:e;setDc(pct(p.clientX,p.clientY));};
   const up=()=>{
-    if(!d0||!dc||gs!=='aim')return;
+    if(!d0||!dc||gs!=='aim'||spendingRef.current)return;
     const dx=d0.x-dc.x,dy=d0.y-dc.y,pw=Math.min(Math.sqrt(dx*dx+dy*dy),MXD);
     setD0(null);setDc(null);if(pw<0.3)return;
-    const a=Math.atan2(dy,dx);if(!prac)setPt(n=>n+1);
-    // Freeze the pulled-back club pose, then let it swing forward — the hit
-    // sound and ball simulation fire together, timed to when the club face
-    // reaches the ball at the end of that swing.
-    setSwing({angle:a,pw});
-    const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;
-    setTimeout(()=>{sndHit();setSwing(null);sim(_vx,_vy);},220);
+    const a=Math.atan2(dy,dx);
+    const launch=()=>{
+      if(!prac)setPt(n=>n+1);
+      // Freeze the pulled-back club pose, then let it swing forward — the hit
+      // sound and ball simulation fire together, timed to when the club face
+      // reaches the ball at the end of that swing.
+      setSwing({angle:a,pw});
+      const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;
+      setTimeout(()=>{sndHit();setSwing(null);sim(_vx,_vy);},220);
+    };
+    if(prac){launch();return;}
+    const needPutt=()=>{setMsg('Need a Putt');setSub('Tap Buy a Putt · $1');setTimeout(()=>{setMsg(null);setSub(null);},1800);};
+    if(credits<=0){needPutt();return;}
+    spendingRef.current=true;
+    (supabase as any).rpc('spend_putt').then(({data}:any)=>{
+      spendingRef.current=false;
+      if(!data?.success){setCredits(0);needPutt();return;}
+      setCredits(data.credits??0);launch();
+    }).catch(()=>{spendingRef.current=false;});
   };
 
   const endPrac=(label:string,detail:string)=>{
@@ -365,7 +411,7 @@ export default function PuttingGame(){
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={()=>nav('/practice')}><ArrowLeft className="w-5 h-5"/></Button>
           <div className="flex-1">
-            <h1 className="text-xl font-black uppercase tracking-wider">Putting Pro</h1>
+            <h1 className="text-xl font-black uppercase tracking-wider">Lucky Putts</h1>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Hole {hi+1}/{cc.length} · {h.label}{hs?' · Break':''}</p>
           </div>
           {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
@@ -376,6 +422,21 @@ export default function PuttingGame(){
           <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">PUTTS</p><p className="text-lg font-black">{pt}</p></div>
           <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">IN</p><p className="text-lg font-black text-green-400">{sk}/{cc.length}</p></div>
           <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">EARN</p><p className="text-lg font-black text-primary">+{cl}</p></div>
+        </div>
+
+        {/* Putt balance + $1 buy (one tap once a card is saved) */}
+        <div className="flex items-center gap-3 glass-card p-2.5">
+          <div className="flex-1">
+            <p className="text-[8px] text-muted-foreground uppercase tracking-widest">Putts Left</p>
+            <p className="text-lg font-black text-primary" data-testid="putt-credits">{credits}</p>
+          </div>
+          <div className="text-right">
+            <Button size="sm" className="font-black uppercase tracking-wider text-xs" onClick={buyPutt} disabled={buying} data-testid="buy-putt-btn">
+              {buying?<Loader2 className="w-4 h-4 mr-1 animate-spin"/>:null}Buy a Putt · $1
+            </Button>
+            <p className="text-[9px] text-muted-foreground mt-1">{hasCard?'One tap — charges your saved card':'First buy saves your card for one-tap putts'}</p>
+            <button className="text-[10px] text-primary underline mt-0.5" onClick={()=>nav('/earn/putting-packs')}>Save with Putting Packs</button>
+          </div>
         </div>
 
         {/* Course view */}

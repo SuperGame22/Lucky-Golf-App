@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Target, TrendingUp, Brain, Crosshair, Clock, BarChart3 } from 'lucide-react';
 
 const DRILLS = [
-  { title: 'Putting Grid', desc: '5-hole putting with physics', icon: Target, path: '/practice/putting' },
+  { title: 'Lucky Putts', desc: '5-hole putting with physics', icon: Target, path: '/practice/putting' },
   { title: 'Distance Control', desc: 'Hit target yardages', icon: Crosshair, path: '/practice/distance' },
 ];
 
