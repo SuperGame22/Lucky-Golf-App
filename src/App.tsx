@@ -57,6 +57,7 @@ import NotFound from "./pages/NotFound";
 import CoachAce from "./pages/CoachAce";
 import LuckyCoach from "./pages/LuckyCoach";
 import ProfileEditor from "./pages/ProfileEditor";
+import Profile from "./pages/Profile";
 
 // ── Admin ──
 import AdminLogin from "./pages/admin/Login";
@@ -132,7 +133,7 @@ const App = () => (
               <Route path="/wallet/add-cash" element={<ProtectedRoute><AddCash /></ProtectedRoute>} />
               <Route path="/wagers/verify" element={<ProtectedRoute><VerifyTerms /></ProtectedRoute>} />
               <Route path="/wallet" element={<Navigate to="/earn" replace />} />
-              <Route path="/profile" element={<Navigate to="/career" replace />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* ── Cross-Domain ── */}
               <Route path="/membership" element={<ProtectedRoute><Membership /></ProtectedRoute>} />

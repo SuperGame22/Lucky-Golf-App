@@ -45,19 +45,44 @@ const HIT_SOUND = new Audio('/sounds/putter-hit.mp3');
 HIT_SOUND.volume = 0.8;
 const SINK_SOUNDS=['/sounds/hole-sink-1.m4a','/sounds/hole-sink-2.m4a','/sounds/hole-sink-3.m4a'];
 const SINK_AUDIO = SINK_SOUNDS.map(src => { const a = new Audio(src); a.volume = 0.85; return a; });
+
+// Web Audio API is the primary playback path — it's what actually fixes the
+// "plays sometimes" flakiness. The old approach (play()-then-pause() on the
+// real <audio> elements to "bless" them for later gesture-less playback) is
+// a per-element hack that WebKit/Safari can leave in an inconsistent state:
+// rapid play()+pause() sometimes leaves an element "confused" so the NEXT
+// real play() call silently no-ops. Web Audio sidesteps this entirely: one
+// AudioContext is resumed synchronously inside the user gesture (down()) —
+// after that the context itself stays 'running' for the rest of the page's
+// life, and playing a buffer through it later (from a rAF loop, a setTimeout,
+// however long after the tap) is completely reliable because there's no
+// per-element state to get into a bad state. The original <audio> elements
+// are kept as a silent fallback for the rare case a buffer hasn't finished
+// decoding yet.
+let audioCtx: AudioContext | null = null;
+const audioBuffers: Record<string, AudioBuffer> = {};
+let buffersLoading = false;
+function loadBuffers(){
+  if (buffersLoading || !audioCtx) return;
+  buffersLoading = true;
+  const ctx = audioCtx;
+  const entries: [string,string][] = [['hit','/sounds/putter-hit.mp3'],['sink0',SINK_SOUNDS[0]],['sink1',SINK_SOUNDS[1]],['sink2',SINK_SOUNDS[2]]];
+  entries.forEach(([key,url]) => {
+    fetch(url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => { audioBuffers[key] = buf; }).catch(() => {});
+  });
+}
 let audioUnlocked = false;
 function unlockAudio(){
   if (audioUnlocked) return;
   audioUnlocked = true;
-  // Play-then-immediately-pause, SYNCHRONOUSLY, at normal (non-zero) volume —
-  // not muted, and not waiting for the play() promise to resolve before
-  // pausing. Safari specifically does NOT grant an element "user activated"
-  // status from a muted play (muted autoplay is separately exempt from the
-  // gesture requirement, but doesn't unlock later unmuted playback), and
-  // pausing only after the promise resolves (in a .then()) can land outside
-  // the gesture's call stack on some versions. Pausing in the same tick
-  // means no sound is actually audible, but the browser still credits the
-  // gesture, so a later play() from deep in a rAF/setTimeout chain works.
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    audioCtx = new Ctx();
+    audioCtx.resume().catch(() => {});
+    loadBuffers();
+  } catch {}
+  // Cheap fallback insurance for the (very rare) case Web Audio itself is
+  // unavailable: same play-then-pause trick as before, kept as a backstop.
   [HIT_SOUND, ...SINK_AUDIO].forEach(a => {
     try {
       const p = a.play();
@@ -67,12 +92,25 @@ function unlockAudio(){
     } catch {}
   });
 }
+function playBuffer(key: string, volume: number){
+  if (!audioCtx || !audioBuffers[key]) return false;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    const src = audioCtx.createBufferSource();
+    src.buffer = audioBuffers[key];
+    const gain = audioCtx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain); gain.connect(audioCtx.destination);
+    src.start(0);
+    return true;
+  } catch { return false; }
+}
 function playSound(a: HTMLAudioElement){
   unlockAudio(); // no-op if already unlocked; a safety net for any trigger path that isn't a direct green touch
   try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
 }
-// Putter hit — real recording
-function sndHit(){ playSound(HIT_SOUND); }
+// Putter hit — real recording (Web Audio first, HTMLAudioElement fallback)
+function sndHit(){ if(!playBuffer('hit',0.8)) playSound(HIT_SOUND); }
 function sndHitSynth(){
   try {
     const ctx=new AudioContext();const now=ctx.currentTime;
@@ -98,7 +136,7 @@ function sndSink(){
   let i=Math.floor(Math.random()*SINK_AUDIO.length);
   if(SINK_AUDIO.length>1&&i===lastSink) i=(i+1)%SINK_AUDIO.length;
   lastSink=i;
-  playSound(SINK_AUDIO[i]);
+  if(!playBuffer('sink'+i,0.85)) playSound(SINK_AUDIO[i]);
 }
 
 // ---- Putter (visual only) — sits behind the ball, pulls back on aim, ----
@@ -119,7 +157,7 @@ const MALLET_ANCHOR_X_PCT = 68.4, MALLET_ANCHOR_Y_PCT = 24.13; // sight-bead, pr
 // ball's own size via framer's x/y, so they scale correctly at any zoom level.
 const SUNK_JIGGLE = { x: ["0%","6%","-5%","4%","-3%","2%","-1%","0%"], y: ["0%","-5%","6%","-4%","3%","-2%","1%","0%"] };
 const SUNK_JIGGLE_TRANSITION = { duration: 1, times: [0,0.1,0.24,0.38,0.52,0.66,0.82,1], ease: 'easeOut' as const };
-const ZERO_JIGGLE = { x: 0, y: 0 };
+const ZERO_JIGGLE = { x: "0%", y: "0%" };
 // In the source photo (rotate: 0) the face's outward normal — the direction
 // a struck ball leaves the face — points straight up (-90deg): the flat
 // top edge runs left-right with the solid head body below it. So facing

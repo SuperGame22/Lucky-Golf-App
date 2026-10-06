@@ -138,6 +138,25 @@ const SLICE_ANGLES = (() => {
   });
 })();
 
+// Selection weight is intentionally decoupled from `width` (which only
+// controls each slice's visual size on the wheel). Every slice gets equal
+// selection weight EXCEPT the three club prizes (driver/putter/wedge, the
+// `rare` gold slices), which are deliberately under-weighted so they're won
+// 1/3 as often as before while everything else keeps the same relative odds
+// among itself. The wheel animation itself is unaffected — still a normal
+// random spin, just with the "which prize" step weighted.
+const CLUB_SELECTION_WEIGHT = 11 / 35; // solved so 3 clubs vs 33 others => combined club odds = (previous 3/36) / 3 = 1/36
+const SELECTION_WEIGHTS = prizes.map((p) => (p.rare ? CLUB_SELECTION_WEIGHT : 1));
+function pickWeightedPrizeIndex(): number {
+  const total = SELECTION_WEIGHTS.reduce((sum, w) => sum + w, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < SELECTION_WEIGHTS.length; i++) {
+    r -= SELECTION_WEIGHTS[i];
+    if (r <= 0) return i;
+  }
+  return SELECTION_WEIGHTS.length - 1;
+}
+
 const LuckySpin = () => {
   const { refreshProfile } = useAuth();
   const { addClovers } = useClovers();
@@ -164,7 +183,7 @@ const LuckySpin = () => {
     setResult(null);
     setCanRespin(false);
 
-    const prizeIndex = Math.floor(Math.random() * prizes.length);
+    const prizeIndex = pickWeightedPrizeIndex();
     const { midDeg } = SLICE_ANGLES[prizeIndex];
     // Land the chosen slice's midpoint under the pointer (top, 0°). Rotation
     // is cumulative across spins, so we have to correct for wherever the

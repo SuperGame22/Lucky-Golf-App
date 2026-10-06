@@ -35,7 +35,7 @@ export function Header() {
           <button className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors relative shrink-0" onClick={() => navigate('/chat')}>
             <Bell className="w-4 h-4 min-[400px]:w-5 min-[400px]:h-5 text-muted-foreground" />
           </button>
-          <Link to="/career" className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors shrink-0">
+          <Link to="/profile" className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors shrink-0">
             <User className="w-4 h-4 min-[400px]:w-5 min-[400px]:h-5 text-muted-foreground" />
           </Link>
         </div>
