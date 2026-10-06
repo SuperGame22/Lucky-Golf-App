@@ -15,11 +15,17 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
 
-const holes = Array.from({ length: 9 }, (_, i) => ({
+// Holes 10-18 use placeholder par/yardage (par 72 total).
+const allHoles = Array.from({ length: 18 }, (_, i) => ({
   number: i + 1,
-  par: [4, 3, 5, 4, 4, 3, 5, 4, 4][i],
-  distance: [380, 165, 520, 410, 395, 185, 545, 425, 405][i],
+  par: [4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 4, 3, 5, 4, 3, 5, 4, 4][i],
+  distance: [
+    380, 165, 520, 410, 395, 185, 545, 425, 405, 400, 390, 175, 535, 415, 170,
+    530, 405, 550,
+  ][i],
 }));
+
+export type RoundLength = 9 | 18;
 
 const CLOVERS_PER_ROUND = 5;
 
@@ -32,6 +38,21 @@ const Scorecard = () => {
   const [activeHole, setActiveHole] = useState(1);
   const [saving, setSaving] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [roundLength, setRoundLength] = useState<RoundLength>(9);
+  const holes = allHoles.slice(0, roundLength);
+
+  const handleRoundLengthChange = (length: RoundLength) => {
+    if (length === roundLength) return;
+    const hasScores = Object.keys(scores).length > 0 || Object.keys(putts).length > 0;
+    if (hasScores && !window.confirm("Switching round length will clear your current scores. Continue?")) {
+      return;
+    }
+    setRoundLength(length);
+    setScores({});
+    setPutts({});
+    setActiveHole(1);
+    setFinished(false);
+  };
 
   const updateScore = (hole: number, delta: number) => {
     setScores((prev) => ({
@@ -87,14 +108,14 @@ const Scorecard = () => {
       const { error } = await supabase.from('rounds').insert({
         user_id: user.id,
         course_name: 'Practice Round',
-        holes: 9,
+        holes: roundLength,
         scores: Object.values(finalScores),
         putts: Object.values(finalPutts),
         total_score: finalTotal,
         total_par: totalPar,
         score_diff: finalTotal - totalPar,
         total_putts: finalPuttsTotal,
-        holes_played: 9,
+        holes_played: roundLength,
         completed: true,
         clovers_earned: CLOVERS_PER_ROUND,
       });
@@ -126,7 +147,7 @@ const Scorecard = () => {
         [activeHole]: 2,
       }));
     }
-    if (activeHole < 9) {
+    if (activeHole < roundLength) {
       setActiveHole(activeHole + 1);
     }
   };
@@ -139,6 +160,9 @@ const Scorecard = () => {
           totalPar={totalPar}
           totalPutts={totalPutts}
           scoreDiff={scoreDiff}
+          roundLength={roundLength}
+          activeHole={activeHole}
+          onRoundLengthChange={handleRoundLengthChange}
         />
 
         <HoleScoreEntry
@@ -151,7 +175,7 @@ const Scorecard = () => {
           onPrevious={() => setActiveHole(Math.max(1, activeHole - 1))}
           onNext={handleNext}
           isFirst={activeHole === 1}
-          isLast={activeHole === 9}
+          isLast={activeHole === roundLength}
         />
 
         <HoleGrid

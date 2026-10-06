@@ -2,11 +2,11 @@ import { motion } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { CloverIcon } from "@/components/icons/CloverIcon";
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Sparkles } from "lucide-react";
 
 const tiers = [
   {
-    name: "Free",
+    name: "Lucky Member",
     price: 0,
     period: "",
     description: "Get started with core features",
@@ -18,7 +18,7 @@ const tiers = [
     ],
     cta: "Current Plan",
     popular: false,
-    icon: CloverIcon,
+    icon: Sparkles,
     gradient: "from-muted to-muted/50",
   },
   {
@@ -27,15 +27,15 @@ const tiers = [
     period: "/mo",
     description: "For the dedicated golfer",
     features: [
-      "Everything in Free",
-      "2x Clover Multiplier",
+      "Everything in Lucky Member",
+      "3 free putts a month",
       "Priority Lucky Tees access",
       "Exclusive member discounts",
       "Priority support",
     ],
     cta: "Start Free Trial",
     popular: true,
-    icon: Sparkles,
+    icon: CloverIcon,
     gradient: "from-primary to-lucky-emerald",
   },
   {
@@ -45,7 +45,8 @@ const tiers = [
     description: "Maximum rewards & perks",
     features: [
       "Everything in Clover Club",
-      "3x Clover Multiplier",
+      "2x Clover Multiplier",
+      "7 free putts a month",
       "Premium AR features",
       "Gold Machine upgrades",
       "VIP event access",
@@ -125,7 +126,7 @@ const Membership = () => {
                   </ul>
 
                   <Button
-                    variant={tier.popular ? "gold" : tier.price === 0 ? "outline" : "lucky"}
+                    variant={tier.popular ? "lucky" : tier.price === 0 ? "outline" : "gold"}
                     className="w-full"
                     disabled={tier.price === 0}
                   >
@@ -137,32 +138,6 @@ const Membership = () => {
             );
           })}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-muted/50 rounded-2xl p-5"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-5 h-5 text-accent" />
-            <h3 className="font-display font-semibold">Multiplier Comparison</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-3 bg-card rounded-xl">
-              <p className="text-2xl font-bold">1x</p>
-              <p className="text-xs text-muted-foreground">Free</p>
-            </div>
-            <div className="p-3 bg-primary/10 rounded-xl border border-primary/30">
-              <p className="text-2xl font-bold text-primary">2x</p>
-              <p className="text-xs text-primary">Clover</p>
-            </div>
-            <div className="p-3 bg-accent/10 rounded-xl border border-accent/30">
-              <p className="text-2xl font-bold text-accent">3x</p>
-              <p className="text-xs text-accent">Gold</p>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </AppLayout>
   );

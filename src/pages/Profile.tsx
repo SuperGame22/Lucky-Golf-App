@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const TIER_LABEL: Record<string, string> = { free: "Free Member", clover: "Clover Member", gold: "Gold Member" };
+const TIER_LABEL: Record<string, string> = { free: "Lucky Member", clover: "Clover Member", gold: "Gold Member" };
 
 const menu = [
   { icon: Crown, label: "Membership", to: "/membership" },
@@ -53,7 +53,7 @@ const Profile = () => {
             <h1 className="text-xl font-display font-bold truncate">{profile?.display_name || "Lucky Player"}</h1>
             {profile?.username && <p className="text-sm text-muted-foreground truncate">@{profile.username}</p>}
             <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-medium">
-              <CloverIcon className="w-3.5 h-3.5" />{TIER_LABEL[tier] ?? "Free Member"}
+              <CloverIcon className="w-3.5 h-3.5" />{TIER_LABEL[tier] ?? "Lucky Member"}
             </div>
           </div>
         </motion.div>
