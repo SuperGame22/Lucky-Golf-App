@@ -81,7 +81,7 @@ const Profile = () => {
         </div>
 
         {tier !== "gold" && (
-          <Link to="/membership"><Button variant="gold" className="w-full">Upgrade to Gold</Button></Link>
+          <Link to="/membership"><Button variant="gold" className="w-full">Upgrade</Button></Link>
         )}
         <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleSignOut}>
           <LogOut className="w-4 h-4 mr-2" />Sign Out

@@ -32,6 +32,8 @@ export default function HomeScreen() {
   const totalClovers = profile?.total_clovers ?? 0;
   const handicap = profile?.handicap_index ?? 0;
   const luckyLevel = profile?.lucky_level ?? 1;
+  // Placeholder (matches local build) until a weekly clover ledger exists.
+  const cloversThisWeek = 3;
   const goldBalance = (profile as any)?.gold_balance ?? 0;
 
   const [activity, setActivity] = useState<any[]>([]);
@@ -62,10 +64,11 @@ export default function HomeScreen() {
               <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
               <div className="flex items-center gap-4">
                 <CloverIcon className="w-12 h-14 text-primary animate-float" />
-                <span className="text-7xl font-display font-black text-gradient-green">{clovers}</span>
+                <span className="text-5xl font-display font-black text-gradient-green">{clovers}</span>
               </div>
+              <p className="mt-3 text-lg font-medium text-primary">+{cloversThisWeek} clovers this week</p>
               {totalClovers > clovers && (
-                <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
                   <span>{totalClovers} lifetime earned</span>
                 </div>

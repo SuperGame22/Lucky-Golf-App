@@ -1,14 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Target, Play, Trophy, Sparkles } from "lucide-react";
+import { Home, Crosshair, Play, Trophy, Coins } from "lucide-react";
 
 export const BottomNavigation = () => {
   const location = useLocation();
   const navItems = [
     { icon: Home,     label: "Home",     path: "/" },
-    { icon: Target,   label: "Practice", path: "/practice" },
+    { icon: Crosshair, label: "Practice", path: "/practice" },
     { icon: Play,     label: "Play",     path: "/play" },
     { icon: Trophy,   label: "Career",   path: "/career" },
-    { icon: Sparkles, label: "Earn",     path: "/earn" },
+    { icon: Coins,     label: "Earn",     path: "/earn" },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-green-900/30 px-6 py-3 flex items-center justify-between z-50">
