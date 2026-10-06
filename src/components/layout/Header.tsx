@@ -3,13 +3,12 @@ import { CloverLogo } from '@/components/icons/CloverLogo';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { useWallet } from '@/contexts/WalletContext';
 import { useClovers } from '@/contexts/CloverContext';
-import { Bell, User, Wallet } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { User, Wallet } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Header() {
   const { balance, gold } = useWallet();
   const { cloverBalance } = useClovers();
-  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
@@ -32,9 +31,6 @@ export function Header() {
             <GoldCoinIcon className="w-3 h-3 min-[400px]:w-3.5 min-[400px]:h-3.5 text-amber-400 shrink-0" />
             <span className="text-[10px] min-[400px]:text-xs font-semibold text-amber-300 whitespace-nowrap leading-none tabular-nums">${gold.toFixed(2)}</span>
           </div>
-          <button className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors relative shrink-0" onClick={() => navigate('/chat')}>
-            <Bell className="w-4 h-4 min-[400px]:w-5 min-[400px]:h-5 text-muted-foreground" />
-          </button>
           <Link to="/profile" className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors shrink-0">
             <User className="w-4 h-4 min-[400px]:w-5 min-[400px]:h-5 text-muted-foreground" />
           </Link>

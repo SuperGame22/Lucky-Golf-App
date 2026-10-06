@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 const quickActions = [
   { icon: Trophy, label: 'Scorecard', path: '/play/scorecard', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
   { icon: Target, label: 'Rangefinder', path: '/play/rangefinder', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
-  { icon: Gift, label: 'Spin', path: '/earn/spin', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
+  { icon: Gift, label: 'Lucky Spinz', path: '/earn/spin', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
   { icon: ShoppingBag, label: 'Shop', path: '/earn/shop', color: 'bg-primary/80 text-primary-foreground hover:bg-primary/90' },
 ];
 

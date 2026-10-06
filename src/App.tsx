@@ -51,7 +51,6 @@ import AddCash from "./pages/wallet/AddCash";
 import VerifyTerms from "./pages/wagers/VerifyTerms";
 
 // ── Cross-Domain ──
-import Chat from "./pages/Chat";
 import Membership from "./pages/Membership";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -139,7 +138,7 @@ const App = () => (
 
               {/* ── Cross-Domain ── */}
               <Route path="/membership" element={<ProtectedRoute><Membership /></ProtectedRoute>} />
-              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/chat" element={<Navigate to="/" replace />} />
 
               {/* ── Admin ── */}
               <Route path="/admin/login" element={<AdminLogin />} />
