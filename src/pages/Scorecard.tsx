@@ -10,13 +10,13 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClovers } from "@/contexts/CloverContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
 
-// Holes 10-18 use placeholder par/yardage (par 72 total).
-const allHoles = Array.from({ length: 18 }, (_, i) => ({
+// Placeholder par/yardage (par 72 total), used when no course is selected or a hole has no data.
+const PLACEHOLDER_HOLES = Array.from({ length: 18 }, (_, i) => ({
   number: i + 1,
   par: [4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 4, 3, 5, 4, 3, 5, 4, 4][i],
   distance: [
@@ -27,18 +27,42 @@ const allHoles = Array.from({ length: 18 }, (_, i) => ({
 
 export type RoundLength = 9 | 18;
 
+type CourseHole = { hole: number; par: number | null; yards_est: number | null };
+export type SelectedCourse = {
+  id: number;
+  name: string;
+  city: string | null;
+  state: string;
+  holes: number | null;
+  hole_data: CourseHole[] | null;
+};
+
+// Merge real course data (approximate yards) over the placeholders, hole by hole.
+const buildHoles = (course?: SelectedCourse) =>
+  PLACEHOLDER_HOLES.map((ph) => {
+    const real = course?.hole_data?.find((h) => h.hole === ph.number);
+    return {
+      number: ph.number,
+      par: real?.par ?? ph.par,
+      distance: real?.yards_est ?? ph.distance,
+    };
+  });
+
 const CLOVERS_PER_ROUND = 5;
 
 const Scorecard = () => {
   const { user, refreshProfile } = useAuth();
   const { addClovers } = useClovers();
   const navigate = useNavigate();
+  const location = useLocation();
+  const course = (location.state as { course?: SelectedCourse } | null)?.course;
+  const allHoles = buildHoles(course);
   const [scores, setScores] = useState<Record<number, number>>({});
   const [putts, setPutts] = useState<Record<number, number>>({});
   const [activeHole, setActiveHole] = useState(1);
   const [saving, setSaving] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [roundLength, setRoundLength] = useState<RoundLength>(9);
+  const [roundLength, setRoundLength] = useState<RoundLength>(course?.holes && course.holes >= 18 ? 18 : 9);
   const holes = allHoles.slice(0, roundLength);
 
   const handleRoundLengthChange = (length: RoundLength) => {
@@ -107,7 +131,7 @@ const Scorecard = () => {
       // Save round
       const { error } = await supabase.from('rounds').insert({
         user_id: user.id,
-        course_name: 'Practice Round',
+        course_name: course?.name ?? 'Practice Round',
         holes: roundLength,
         scores: Object.values(finalScores),
         putts: Object.values(finalPutts),

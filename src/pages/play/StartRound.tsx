@@ -1,33 +1,103 @@
 /**
- * Start New Round - Course & Tee Selection
+ * Start New Round - Course search & selection
+ * Courses come from the `courses` table (OpenStreetMap; yardages are estimates).
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { MapPin, Play, Users, Clock, ArrowLeft, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { MapPin, Play, ArrowLeft, Check, Search, LocateFixed, Loader2 } from 'lucide-react';
+import type { SelectedCourse } from '@/pages/Scorecard';
 
-const COURSES = [
-  { id: '1', name: 'Pebble Beach Golf Links', city: 'Pebble Beach, CA', holes: 18, rating: 4.9 },
-  { id: '2', name: 'Augusta National Golf Club', city: 'Augusta, GA', holes: 18, rating: 5.0 },
-  { id: '3', name: 'TPC Sawgrass', city: 'Ponte Vedra Beach, FL', holes: 18, rating: 4.7 },
-  { id: '4', name: 'Torrey Pines Golf Course', city: 'San Diego, CA', holes: 18, rating: 4.6 },
-];
+type CourseRow = SelectedCourse & { par: number | null };
 
-const TEE_OPTIONS = [
-  { name: 'Championship', color: 'bg-black', distance: '7,200 yds' },
-  { name: 'Blue', color: 'bg-blue-500', distance: '6,700 yds' },
-  { name: 'White', color: 'bg-white border border-border', distance: '6,200 yds' },
-  { name: 'Forward', color: 'bg-red-500', distance: '5,400 yds' },
-];
+const COLUMNS = 'id, name, city, state, holes, par, hole_data';
+
+// Strip characters that would break the PostgREST or() filter.
+const clean = (q: string) => q.replace(/[,()%*\\]/g, ' ').trim();
 
 export default function StartRound() {
   const navigate = useNavigate();
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  const [selectedTee, setSelectedTee] = useState(2);
-  const [holes, setHoles] = useState<9 | 18>(18);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<CourseRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [nearMe, setNearMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<CourseRow | null>(null);
+
+  useEffect(() => {
+    if (nearMe) return;
+    const q = clean(query);
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase
+        .from('courses')
+        .select(COLUMNS)
+        .or(`name.ilike.%${q}%,city.ilike.%${q}%`)
+        .order('name')
+        .limit(25);
+      setLoading(false);
+      if (error) setError('Could not load courses. Try again.');
+      else {
+        setError(null);
+        setResults((data ?? []) as unknown as CourseRow[]);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query, nearMe]);
+
+  const findNearMe = () => {
+    if (!navigator.geolocation) {
+      setError('Location is not available on this device.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const { latitude: lat, longitude: lon } = coords;
+        const d = 0.25; // ~17 miles
+        const { data, error } = await supabase
+          .from('courses')
+          .select(`${COLUMNS}, lat, lon`)
+          .gte('lat', lat - d).lte('lat', lat + d)
+          .gte('lon', lon - d).lte('lon', lon + d)
+          .limit(200);
+        setLoading(false);
+        if (error) {
+          setError('Could not load courses. Try again.');
+          return;
+        }
+        const rows = ((data ?? []) as unknown as (CourseRow & { lat: number; lon: number })[])
+          .map((c) => ({ c, dist: Math.hypot(c.lat - lat, (c.lon - lon) * Math.cos((lat * Math.PI) / 180)) }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 15)
+          .map((x) => x.c);
+        setNearMe(true);
+        setQuery('');
+        setResults(rows);
+        if (rows.length === 0) setError('No courses found within about 17 miles.');
+      },
+      () => {
+        setLoading(false);
+        setError('Location permission denied. Search by name or city instead.');
+      },
+      { timeout: 10000 },
+    );
+  };
+
+  const teeOff = () =>
+    navigate('/play/scorecard', {
+      state: selected ? { course: selected } : undefined,
+    });
 
   return (
     <AppLayout>
@@ -38,87 +108,85 @@ export default function StartRound() {
           </Button>
           <div>
             <h1 className="text-2xl font-black uppercase tracking-wider">New Round</h1>
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">Select course & tees</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">Select course</p>
           </div>
         </div>
 
-        {/* Course Selection */}
-        <div>
-          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Select Course</p>
-          <div className="space-y-2">
-            {COURSES.map(c => (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => {
+                setNearMe(false);
+                setQuery(e.target.value);
+              }}
+              placeholder="Search by course name or city"
+              className="pl-9"
+              data-testid="course-search"
+            />
+          </div>
+          <Button variant="outline" className="w-full" onClick={findNearMe} disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LocateFixed className="w-4 h-4 mr-2" />}
+            Courses near me
+          </Button>
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <div className="space-y-2">
+          {results.map((c) => {
+            const isSel = selected?.id === c.id;
+            return (
               <motion.div
                 key={c.id}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedCourse(c.id)}
+                onClick={() => setSelected(c)}
                 className={`glass-card p-4 cursor-pointer transition-all ${
-                  selectedCourse === c.id ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'
+                  isSel ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MapPin className={`w-5 h-5 ${selectedCourse === c.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <MapPin className={`w-5 h-5 ${isSel ? 'text-primary' : 'text-muted-foreground'}`} />
                     <div>
                       <p className="font-bold text-sm">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.city}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[c.city, c.state].filter(Boolean).join(', ')}
+                        {c.holes ? ` · ${c.holes} holes` : ''}
+                        {c.par ? ` · Par ${c.par}` : ''}
+                      </p>
                     </div>
                   </div>
-                  {selectedCourse === c.id && <Check className="w-5 h-5 text-primary" />}
+                  {isSel && <Check className="w-5 h-5 text-primary" />}
                 </div>
               </motion.div>
-            ))}
-          </div>
+            );
+          })}
+          {!loading && !error && results.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Search by name or city, or tap Courses near me.
+            </p>
+          )}
         </div>
 
-        {/* Tee Selection */}
-        <div>
-          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Tees</p>
-          <div className="grid grid-cols-2 gap-2">
-            {TEE_OPTIONS.map((tee, i) => (
-              <button
-                key={tee.name}
-                onClick={() => setSelectedTee(i)}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  selectedTee === i ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`w-4 h-4 rounded-full ${tee.color}`} />
-                  <span className="font-bold text-sm">{tee.name}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{tee.distance}</p>
-              </button>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <Button
+            className="w-full h-14 text-lg font-black uppercase tracking-wider"
+            size="lg"
+            disabled={!selected}
+            onClick={teeOff}
+            data-testid="start-round-btn"
+          >
+            <Play className="w-5 h-5 mr-2" /> Tee Off
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => navigate('/play/scorecard')}>
+            Skip, play a practice round
+          </Button>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Yardages are approximate. Course data © OpenStreetMap contributors.
+          </p>
         </div>
-
-        {/* Holes */}
-        <div>
-          <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Holes</p>
-          <div className="flex gap-3">
-            {([9, 18] as const).map(h => (
-              <button
-                key={h}
-                onClick={() => setHoles(h)}
-                className={`flex-1 p-4 rounded-xl border text-center font-black text-lg transition-all ${
-                  holes === h ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground'
-                }`}
-              >
-                {h} Holes
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          className="w-full h-14 text-lg font-black uppercase tracking-wider"
-          size="lg"
-          disabled={!selectedCourse}
-          onClick={() => navigate('/play/scorecard')}
-          data-testid="start-round-btn"
-        >
-          <Play className="w-5 h-5 mr-2" /> Tee Off
-        </Button>
       </div>
     </AppLayout>
   );

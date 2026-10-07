@@ -45,7 +45,7 @@ export const HoleScoreEntry = ({
           <span className="text-lg font-medium">Hole {activeHole}</span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Par {hole.par} • {hole.distance} yds
+          Par {hole.par} • ~{hole.distance} yds
         </p>
       </div>
 
