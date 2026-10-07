@@ -1,25 +1,24 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { CloverIcon } from "@/components/icons/CloverIcon";
 import { Eye, MapPin, Target, Crosshair, Flag, AlertTriangle } from "lucide-react";
 
 const Rangefinder = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [arMode, setArMode] = useState(searchParams.get("ar") === "true");
-  const [showClover, setShowClover] = useState(true);
+
+  // Old links to the AR view (?ar=true) go straight to the camera rangefinder.
+  useEffect(() => {
+    if (searchParams.get("ar") === "true") navigate("/monocle", { replace: true });
+  }, [searchParams, navigate]);
 
   const distances = {
     front: 142,
     middle: 156,
     back: 168,
     hazard: 89,
-  };
-
-  const collectClover = () => {
-    setShowClover(false);
   };
 
   return (
@@ -43,29 +42,16 @@ const Rangefinder = () => {
               </div>
             </div>
             <Button
-              variant={arMode ? "gold" : "glass"}
+              variant="gold"
               size="sm"
-              onClick={() => setArMode(!arMode)}
+              onClick={() => navigate("/monocle")}
               className="gap-2"
+              data-testid="open-monocle"
             >
               <Eye className="w-4 h-4" />
-              {arMode ? "AR ON" : "AR Mode"}
+              AR Monocle
             </Button>
           </motion.div>
-
-          {/* Wedge Monocle: the real camera rangefinder */}
-          <Link to="/monocle" className="block mb-6" data-testid="open-monocle">
-            <div className="glass-card p-4 flex items-center gap-4 border-accent/40 hover:bg-primary/5 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center">
-                <Eye className="w-6 h-6 text-accent" />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold">Wedge Monocle</p>
-                <p className="text-sm text-muted-foreground">Point your camera at the flag. 0 to 120 yards, with the wedge to hit.</p>
-              </div>
-              <Button variant="gold" size="sm">Open</Button>
-            </div>
-          </Link>
 
           {/* Main Distance Display */}
           <motion.div
@@ -126,94 +112,6 @@ const Rangefinder = () => {
               <p className="text-xs text-muted-foreground">{distances.hazard} yards to carry</p>
             </div>
           </motion.div>
-
-          {/* AR Mode Content */}
-          <AnimatePresence>
-            {arMode && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="space-y-4"
-              >
-                <div className="glass-card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Eye className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">AR Monocle Active</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Scanning for clovers and leprechauns...
-                  </p>
-
-                  {/* AR Discovery Area */}
-                  <div className="relative aspect-video bg-muted/50 rounded-xl overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                    
-                    {/* Simulated AR clover */}
-                    <AnimatePresence>
-                      {showClover && (
-                        <motion.button
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          exit={{ scale: 0, rotate: 180 }}
-                          whileHover={{ scale: 1.2 }}
-                          onClick={collectClover}
-                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-                        >
-                          <motion.div
-                            animate={{ 
-                              y: [0, -5, 0],
-                              filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
-                            }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          >
-                            <CloverIcon className="w-16 h-16 text-primary drop-shadow-[0_0_15px_hsl(152,76%,40%)]" />
-                          </motion.div>
-                          <p className="text-xs text-primary font-medium mt-2 text-center">Tap to collect!</p>
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-
-                    {!showClover && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        <div className="text-center">
-                          <motion.div
-                            initial={{ scale: 1.5, opacity: 1 }}
-                            animate={{ scale: 2, opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className="absolute inset-0 flex items-center justify-center"
-                          >
-                            <CloverIcon className="w-20 h-20 text-primary" />
-                          </motion.div>
-                          <p className="text-lg font-display font-bold text-primary">+1 Clover!</p>
-                          <p className="text-sm text-muted-foreground">Keep searching for more</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Rainbow indicator */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="glass-card p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 animate-rainbow" />
-                    <div>
-                      <p className="font-semibold">Rainbow Spotted!</p>
-                      <p className="text-sm text-muted-foreground">Leprechaun near Hole 9 green</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Club Recommendation */}
           <motion.div

@@ -2,7 +2,7 @@
 
 A camera-only rangefinder for wedge shots (0 to 120 yards). Point the phone at the flagstick, get a steady yardage and the wedge and swing to hit. Everything is computed on the device. No video or images are recorded or uploaded, and no course database or LiDAR is used.
 
-Route: `/monocle` (full screen, lazy-loaded). Entry points: the Rangefinder page and the Practice page.
+Route: `/monocle` (full screen, lazy-loaded). Entry point: the **AR Monocle** button on the Rangefinder page (it replaces the old mock AR window; old `?ar=true` links go straight to Monocle).
 
 ## How the distance is estimated
 
