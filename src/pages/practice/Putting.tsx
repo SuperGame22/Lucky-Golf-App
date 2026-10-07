@@ -423,18 +423,18 @@ export default function PuttingGame(){
           </div>
         </div>
 
-        {/* One line: Spinz won · putts left · buy a putt · Putt Packs. The two side zones share the
-            leftover width equally so the buy button sits centred and the bar looks balanced. */}
-        <div className="flex items-center gap-2 glass-card p-2" data-testid="putt-bar">
+        {/* One line: putts left · Spinz won · buy a putt · Putt Packs. The two side zones share the
+            leftover width equally so the buy button sits centred, with the Spinz count right beside it. */}
+        <div className="flex items-center gap-2 glass-card p-1.5" data-testid="putt-bar">
           <div className="flex flex-1 min-w-[60px] items-center justify-around">
-            <div className="text-center"><p className="text-[8px] text-muted-foreground uppercase tracking-widest">Spinz</p><p className="text-lg font-black leading-tight text-primary" data-testid="spins-won">+{sp}</p></div>
             <div className="text-center"><p className="text-[8px] text-muted-foreground uppercase tracking-widest">Left</p><p className="text-lg font-black leading-tight" data-testid="putt-credits">{credits}</p></div>
+            <div className="text-center"><p className="text-[8px] text-muted-foreground uppercase tracking-widest">Spinz</p><p className="text-lg font-black leading-tight text-primary" data-testid="spins-won">+{sp}</p></div>
           </div>
-          <Button className="w-[7.75rem] shrink-0 px-1 font-black uppercase tracking-wide text-[11px] whitespace-nowrap" onClick={buyPutt} disabled={buying} data-testid="buy-putt-btn">
+          <Button className="h-10 w-[8.75rem] max-[340px]:w-[7.75rem] shrink-0 px-1 font-black uppercase tracking-wide text-[11px] whitespace-nowrap" onClick={buyPutt} disabled={buying} data-testid="buy-putt-btn">
             {buying?<Loader2 className="w-4 h-4 mr-1 animate-spin"/>:null}Buy a Putt · $1
           </Button>
           <div className="flex flex-1 min-w-[44px] justify-center">
-            <button className="flex flex-col items-center justify-center w-full max-w-[6rem] h-11 rounded-lg border border-primary/40 text-primary" onClick={()=>nav('/earn/putting-packs')} aria-label="Putt Packs" data-testid="putt-packs-btn">
+            <button className="flex flex-col items-center justify-center w-full max-w-[6rem] h-10 rounded-lg border border-primary/40 text-primary" onClick={()=>nav('/earn/putting-packs')} aria-label="Putt Packs" data-testid="putt-packs-btn">
               <Package className="w-5 h-5"/><span className="text-[7px] font-bold uppercase tracking-widest leading-none mt-0.5">Packs</span>
             </button>
           </div>
