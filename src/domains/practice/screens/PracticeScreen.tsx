@@ -4,9 +4,10 @@
 
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Target, TrendingUp, Brain, Crosshair, Clock, BarChart3 } from 'lucide-react';
+import { Target, TrendingUp, Brain, Crosshair, Clock, BarChart3, Eye } from 'lucide-react';
 
 const DRILLS = [
+  { title: 'Wedge Monocle', desc: 'Point at the flag. Get yards + the wedge', icon: Eye, path: '/monocle' },
   { title: 'Lucky Putts', desc: '5-hole putting with physics', icon: Target, path: '/practice/putting' },
   { title: 'Distance Control', desc: 'Hit target yardages', icon: Crosshair, path: '/practice/distance' },
 ];
