@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { CloverProvider } from "@/contexts/CloverContext";
@@ -65,6 +66,9 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminJackpots from "./pages/admin/Jackpots";
 import { AdminRoute } from "./components/AdminRoute";
 
+// Camera, detector and bracket editor load only when Monocle is opened.
+const Monocle = lazy(() => import("./pages/Monocle"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -105,6 +109,16 @@ const App = () => (
 
               {/* ── Practice Sub-Routes ── */}
               <Route path="/practice/rangefinder" element={<ProtectedRoute><Rangefinder /></ProtectedRoute>} />
+              <Route
+                path="/monocle"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="fixed inset-0 bg-black" />}>
+                      <Monocle />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/practice/putting" element={<ProtectedRoute><PuttingGrid /></ProtectedRoute>} />
               <Route path="/practice/distance" element={<ProtectedRoute><DistanceControl /></ProtectedRoute>} />
               <Route path="/practice/sessions" element={<ProtectedRoute><PracticeSessions /></ProtectedRoute>} />

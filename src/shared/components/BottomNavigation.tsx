@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, Crosshair, Play, Trophy, Coins } from "lucide-react";
+import { FULL_SCREEN_ROUTES } from "@/shared/fullScreenRoutes";
 
 export const BottomNavigation = () => {
   const location = useLocation();
+  if (FULL_SCREEN_ROUTES.includes(location.pathname)) return null;
   const navItems = [
     { icon: Home,     label: "Home",     path: "/" },
     { icon: Crosshair, label: "Practice", path: "/practice" },
