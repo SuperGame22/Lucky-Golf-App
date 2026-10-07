@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClovers } from '@/contexts/CloverContext';
-import { ArrowLeft, RotateCcw, Trophy, Loader2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, Loader2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Physics
@@ -204,14 +203,14 @@ function inBunker(px:number,py:number):boolean{
 type GS='aim'|'roll'|'sunk'|'lip'|'miss'|'sand'|'practice';
 
 export default function PuttingGame(){
-  const nav=useNavigate();const{refreshProfile}=useAuth();const{addClovers}=useClovers();
+  const nav=useNavigate();const{refreshProfile}=useAuth();
   const{toast}=useToast();
-  // Putt credits: each real (non-practice) putt costs 1, bought at $1 each or in Putting Packs.
-  const[credits,setCredits]=useState(0);const[hasCard,setHasCard]=useState(false);const[buying,setBuying]=useState(false);
+  // Putt credits: each real (non-practice) putt costs 1, bought at $1 each or in Putt Packs.
+  const[credits,setCredits]=useState(0);const[buying,setBuying]=useState(false);
   const spendingRef=useRef(false);
   const refreshPuttStatus=useCallback(async()=>{
     const{data}=await (supabase as any).rpc('get_putt_status');
-    if(data){setCredits(data.credits??0);setHasCard(!!data.has_card);}
+    if(data)setCredits(data.credits??0);
     return data;
   },[]);
   useEffect(()=>{
@@ -227,7 +226,7 @@ export default function PuttingGame(){
     try{
       const{data,error}=await supabase.functions.invoke('buy-putt',{body:{nonce:crypto.randomUUID()}});
       if(error)throw error;
-      if(data?.success){setCredits(data.credits??0);setHasCard(true);toast({title:'+1 Putt',description:'Charged $1 to your saved card.'});}
+      if(data?.success){setCredits(data.credits??0);toast({title:'+1 Putt',description:'Charged $1 to your saved card.'});}
       else if(data?.needs_checkout){
         const r=await supabase.functions.invoke('create-checkout',{body:{mode:'putt'}});
         if(r.error)throw r.error;if(!r.data?.url)throw new Error('No checkout URL returned');
@@ -244,7 +243,7 @@ export default function PuttingGame(){
   const cc=nc||course;
   const[hi,setHi]=useState(0);const[bp,setBp]=useState({x:50,y:88});
   const[gs,setGs]=useState<GS>('aim');
-  const[sc,setSc]=useState(0);const[pt,setPt]=useState(0);const[sk,setSk]=useState(0);const[cl,setCl]=useState(0);
+  const[pt,setPt]=useState(0);const[sk,setSk]=useState(0);const[sp,setSp]=useState(0); // putts taken, holes sunk, Spinz won this round
   const[d0,setD0]=useState<{x:number;y:number}|null>(null);
   const[dc,setDc]=useState<{x:number;y:number}|null>(null);
   const[swing,setSwing]=useState<{angle:number;pw:number}|null>(null); // frozen release pose for the forward-swing animation
@@ -343,13 +342,17 @@ export default function PuttingGame(){
     raf.current=requestAnimationFrame(tick);
   };
 
+  // A sunk paid putt wins exactly one Spin — the only way to earn Spinz. The server
+  // grants it (one per paid putt); if that call fails the game still moves on.
   const doSunk=async()=>{
-    setGs('sunk');setSk(n=>n+1);setSc(n=>n+h.rw*10);setCl(n=>n+h.rw);
-    setMsg('Sunk!');setSub(`+${h.rw} Clover${h.rw>1?'s':''}`);
-    await addClovers(h.rw,`Putting: Hole ${h.id}`);await refreshProfile();
+    setGs('sunk');setSk(n=>n+1);setMsg('Sunk!');setSub(null);
+    try{
+      const{data}=await (supabase as any).rpc('award_putt_spin');
+      if(data?.success){setSp(n=>n+1);setSub('+1 Spin');await refreshProfile();}
+    }catch{/* no Spin this time; the round continues */}
     setTimeout(()=>{setMsg(null);setSub(null);if(hi<cc.length-1){setHi(n=>n+1);setBp({x:50,y:88});setPrac(true);setGs('aim');}},2200);
   };
-  const resetG=()=>{cancelAnimationFrame(raf.current);setNc(mk());setHi(0);setBp({x:50,y:88});setGs('aim');setSc(0);setPt(0);setSk(0);setCl(0);setMsg(null);setSub(null);setPrac(true);};
+  const resetG=()=>{cancelAnimationFrame(raf.current);setNc(mk());setHi(0);setBp({x:50,y:88});setGs('aim');setPt(0);setSk(0);setSp(0);setMsg(null);setSub(null);setPrac(true);};
   const retry=()=>{cancelAnimationFrame(raf.current);setBp({x:50,y:88});setGs('aim');setMsg(null);setSub(null);};
 
   const aim=d0&&dc?{dx:d0.x-dc.x,dy:d0.y-dc.y}:null;
@@ -406,37 +409,30 @@ export default function PuttingGame(){
   const bPx=BR*2,HR_VIS=HR*1.12,hPx=HR_VIS*2,A=0.75; // HR_VIS: hole rendered ~12% larger than its physics radius (visual only)
 
   return(
-    <AppLayout>
+    <AppLayout hideHeader>
       <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-        <div className="flex items-center gap-3">
+        {/* pr-11 keeps the title clear of the page's floating mute button (top-right) now that the header is hidden */}
+        <div className="flex items-center gap-3 pr-11">
           <Button variant="ghost" size="icon" onClick={()=>nav('/practice')}><ArrowLeft className="w-5 h-5"/></Button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="text-xl font-black uppercase tracking-wider">Lucky Putts</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Hole {hi+1}/{cc.length} · {h.label}{hs?' · Break':''}</p>
+            <div className="flex items-center gap-2 flex-wrap min-h-[22px]">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Hole {hi+1}/{cc.length} · {h.label}{hs?' · Break':''}</p>
+              {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
+            </div>
           </div>
-          {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
         </div>
 
-        <div className="flex items-center justify-between glass-card p-2.5 text-center">
-          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">PTS</p><p className="text-lg font-black text-primary">{sc}</p></div>
-          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">PUTTS</p><p className="text-lg font-black">{pt}</p></div>
-          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">IN</p><p className="text-lg font-black text-green-400">{sk}/{cc.length}</p></div>
-          <div><p className="text-[8px] text-muted-foreground uppercase tracking-widest">EARN</p><p className="text-lg font-black text-primary">+{cl}</p></div>
-        </div>
-
-        {/* Putt balance + $1 buy (one tap once a card is saved) */}
-        <div className="flex items-center gap-3 glass-card p-2.5">
-          <div className="flex-1">
-            <p className="text-[8px] text-muted-foreground uppercase tracking-widest">Putts Left</p>
-            <p className="text-lg font-black text-primary" data-testid="putt-credits">{credits}</p>
-          </div>
-          <div className="text-right">
-            <Button size="sm" className="font-black uppercase tracking-wider text-xs" onClick={buyPutt} disabled={buying} data-testid="buy-putt-btn">
-              {buying?<Loader2 className="w-4 h-4 mr-1 animate-spin"/>:null}Buy a Putt · $1
-            </Button>
-            <p className="text-[9px] text-muted-foreground mt-1">{hasCard?'One tap — charges your saved card':'First buy saves your card for one-tap putts'}</p>
-            <button className="text-[10px] text-primary underline mt-0.5" onClick={()=>nav('/earn/putting-packs')}>Save with Putting Packs</button>
-          </div>
+        {/* One line: Spinz won this round · putts left · buy a putt · Putt Packs */}
+        <div className="flex items-center gap-2 glass-card p-2" data-testid="putt-bar">
+          <div className="text-center min-w-[40px]"><p className="text-[8px] text-muted-foreground uppercase tracking-widest">Spinz</p><p className="text-lg font-black leading-tight text-primary" data-testid="spins-won">+{sp}</p></div>
+          <div className="text-center min-w-[32px]"><p className="text-[8px] text-muted-foreground uppercase tracking-widest">Left</p><p className="text-lg font-black leading-tight" data-testid="putt-credits">{credits}</p></div>
+          <Button className="flex-1 min-w-0 px-2 font-black uppercase tracking-wide text-[11px] whitespace-nowrap" onClick={buyPutt} disabled={buying} data-testid="buy-putt-btn">
+            {buying?<Loader2 className="w-4 h-4 mr-1 animate-spin"/>:null}Buy a Putt · $1
+          </Button>
+          <button className="flex flex-col items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-primary/40 text-primary" onClick={()=>nav('/earn/putting-packs')} aria-label="Putt Packs" data-testid="putt-packs-btn">
+            <Package className="w-5 h-5"/><span className="text-[7px] font-bold uppercase tracking-widest leading-none mt-0.5">Packs</span>
+          </button>
         </div>
 
         {/* Course view */}
@@ -549,7 +545,7 @@ export default function PuttingGame(){
 
         {done&&<motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="glass-card p-5 text-center border-primary/50">
           <Trophy className="w-10 h-10 text-yellow-500 mx-auto mb-2"/><h2 className="text-lg font-black uppercase tracking-wider mb-1">Round Complete</h2>
-          <p className="text-muted-foreground text-sm">{sk}/{cc.length} sunk · {pt} putts</p><p className="text-primary font-black text-lg mt-1">+{cl} Clovers</p>
+          <p className="text-muted-foreground text-sm">{sk}/{cc.length} sunk · {pt} putts</p><p className="text-primary font-black text-lg mt-1">+{sp} Spinz</p>
         </motion.div>}
 
         <div className="flex gap-3">

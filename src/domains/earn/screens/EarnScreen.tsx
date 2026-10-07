@@ -28,7 +28,7 @@ export default function EarnScreen() {
         {/* Quick Links */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Putting Packs', icon: Package, path: '/earn/putting-packs', rim: false },
+            { label: 'Putt Packs', icon: Package, path: '/earn/putting-packs', rim: false },
             { label: 'Lucky Putts', icon: Crosshair, path: '/practice/putting', rim: true },
             { label: 'Clover Packs', icon: Gift, path: '/earn/packs', rim: false },
           ].map(item => (

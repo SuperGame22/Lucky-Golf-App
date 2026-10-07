@@ -12,6 +12,7 @@ interface Profile {
   lucky_level: number;
   clovers: number;
   total_clovers: number;
+  spins?: number;
   bio: string;
   role?: string;
   date_of_birth?: string | null;

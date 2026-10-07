@@ -23,7 +23,7 @@
  *   Total expected cost per spin: ~$4.81   Revenue: $40   Net: +$35 ✓
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClovers } from '@/contexts/CloverContext';
 import { Gift, Star, Sparkles, RotateCcw, Ticket, Crown, Waves } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // ── Change these to update the three featured physical prizes ──
 const PRIZE_A_LABEL = 'Lucky Wedge';
@@ -147,6 +148,9 @@ const SLICE_ANGLES = (() => {
 // random spin, just with the "which prize" step weighted.
 const CLUB_SELECTION_WEIGHT = 11 / 35; // solved so 3 clubs vs 33 others => combined club odds = (previous 3/36) / 3 = 1/36
 const SELECTION_WEIGHTS = prizes.map((p) => (p.rare ? CLUB_SELECTION_WEIGHT : 1));
+// consume_spin isn't in the generated Supabase types yet, so call it through a narrow signature.
+type ConsumeSpinRpc = (fn: 'consume_spin') => PromiseLike<{ data: { success?: boolean } | null }>;
+
 function pickWeightedPrizeIndex(): number {
   const total = SELECTION_WEIGHTS.reduce((sum, w) => sum + w, 0);
   let r = Math.random() * total;
@@ -158,13 +162,19 @@ function pickWeightedPrizeIndex(): number {
 }
 
 const LuckySpin = () => {
-  const { refreshProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { addClovers } = useClovers();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
-  const [spinsRemaining, setSpinsRemaining] = useState(3);
+  // Spinz are only won by sinking putts in Lucky Putts. The saved balance lives on the
+  // server (profile.spins); "Free Spin" prizes are a local, this-visit-only extra.
+  const [freeSpins, setFreeSpins] = useState(0);
+  const spinsRemaining = (profile?.spins ?? 0) + freeSpins;
   const [canRespin, setCanRespin] = useState(false);
+
+  // Pick up spins won since the profile was last loaded.
+  useEffect(() => { refreshProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Heavy-flywheel physics: a big initial burst of rotations (momentum),
   // then a smooth, continuously-thinning deceleration rather than an abrupt
@@ -182,6 +192,24 @@ const LuckySpin = () => {
     setSpinning(true);
     setResult(null);
     setCanRespin(false);
+
+    // A free-spin prize is spent first; otherwise the server spends one saved spin.
+    if (freeSpins > 0) {
+      setFreeSpins(f => f - 1);
+    } else {
+      let ok = false;
+      try {
+        const { data } = await (supabase.rpc as unknown as ConsumeSpinRpc).call(supabase, 'consume_spin');
+        ok = !!data?.success;
+      } catch { /* treated as no spin below */ }
+      if (!ok) {
+        setSpinning(false);
+        toast.error('No spins available — sink a putt in Lucky Putts to win one.');
+        refreshProfile();
+        return;
+      }
+      refreshProfile();
+    }
 
     const prizeIndex = pickWeightedPrizeIndex();
     const { midDeg } = SLICE_ANGLES[prizeIndex];
@@ -201,7 +229,6 @@ const LuckySpin = () => {
       const won = prizes[prizeIndex];
       setSpinning(false);
       setResult(won);
-      setSpinsRemaining(prev => prev - 1);
 
       if (won.type === 'clovers' && won.clovers > 0) {
         await addClovers(won.clovers, `Lucky Spin: ${won.label}`);
@@ -212,7 +239,7 @@ const LuckySpin = () => {
       } else if (won.type === 'prize') {
         toast.success(`🎉 You won the ${won.label}! We'll reach out to arrange delivery.`, { duration: 10000 });
       } else if (won.type === 'free_spin') {
-        setSpinsRemaining(prev => prev + 1);
+        setFreeSpins(f => f + 1);
         toast.success(`🎁 Free spin! You've got another one on the house.`, { duration: 6000 });
       } else if (won.type === 'membership') {
         toast.success(`👑 ${won.label} unlocked! We'll activate it on your account.`, { duration: 10000 });
@@ -220,7 +247,7 @@ const LuckySpin = () => {
         toast(`🏖️ Sand Trap — no prize this time.`, { duration: 5000 });
       }
 
-      if (won.type !== 'prize' && spinsRemaining > 1) setCanRespin(true);
+      if (won.type !== 'prize') setCanRespin(true); // the Re-spin button only shows while spins remain
     }, SPIN_DURATION_S * 1000);
   };
 
@@ -316,7 +343,7 @@ const LuckySpin = () => {
           ) : (<><Gift className="w-6 h-6" /> Use a Spin</>)}
         </Button>
         <p className="text-center text-sm text-muted-foreground">
-          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Earn 10 clovers to unlock your next spin'}
+          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Sink a putt in Lucky Putts to win your next spin'}
         </p>
 
         {/* Result */}
