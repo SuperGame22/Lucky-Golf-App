@@ -1,5 +1,5 @@
 /**
- * Putting Packs - buy putts for Lucky Putts ($1 per putt, bulk discounts).
+ * Putt Packs - buy putts for Lucky Putts ($1 per putt, bulk discounts).
  * Bonus clovers = 1 per $4 spent (rounded down), credited with the purchase.
  */
 
@@ -53,7 +53,7 @@ export default function PuttingPacks() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/earn')}><ArrowLeft className="w-5 h-5" /></Button>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-wider">Putting Packs</h1>
+            <h1 className="text-2xl font-black uppercase tracking-wider">Putt Packs</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Stock up on putts</p>
           </div>
         </div>

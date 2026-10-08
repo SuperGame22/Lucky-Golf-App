@@ -18,6 +18,7 @@ const tiers = [
     ],
     cta: "Current Plan",
     popular: false,
+    comingSoon: false,
     icon: Sparkles,
     gradient: "from-muted to-muted/50",
   },
@@ -35,6 +36,7 @@ const tiers = [
     ],
     cta: "Start Free Trial",
     popular: true,
+    comingSoon: false,
     icon: CloverIcon,
     gradient: "from-primary to-lucky-emerald",
   },
@@ -54,6 +56,7 @@ const tiers = [
     ],
     cta: "Go Gold",
     popular: false,
+    comingSoon: true,
     icon: Crown,
     gradient: "from-accent to-amber-600",
   },
@@ -95,7 +98,8 @@ const Membership = () => {
                 <div
                   className={`glass-card p-6 h-full ${
                     tier.popular ? "border-0" : ""
-                  }`}
+                  } ${tier.comingSoon ? "grayscale opacity-50 select-none" : ""}`}
+                  aria-disabled={tier.comingSoon || undefined}
                 >
                   <div className="flex items-start gap-4 mb-4">
                     <div
@@ -126,14 +130,24 @@ const Membership = () => {
                   </ul>
 
                   <Button
-                    variant={tier.popular ? "lucky" : tier.price === 0 ? "outline" : "gold"}
+                    variant={tier.popular ? "lucky" : tier.price === 0 || tier.comingSoon ? "outline" : "gold"}
                     className="w-full"
-                    disabled={tier.price === 0}
+                    disabled={tier.price === 0 || tier.comingSoon}
                   >
                     {tier.price === 0 && <Check className="w-4 h-4" />}
-                    {tier.cta}
+                    {tier.comingSoon ? "Coming Soon" : tier.cta}
                   </Button>
                 </div>
+
+                {tier.comingSoon && (
+                  <div
+                    aria-hidden="true"
+                    data-testid="coming-soon-band"
+                    className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[160%] -translate-x-1/2 -translate-y-1/2 -rotate-[22deg] border-y-2 border-accent/70 bg-black/75 py-2 text-center text-lg font-black uppercase tracking-[0.35em] text-accent shadow-lg"
+                  >
+                    Coming Soon
+                  </div>
+                )}
               </motion.div>
             );
           })}

@@ -1,16 +1,15 @@
 /**
  * LUCKY SPIN — Real Supabase integration
- * Three featured physical prizes, each a half-width gold slice flanked by
- * two thin "sand bunker" slivers, spaced an even 120° apart around the
- * wheel. Rest of each 120° arc is clovers, discounts, free spins, and
- * Clover Club trials.
+ * Three featured physical prizes, each a gold slice flanked by two sand
+ * slivers (together one normal slice wide, the gold being a quarter of it),
+ * spaced an even 120° apart around the wheel. Rest of each 120° arc is
+ * clovers, discounts, free spins, free putts and Clover Club trials.
  *
- * Slice angular width is weight-based (see `width` on Prize / SLICE_ANGLES
- * below) — NOT uniform per-index — so the gold/sand pieces can be thinner
- * than a normal slice while everything still sums to exactly 360°. Landing
- * odds are still uniform per array entry (1/36 each), independent of a
- * slice's visual width — a thin gold sliver has the same odds as a full
- * filler slice, it's just visually smaller.
+ * Prizes and slice geometry live in features/spinz (prizes.ts, wheel.ts).
+ * Slice angular width is weight-based — NOT uniform per-index — so the
+ * gold/sand pieces can be thinner than a normal slice while everything still
+ * sums to exactly 360°. Landing odds are still uniform per array entry
+ * (1/36 each), independent of a slice's visual width.
  *
  * ECONOMICS (36 slices, per spin = 10 clovers = $40 in purchases):
  *   Physical prizes  3/36 =  8.3% × avg $50  = $4.17 expected cost
@@ -18,153 +17,51 @@
  *   Clovers         13/36 = 36.1% × $0       = $0.00
  *   Discount codes  10/36 = 27.8% × ~$1.30   = $0.36 expected cost
  *   Free spin        2/36 =  5.6% × $0       = $0.00 (costs a spin back)
+ *   Free putt        1/36 =  2.8% × $1       = $0.03 expected cost
  *   Clover Club       2/36 =  5.6% × ~$5     = $0.28 expected cost
  *   ─────────────────────────────────────────────────
- *   Total expected cost per spin: ~$4.81   Revenue: $40   Net: +$35 ✓
+ *   Total expected cost per spin: ~$4.84   Revenue: $40   Net: +$35 ✓
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClovers } from '@/contexts/CloverContext';
-import { Gift, Star, Sparkles, RotateCcw, Ticket, Crown, Waves } from 'lucide-react';
+import { Gift, Star, Sparkles, RotateCcw, Crown, Flag } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  DISCOUNT_CODES, FREE_PUTT_INDEX, GOLD_FILL, LABEL_RADIUS, SAND_FILL, SLICE_ANGLES, pickPrizeIndex, prizes,
+} from '@/features/spinz/prizes';
+import { rotationToLand } from '@/features/spinz/wheel';
 
-// ── Change these to update the three featured physical prizes ──
-const PRIZE_A_LABEL = 'Lucky Wedge';
-const PRIZE_B_LABEL = 'Lucky Putter';
-const PRIZE_C_LABEL = 'Lucky Driver';
+// consume_spin isn't in the generated Supabase types yet, so call it through a narrow signature.
+type ConsumeSpinRpc = (fn: 'consume_spin') => PromiseLike<{ data: { success?: boolean; free_putt?: boolean } | null }>;
 
-// Discount codes shown to winners (rotate or update as needed)
-const DISCOUNT_CODES: Record<string, string> = {
-  '10% Off': 'LUCKY10',
-  '15% Off': 'LUCKY15',
-  '20% Off': 'LUCKY20',
-  '25% Off': 'LUCKY25',
-  '30% Off': 'LUCKY30',
+/** SVG path for a pie wedge from the hub to the rim, in degrees clockwise from the wheel top. */
+const wedgePath = (startDeg: number, endDeg: number) => {
+  const a1 = (startDeg - 90) * (Math.PI / 180);
+  const a2 = (endDeg - 90) * (Math.PI / 180);
+  return `M 50 50 L ${50 + 50 * Math.cos(a1)} ${50 + 50 * Math.sin(a1)} A 50 50 0 0 1 ${50 + 50 * Math.cos(a2)} ${50 + 50 * Math.sin(a2)} Z`;
 };
-
-type PrizeType = 'prize' | 'clovers' | 'discount' | 'free_spin' | 'membership' | 'none';
-
-interface Prize {
-  label: string;
-  color: string;
-  icon: typeof Gift;
-  rare?: boolean;
-  clovers: number;
-  type: PrizeType;
-  membershipMonths?: number;
-  /** Relative angular weight. 1 = a normal full-width slice. Defaults to 1. */
-  width?: number;
-  /** Short text for the wheel itself, when different from `label` (used
-   *  in toasts/results) — for slices too thin for the full label. */
-  wheelLabel?: string;
-}
-
-const SAND_FILL = '#E6D9B4'; // light sand/cream, slightly muted so it doesn't pop too hard
-const GOLD_FILL = '#FFC94A'; // brighter gold — closer to the text-gradient-gold accent used below the wheel
-
-const SAND: Pick<Prize, 'label' | 'wheelLabel' | 'color' | 'icon' | 'clovers' | 'type' | 'width'> = {
-  label: 'Sand Trap', wheelLabel: 'Sand', color: 'from-amber-300 to-yellow-600', icon: Waves, clovers: 0, type: 'none', width: 0.25,
-};
-
-const gold = (label: string): Prize => ({
-  label, color: 'from-yellow-500 to-amber-600', icon: Gift, rare: true, clovers: 0, type: 'prize', width: 0.5,
-});
-
-// A full-width filler slice that's just sand — same light color as the
-// slivers flanking the gold slices, but a normal-size, normal-width slot.
-const sandBunker = (): Prize => ({
-  label: 'Sand Bunker', color: 'from-amber-200 to-yellow-400', icon: Waves, clovers: 0, type: 'none',
-});
-
-// One 120° arc: a sand/gold/sand cluster (weight 1, same as a normal slice)
-// plus 9 normal-weight filler slices — 10 weight-units per arc, so all three
-// arcs (identical total weight) land exactly 120° apart automatically.
-function arc(goldLabel: string, fillers: Prize[]): Prize[] {
-  return [{ ...SAND }, gold(goldLabel), { ...SAND }, ...fillers];
-}
-
-const prizes: Prize[] = [
-  ...arc(PRIZE_A_LABEL, [
-    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-    sandBunker(),
-    { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
-    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
-    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-    sandBunker(),
-    { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '6mo Clover Club', color: 'from-purple-600 to-fuchsia-800', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 6 },
-  ]),
-  ...arc(PRIZE_B_LABEL, [
-    { label: '+1 Clover', color: 'from-gray-500 to-gray-600', icon: CloverIcon, clovers: 1, type: 'clovers' },
-    { label: '+10 Clovers', color: 'from-primary to-emerald-700', icon: CloverIcon, clovers: 10, type: 'clovers' },
-    sandBunker(),
-    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-    { label: '30% Off', color: 'from-violet-600 to-purple-800', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+3 Clovers', color: 'from-emerald-500 to-teal-600', icon: CloverIcon, clovers: 3, type: 'clovers' },
-    sandBunker(),
-    { label: '+5 Clovers', color: 'from-green-500 to-emerald-600', icon: CloverIcon, clovers: 5, type: 'clovers' },
-    { label: '20% Off', color: 'from-indigo-500 to-violet-600', icon: Ticket, clovers: 0, type: 'discount' },
-  ]),
-  ...arc(PRIZE_C_LABEL, [
-    { label: '1mo Clover Club', color: 'from-purple-400 to-fuchsia-600', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 1 },
-    { label: '25% Off', color: 'from-violet-500 to-purple-700', icon: Ticket, clovers: 0, type: 'discount' },
-    sandBunker(),
-    { label: '15% Off', color: 'from-blue-500 to-indigo-600', icon: Ticket, clovers: 0, type: 'discount' },
-    { label: '+2 Clovers', color: 'from-lime-500 to-green-600', icon: CloverIcon, clovers: 2, type: 'clovers' },
-    { label: '10% Off', color: 'from-blue-400 to-cyan-500', icon: Ticket, clovers: 0, type: 'discount' },
-    sandBunker(),
-    { label: 'Free Spin', color: 'from-cyan-400 to-sky-600', icon: RotateCcw, clovers: 0, type: 'free_spin' },
-    { label: '3mo Clover Club', color: 'from-purple-500 to-fuchsia-700', icon: Crown, clovers: 0, type: 'membership', membershipMonths: 3 },
-  ]),
-];
-
-// Cumulative weight -> start/mid/end angle (degrees, 0° = wheel-top) for
-// every slice. Computed once at module scope since `prizes` is static.
-const SLICE_ANGLES = (() => {
-  const totalWeight = prizes.reduce((sum, p) => sum + (p.width ?? 1), 0);
-  let cumWeight = 0;
-  return prizes.map((p) => {
-    const w = p.width ?? 1;
-    const startDeg = (cumWeight / totalWeight) * 360;
-    cumWeight += w;
-    const endDeg = (cumWeight / totalWeight) * 360;
-    return { startDeg, endDeg, midDeg: (startDeg + endDeg) / 2 };
-  });
-})();
-
-// Selection weight is intentionally decoupled from `width` (which only
-// controls each slice's visual size on the wheel). Every slice gets equal
-// selection weight EXCEPT the three club prizes (driver/putter/wedge, the
-// `rare` gold slices), which are deliberately under-weighted so they're won
-// 1/3 as often as before while everything else keeps the same relative odds
-// among itself. The wheel animation itself is unaffected — still a normal
-// random spin, just with the "which prize" step weighted.
-const CLUB_SELECTION_WEIGHT = 11 / 35; // solved so 3 clubs vs 33 others => combined club odds = (previous 3/36) / 3 = 1/36
-const SELECTION_WEIGHTS = prizes.map((p) => (p.rare ? CLUB_SELECTION_WEIGHT : 1));
-function pickWeightedPrizeIndex(): number {
-  const total = SELECTION_WEIGHTS.reduce((sum, w) => sum + w, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < SELECTION_WEIGHTS.length; i++) {
-    r -= SELECTION_WEIGHTS[i];
-    if (r <= 0) return i;
-  }
-  return SELECTION_WEIGHTS.length - 1;
-}
 
 const LuckySpin = () => {
-  const { refreshProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { addClovers } = useClovers();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
-  const [spinsRemaining, setSpinsRemaining] = useState(3);
+  // Spinz are only won by sinking putts in Lucky Putts. The saved balance lives on the
+  // server (profile.spins); "Free Spin" prizes are a local, this-visit-only extra.
+  const [freeSpins, setFreeSpins] = useState(0);
+  const spinsRemaining = (profile?.spins ?? 0) + freeSpins;
   const [canRespin, setCanRespin] = useState(false);
+
+  // Pick up spins won since the profile was last loaded.
+  useEffect(() => { refreshProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Heavy-flywheel physics: a big initial burst of rotations (momentum),
   // then a smooth, continuously-thinning deceleration rather than an abrupt
@@ -183,25 +80,39 @@ const LuckySpin = () => {
     setResult(null);
     setCanRespin(false);
 
-    const prizeIndex = pickWeightedPrizeIndex();
+    // A free-spin prize is spent first; otherwise the server spends one saved spin and
+    // also decides, on its side, whether this spin wins the Free Putt (and credits it).
+    let wonFreePutt = false;
+    if (freeSpins > 0) {
+      setFreeSpins(f => f - 1);
+    } else {
+      let ok = false;
+      try {
+        const { data } = await (supabase.rpc as unknown as ConsumeSpinRpc).call(supabase, 'consume_spin');
+        ok = !!data?.success;
+        wonFreePutt = ok && !!data?.free_putt;
+      } catch { /* treated as no spin below */ }
+      if (!ok) {
+        setSpinning(false);
+        toast.error('No spins available — sink a putt in Lucky Putts to win one.');
+        refreshProfile();
+        return;
+      }
+      refreshProfile();
+    }
+
+    const prizeIndex = wonFreePutt ? FREE_PUTT_INDEX : pickPrizeIndex();
     const { midDeg } = SLICE_ANGLES[prizeIndex];
-    // Land the chosen slice's midpoint under the pointer (top, 0°). Rotation
-    // is cumulative across spins, so we have to correct for wherever the
-    // wheel already stopped last time (prev mod 360) rather than assuming
-    // it starts at 0 — otherwise each spin after the first lands on the
-    // wrong slice relative to the result shown.
-    setRotation(prev => {
-      const prevMod = ((prev % 360) + 360) % 360;
-      const targetMod = ((360 - midDeg) % 360 + 360) % 360;
-      const deltaToTarget = ((targetMod - prevMod) % 360 + 360) % 360;
-      return prev + 360 * SPIN_ROTATIONS + deltaToTarget;
-    });
+    // Land the chosen slice's midpoint under the pointer (top, 0°) — never on a
+    // border, so the result always matches what the pointer shows. Rotation is
+    // cumulative across spins, so rotationToLand corrects for wherever the
+    // wheel already stopped last time.
+    setRotation(prev => rotationToLand(prev, midDeg, SPIN_ROTATIONS));
 
     setTimeout(async () => {
       const won = prizes[prizeIndex];
       setSpinning(false);
       setResult(won);
-      setSpinsRemaining(prev => prev - 1);
 
       if (won.type === 'clovers' && won.clovers > 0) {
         await addClovers(won.clovers, `Lucky Spin: ${won.label}`);
@@ -212,15 +123,17 @@ const LuckySpin = () => {
       } else if (won.type === 'prize') {
         toast.success(`🎉 You won the ${won.label}! We'll reach out to arrange delivery.`, { duration: 10000 });
       } else if (won.type === 'free_spin') {
-        setSpinsRemaining(prev => prev + 1);
+        setFreeSpins(f => f + 1);
         toast.success(`🎁 Free spin! You've got another one on the house.`, { duration: 6000 });
+      } else if (won.type === 'free_putt') {
+        toast.success(`⛳ Free Putt! It's been added to your Lucky Putts.`, { duration: 8000 });
       } else if (won.type === 'membership') {
         toast.success(`👑 ${won.label} unlocked! We'll activate it on your account.`, { duration: 10000 });
       } else if (won.type === 'none') {
         toast(`🏖️ Sand Trap — no prize this time.`, { duration: 5000 });
       }
 
-      if (won.type !== 'prize' && spinsRemaining > 1) setCanRespin(true);
+      if (won.type !== 'prize') setCanRespin(true); // the Re-spin button only shows while spins remain
     }, SPIN_DURATION_S * 1000);
   };
 
@@ -240,35 +153,52 @@ const LuckySpin = () => {
 
         {/* Wheel */}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative flex items-center justify-center py-4 overflow-hidden">
+          className="relative flex items-center justify-center py-4 overflow-hidden -mx-[2.5%]">
           <div className="absolute w-64 h-64 bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-20 animate-pulse pointer-events-none" />
           <div className="relative flex items-center justify-center w-full">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: SPIN_DURATION_S, ease: SPIN_EASE }}
-              style={{ willChange: 'transform', width: '100%', aspectRatio: '1 / 1' }}
+            {/* Static shadow: a filter on the rotating element would be repainted every frame. */}
+            <div className="absolute rounded-full shadow-2xl pointer-events-none" style={{ width: '100%', aspectRatio: '1 / 1' }} />
+            {/* The turn is a CSS transition, which the browser runs on the GPU compositor, so
+                the long slow-down stays smooth even if the page is busy. */}
+            <div
+              style={{
+                willChange: 'transform', width: '100%', aspectRatio: '1 / 1',
+                transform: `rotate(${rotation}deg) translateZ(0)`,
+                transition: `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
+                backfaceVisibility: 'hidden',
+              }}
               className="relative">
-              <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
                 {prizes.map((prize, i) => {
                   const { startDeg, endDeg } = SLICE_ANGLES[i];
-                  const startAngle = (startDeg - 90) * (Math.PI / 180);
-                  const endAngle = (endDeg - 90) * (Math.PI / 180);
-                  const x1 = 50 + 50 * Math.cos(startAngle);
-                  const y1 = 50 + 50 * Math.sin(startAngle);
-                  const x2 = 50 + 50 * Math.cos(endAngle);
-                  const y2 = 50 + 50 * Math.sin(endAngle);
+                  // The sand slivers are painted as part of their sand/gold/sand cluster below.
+                  if (prize.type === 'none' && (prize.width ?? 1) < 1) return null;
+                  if (prize.rare) {
+                    // Gold sits on one continuous sand wedge, so there is no border line (and no
+                    // hairline gap) between sand and gold; the cluster is outlined as one slice.
+                    const cluster = wedgePath(SLICE_ANGLES[i - 1].startDeg, SLICE_ANGLES[i + 1].endDeg);
+                    return (
+                      <g key={i}>
+                        <path d={cluster} fill={SAND_FILL} stroke="hsl(var(--border))" strokeWidth="0.3" />
+                        <path d={wedgePath(startDeg, endDeg)} fill={GOLD_FILL} />
+                      </g>
+                    );
+                  }
                   const isSandSlice = prize.type === 'none';
                   const fillClass = i % 2 === 0 ? 'text-card' : 'text-muted';
-                  const explicitFill = isSandSlice ? SAND_FILL : prize.rare ? GOLD_FILL : undefined;
                   return (
                     <path key={i}
-                      d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                      className={explicitFill ? '' : `fill-current ${fillClass}`}
-                      fill={explicitFill}
+                      d={wedgePath(startDeg, endDeg)}
+                      className={isSandSlice ? '' : `fill-current ${fillClass}`}
+                      fill={isSandSlice ? SAND_FILL : undefined}
                       stroke="hsl(var(--border))" strokeWidth="0.3" />
                   );
                 })}
+                {/* Thin gold rim so every slice meets the same line. */}
+                <circle cx="50" cy="50" r="49.85" fill="none" stroke={GOLD_FILL} strokeWidth="0.3" />
                 <circle cx="50" cy="50" r="8" fill={GOLD_FILL} />
               </svg>
               {/* Labels run "long ways" — radially outward, out near the rim
@@ -278,15 +208,15 @@ const LuckySpin = () => {
               {prizes.map((prize, i) => {
                 const angle = SLICE_ANGLES[i].midDeg - 90;
                 const rad = angle * (Math.PI / 180);
-                const R = 37; // out of 50 — well past the hub, just inside the rim
+                const R = prize.labelRadius ?? LABEL_RADIUS; // out of 50 — well past the hub, just inside the rim
                 const isSand = prize.type === 'none';
-                // Only the thin sand slivers flanking the gold slices (width
-                // 0.25) need the tiny label; full-width Sand Bunker fillers
-                // read fine at the normal (now smaller) size.
+                // Only the thin sand slivers flanking the gold slices need the
+                // tiny label; full-width Sand Bunker fillers read fine at the
+                // normal size.
                 const isThinSliver = isSand && (prize.width ?? 1) < 1;
                 return (
                   <div key={i}
-                    className={`absolute leading-none whitespace-nowrap ${isThinSliver ? 'text-[4.5px] font-bold' : 'text-[12px] font-semibold'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
+                    className={`absolute leading-none whitespace-nowrap ${isThinSliver ? 'text-[5px] font-bold' : prize.rare ? 'text-[10.8px] font-semibold' : 'text-[11.3px] font-semibold'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
                     style={{
                       left: `${50 + R * Math.cos(rad)}%`,
                       top: `${50 + R * Math.sin(rad)}%`,
@@ -296,7 +226,7 @@ const LuckySpin = () => {
                   </div>
                 );
               })}
-            </motion.div>
+            </div>
             {/* Static hub logo — sits outside the rotating wheel so it
                 stays upright instead of spinning with it. */}
             <img src="/clover-logo.png" alt="Lucky Golf" draggable={false}
@@ -316,7 +246,7 @@ const LuckySpin = () => {
           ) : (<><Gift className="w-6 h-6" /> Use a Spin</>)}
         </Button>
         <p className="text-center text-sm text-muted-foreground">
-          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Earn 10 clovers to unlock your next spin'}
+          {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Sink a putt in Lucky Putts to win your next spin'}
         </p>
 
         {/* Result */}
@@ -349,6 +279,14 @@ const LuckySpin = () => {
               )}
               {result.type === 'free_spin' && (
                 <p className="text-sm text-cyan-400 mt-1 font-bold">+1 spin added — go again!</p>
+              )}
+              {result.type === 'free_putt' && (
+                <div className="flex items-center justify-center gap-1 mt-3 flex-col">
+                  <div className="flex items-center gap-1 text-emerald-400">
+                    <Flag className="w-4 h-4" /><span className="text-sm font-black uppercase tracking-wider">+1 Putt</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Added to your putts in Lucky Putts</p>
+                </div>
               )}
               {result.type === 'membership' && (
                 <div className="flex items-center justify-center gap-1 mt-3 flex-col">
