@@ -28,6 +28,7 @@ import {
   type WagerSessionState,
 } from '@/services/realtimeService';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { WagerResults } from './WagerResults';
 import {
   Trophy, Crown, Users, Plus, Minus, Zap, Flag, ChevronRight, Check, X,
   Swords, ArrowLeft, Copy, Hash, Loader2, AlertCircle, Wifi, WifiOff, DollarSign,
@@ -267,6 +268,18 @@ export default function LuckyWagers() {
 
   // ── Guest: Join Session ──
   const [joinCode, setJoinCode] = useState('');
+
+  // Wagers where I am a partner and the host has asked for the result: they wait for my answer
+  // here even if I closed the app before the game ended.
+  const [pending, setPending] = useState<{ competition_id: string; mode: WagerMode; pot: number }[]>([]);
+  const loadPending = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: unknown }>).call(supabase, 'wager_pending_for_me');
+      setPending(Array.isArray(data) ? (data as typeof pending) : []);
+    } catch { /* the list just stays empty */ }
+  }, [user]);
+  useEffect(() => { loadPending(); }, [loadPending]);
   const [joinLoading, setJoinLoading] = useState(false);
 
   const handleJoin = () => {
@@ -314,6 +327,15 @@ export default function LuckyWagers() {
       return;
     }
     const compId = data.competition_id as string;
+    // Tell the database which game this is, so it can work out the winner from the saved scores.
+    const { data: modeRes, error: modeErr } = await (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => PromiseLike<{ data: { success?: boolean; error?: string } | null; error: { message: string } | null }>)
+      .call(supabase, 'wager_set_mode', { p_competition_id: compId, p_mode: mode });
+    if (modeErr || !modeRes?.success) {
+      // Nobody else has paid yet, so cancelling just returns the host's buy-in.
+      await supabase.rpc('settle_competition', { p_competition_id: compId, p_winner_user_id: myId });
+      setError(`Could not set up the wager (${modeErr?.message || modeRes?.error || 'unknown error'}). Your buy-in was returned.`);
+      return;
+    }
     setCompetitionId(compId);
     setHasPaid(true);
     hasPaidRef.current = true;
@@ -372,8 +394,20 @@ export default function LuckyWagers() {
   }, [isHost, collecting, competitionId, players, paidUserIds]);
 
   // ── Submit my score for current hole ──
+  const saveScoreToDatabase = async (hole: number, score: number) => {
+    const id = competitionIdRef.current;
+    if (!id) return;
+    const save = () => (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => PromiseLike<{ data: { success?: boolean } | null }>)
+      .call(supabase, 'wager_submit_score', { p_competition_id: id, p_hole: hole, p_score: score });
+    try {
+      const r = await save();
+      if (!r.data?.success) await save(); // one retry; the results screen re-sends everything once more
+    } catch { /* re-sent from the results screen */ }
+  };
+
   const submitMyScore = () => {
     if (!channelRef.current) return;
+    saveScoreToDatabase(currentHole, myHoleScore);
     broadcastScoreUpdate(channelRef.current, {
       userId: myId,
       hole: currentHole,
@@ -398,23 +432,8 @@ export default function LuckyWagers() {
     if (!channelRef.current) return;
     const nextHole = currentHole + 1;
     if (nextHole > 9) {
-      // Game over — pay the pot to the winner's cash balance before telling
-      // everyone. settle_competition is idempotent (safe if this ever fires
-      // twice) and only the host (a paid participant) is allowed to call it.
-      if (competitionId) {
-        const winner = getWinner();
-        if (winner) {
-          supabase.rpc('settle_competition', {
-            p_competition_id: competitionId,
-            p_winner_user_id: winner.userId,
-          }).then(({ error: settleErr }) => {
-            if (settleErr) {
-              console.error('settle_competition failed:', settleErr.message);
-              setError(`Payout failed to process automatically: ${settleErr.message}`);
-            }
-          });
-        }
-      }
+      // Game over. The database works out the winner from the saved scores and the partners
+      // confirm it (see WagerResults); nothing is paid from here.
       const endState: WagerSessionState = {
         mode: mode!, betAmount, currentHole, status: 'results',
         players, hostId: myId, competitionId,
@@ -471,6 +490,23 @@ export default function LuckyWagers() {
               </p>
             </div>
           </div>
+
+          {pending.length > 0 && (
+            <div className="space-y-3" data-testid="wagers-waiting-for-you">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-amber-400">Waiting for your confirmation</p>
+              {pending.map(w => (
+                <motion.div key={w.competition_id} whileTap={{ scale: 0.98 }}
+                  onClick={() => { setCompetitionId(w.competition_id); setView('results'); }}
+                  className="glass-card p-4 cursor-pointer border border-amber-500/40 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{w.mode === 'winner-takes-all' ? 'Winner Takes All' : 'King of the Pars'}</p>
+                    <p className="text-xs text-muted-foreground">${w.pot} pot — check the result and confirm</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-amber-400" />
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {/* Create New */}
           <div className="space-y-3">
@@ -765,6 +801,19 @@ export default function LuckyWagers() {
   }
 
   // ── RESULTS ──
+  if (view === 'results' && competitionId) {
+    return (
+      <AppLayout>
+        <WagerResults
+          competitionId={competitionId}
+          myId={myId}
+          myScores={players[myId]?.scores}
+          onNewWager={() => { if (channelRef.current) leaveChannel(channelRef.current); setCompetitionId(null); setView('mode-select'); setPlayers({}); loadPending(); }}
+          onBack={() => navigate('/play')}
+        />
+      </AppLayout>
+    );
+  }
   if (view === 'results') {
     const winner = getWinner();
     const sorted = mode === 'winner-takes-all'
