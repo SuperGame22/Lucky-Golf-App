@@ -71,3 +71,51 @@ export const LIVE = `
     RETURN jsonb_build_object('success', true, 'credits', v_left);
   END; $f$;
 `;
+
+/** add_clovers as it is live today (callable by signed-in players), plus the tables the clover grants touch. */
+export const CLOVERS_LIVE = `
+  CREATE FUNCTION public.award_jackpot_entry(p_user_id UUID, p_amount INTEGER, p_source_ref UUID DEFAULT NULL)
+  RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $f$ BEGIN RETURN; END; $f$;
+
+  CREATE FUNCTION public.add_clovers(p_user_id UUID, p_amount INTEGER) RETURNS JSONB
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $f$
+  DECLARE v_new_balance INTEGER;
+  BEGIN
+    IF auth.uid() IS NOT NULL AND auth.uid() <> p_user_id THEN
+      RAISE EXCEPTION 'Unauthorized: caller does not match user';
+    END IF;
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Invalid amount');
+    END IF;
+    IF p_amount > 500 THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Amount exceeds per-call limit');
+    END IF;
+    UPDATE public.golfer_profiles
+    SET clovers = clovers + p_amount, total_clovers = total_clovers + p_amount, updated_at = now()
+    WHERE user_id = p_user_id RETURNING clovers INTO v_new_balance;
+    IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Profile not found'); END IF;
+    PERFORM public.award_jackpot_entry(p_user_id, p_amount);
+    RETURN jsonb_build_object('success', true, 'new_balance', v_new_balance, 'added', p_amount);
+  END; $f$;
+
+  CREATE FUNCTION public.award_clovers(p_user_id UUID, p_amount NUMERIC) RETURNS JSONB
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $f$
+  BEGIN
+    UPDATE public.golfer_profiles SET clovers = clovers + floor(p_amount * 0.25)::int,
+      total_clovers = total_clovers + floor(p_amount * 0.25)::int WHERE user_id = p_user_id;
+    RETURN jsonb_build_object('success', true);
+  END; $f$;
+`;
+
+/** The rounds table the scorecard saves to, and the service-role used by the payment functions. */
+export const ROUNDS_LIVE = `
+  CREATE TABLE public.rounds (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    completed BOOLEAN NOT NULL DEFAULT false,
+    clovers_earned INTEGER NOT NULL DEFAULT 0
+  );
+  ALTER TABLE public.rounds ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY own_rounds ON public.rounds FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  DO $r$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF; END $r$;
+`;
