@@ -71,7 +71,7 @@ export default function AddCash() {
               <motion.div key={amt} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelected(amt)}
                 className={`glass-card p-5 cursor-pointer text-center transition-all ${
-                  selected === amt ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/30' : 'hover:border-primary/30'
+                  selected === amt ? '!border-primary !bg-primary/10 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.25)]' : 'hover:!border-primary/40'
                 }`}
               >
                 <DollarSign className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
