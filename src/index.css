@@ -39,9 +39,9 @@
 
 @layer utilities {
   .font-display { font-family: 'Playfair Display', serif; }
-  .glass-card { @apply bg-card/80 backdrop-blur-xl border border-border rounded-2xl; }
-  .glow-green { box-shadow: 0 0 30px hsl(152 76% 40% / 0.3); }
-  .glow-gold { box-shadow: 0 0 30px hsl(43 96% 56% / 0.4); }
+  .glass-card { @apply bg-card/80 backdrop-blur-xl border border-primary/20 rounded-2xl; }
+  .glow-green { box-shadow: 0 0 40px hsl(var(--lucky-green) / 0.4); }
+  .glow-gold { box-shadow: 0 0 40px hsl(var(--lucky-gold) / 0.5); }
   .text-gradient-gold { background: linear-gradient(135deg, hsl(43 96% 56%), hsl(35 100% 50%)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .bg-celtic-knot { background-image: url('/images/clover-pattern.png'); }
   .bg-military-green { background-color: hsl(var(--military-green)); }
