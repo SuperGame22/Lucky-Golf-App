@@ -3,6 +3,7 @@
  * Courses come from the `courses` table (OpenStreetMap; yardages are estimates).
  */
 
+import { MAX_COURSES, rankCourses } from '@/features/courses/courseList';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +29,7 @@ export default function StartRound() {
   const [nearMe, setNearMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<CourseRow | null>(null);
+  const [moreMatches, setMoreMatches] = useState(false);
 
   useEffect(() => {
     if (nearMe) return;
@@ -48,7 +50,9 @@ export default function StartRound() {
       if (error) setError('Could not load courses. Try again.');
       else {
         setError(null);
-        setResults((data ?? []) as unknown as CourseRow[]);
+        const rows = rankCourses((data ?? []) as unknown as CourseRow[], q);
+        setMoreMatches(rows.length > MAX_COURSES);
+        setResults(rows.slice(0, MAX_COURSES));
       }
     }, 250);
     return () => clearTimeout(t);
@@ -79,9 +83,10 @@ export default function StartRound() {
         const rows = ((data ?? []) as unknown as (CourseRow & { lat: number; lon: number })[])
           .map((c) => ({ c, dist: Math.hypot(c.lat - lat, (c.lon - lon) * Math.cos((lat * Math.PI) / 180)) }))
           .sort((a, b) => a.dist - b.dist)
-          .slice(0, 15)
+          .slice(0, MAX_COURSES)
           .map((x) => x.c);
         setNearMe(true);
+        setMoreMatches(false);
         setQuery('');
         setResults(rows);
         if (rows.length === 0) setError('No courses found within about 17 miles.');
@@ -143,7 +148,7 @@ export default function StartRound() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setSelected(c)}
                 className={`glass-card p-4 cursor-pointer transition-all ${
-                  isSel ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'
+                  isSel ? '!border-primary !bg-primary/10 ring-2 ring-primary' : 'hover:!border-primary/40'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -163,6 +168,14 @@ export default function StartRound() {
               </motion.div>
             );
           })}
+          {moreMatches && (
+            <p className="text-xs text-muted-foreground text-center" data-testid="more-courses-hint">
+              Showing the top {MAX_COURSES} — keep typing to narrow it down.
+            </p>
+          )}
+          {nearMe && results.length > 0 && (
+            <p className="text-xs text-muted-foreground text-center">The {results.length} closest to you.</p>
+          )}
           {!loading && !error && results.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">
               Search by name or city, or tap Courses near me.
