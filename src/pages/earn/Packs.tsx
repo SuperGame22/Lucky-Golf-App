@@ -77,8 +77,8 @@ export default function CloverPacks() {
             <motion.div key={pack.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               onClick={() => setSelected(pack.id)}
               className={`glass-card p-5 cursor-pointer transition-all relative ${
-                selected === pack.id ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'
-              } ${pack.popular ? 'ring-2 ring-primary/30' : ''}`}
+                selected === pack.id ? '!border-primary !bg-primary/10 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.25)]' : `hover:!border-primary/40 ${pack.popular ? 'ring-1 ring-primary/30' : ''}`
+              }`}
             >
               {pack.popular && (
                 <span className="absolute -top-2 right-4 bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">

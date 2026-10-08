@@ -81,7 +81,7 @@ export default function PersonalCaddie() {
                 transition={{ delay: i * 0.1 }}
                 onClick={() => setSelectedClub(i)}
                 className={`glass-card p-4 cursor-pointer transition-all ${
-                  selectedClub === i ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'
+                  selectedClub === i ? '!border-primary !bg-primary/10 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.25)]' : 'hover:!border-primary/40'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">

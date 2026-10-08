@@ -23,7 +23,7 @@
  *   Total expected cost per spin: ~$4.84   Revenue: $40   Net: +$35 ✓
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,9 @@ const LuckySpin = () => {
   const { profile, refreshProfile } = useAuth();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  // True for a moment after a spin so the wheel can be re-based to a small angle without animating.
+  const [instant, setInstant] = useState(false);
+  const finishRef = useRef<(() => void) | null>(null);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
   // Spinz are only won by sinking putts in Lucky Putts. The balance lives on the server
   // (profile.spins). While a spin is in flight the one being used is already taken off the
@@ -98,9 +101,17 @@ const LuckySpin = () => {
     // border, so the result always matches what the pointer shows. Rotation is
     // cumulative across spins, so rotationToLand corrects for wherever the
     // wheel already stopped last time.
+    setInstant(false);
     setRotation(prev => rotationToLand(prev, midDeg, SPIN_ROTATIONS));
 
-    setTimeout(async () => {
+    // Everything that happens at the end (result card, toasts, balances) waits for the wheel to
+    // actually stop (its transition ending), not a timer that can fire a little early on a phone
+    // that was busy starting the spin, which showed up as a jolt in the last moment.
+    let finished = false;
+    const finish = async () => {
+      if (finished) return;
+      finished = true;
+      finishRef.current = null;
       const won = prizes[prizeIndex];
       // Pick up the new balances (clovers, putts, spins) now that the wheel has stopped.
       await refreshProfile();
@@ -125,7 +136,15 @@ const LuckySpin = () => {
       }
 
       if (won.type !== 'prize') setCanRespin(true); // the Re-spin button only shows while spins remain
-    }, SPIN_DURATION_S * 1000);
+
+      // Keep the angle small for the next spin (same picture, no animation).
+      setInstant(true);
+      setRotation(r => ((r % 360) + 360) % 360);
+      requestAnimationFrame(() => requestAnimationFrame(() => setInstant(false)));
+    };
+    finishRef.current = finish;
+    // Safety net if the browser never reports the transition ending (e.g. a hidden tab).
+    setTimeout(finish, SPIN_DURATION_S * 1000 + 1500);
   };
 
   const respin = () => {
@@ -157,10 +176,10 @@ const LuckySpin = () => {
             <div
               style={{
                 willChange: 'transform', width: '100%', aspectRatio: '1 / 1',
-                transform: `rotate(${rotation}deg) translateZ(0)`,
-                transition: `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
-                backfaceVisibility: 'hidden',
+                transform: `rotate(${rotation}deg)`,
+                transition: instant ? 'none' : `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
               }}
+              onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'transform') finishRef.current?.(); }}
               className="relative">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {prizes.map((prize, i) => {
@@ -239,6 +258,9 @@ const LuckySpin = () => {
         <p className="text-center text-sm text-muted-foreground">
           {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Sink a putt in Lucky Putts to win your next spin'}
         </p>
+        <p className="text-center text-xs text-amber-300/90" data-testid="discount-note">
+          🎅 Secret-Santa rules: a new discount swaps in for your old one, and it keeps for a month. Spin wisely!
+        </p>
 
         {/* Result */}
         <AnimatePresence>
@@ -258,6 +280,7 @@ const LuckySpin = () => {
                   <p className="text-xs text-muted-foreground">Your discount code:</p>
                   <p className="text-lg font-mono font-black text-accent tracking-widest mt-1">{DISCOUNT_CODES[result.label] ?? 'LUCKY'}</p>
                   <p className="text-xs text-muted-foreground mt-1">Use at checkout · one-time use</p>
+                  <p className="text-xs text-amber-300/90 mt-2">🎅 Secret-Santa style: this swaps out any discount you had. Good for a month!</p>
                 </div>
               )}
               {result.type === 'prize' && (
