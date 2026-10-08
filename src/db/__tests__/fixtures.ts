@@ -119,3 +119,45 @@ export const ROUNDS_LIVE = `
   CREATE POLICY own_rounds ON public.rounds FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
   DO $r$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF; END $r$;
 `;
+
+/** Wallet tables and credit_putts() as they are live (the payment function that records a putt purchase). */
+export const PAYMENTS_LIVE = `
+  CREATE TABLE public.wallets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id),
+    balance NUMERIC NOT NULL DEFAULT 0
+  );
+  CREATE TABLE public.transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    wallet_id UUID,
+    type TEXT NOT NULL,
+    amount NUMERIC NOT NULL,
+    description TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'
+  );
+  CREATE FUNCTION public.credit_putts(p_user_id UUID, p_putts INTEGER, p_bonus_clovers INTEGER, p_amount NUMERIC, p_ref TEXT)
+  RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $f$
+  DECLARE v_wallet_id UUID; v_credits INTEGER;
+  BEGIN
+    IF p_putts IS NULL OR p_putts <= 0 OR p_putts > 100 THEN RETURN jsonb_build_object('success', false, 'error', 'Invalid putts'); END IF;
+    IF coalesce(p_bonus_clovers, 0) < 0 OR coalesce(p_bonus_clovers, 0) > 50 THEN RETURN jsonb_build_object('success', false, 'error', 'Invalid bonus'); END IF;
+    IF EXISTS (SELECT 1 FROM public.transactions WHERE metadata->>'stripe_ref' = p_ref) THEN
+      RETURN jsonb_build_object('success', true, 'duplicate', true);
+    END IF;
+    UPDATE public.golfer_profiles
+    SET putt_credits = putt_credits + p_putts,
+        clovers = clovers + coalesce(p_bonus_clovers, 0),
+        total_clovers = total_clovers + coalesce(p_bonus_clovers, 0),
+        updated_at = now()
+    WHERE user_id = p_user_id RETURNING putt_credits INTO v_credits;
+    IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Profile not found'); END IF;
+    IF coalesce(p_bonus_clovers, 0) > 0 THEN PERFORM public.award_jackpot_entry(p_user_id, p_bonus_clovers); END IF;
+    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = p_user_id;
+    IF v_wallet_id IS NULL THEN INSERT INTO public.wallets (user_id) VALUES (p_user_id) RETURNING id INTO v_wallet_id; END IF;
+    INSERT INTO public.transactions (user_id, wallet_id, type, amount, description, metadata)
+    VALUES (p_user_id, v_wallet_id, 'purchase', p_amount, p_putts || ' putts purchased',
+            jsonb_build_object('stripe_ref', p_ref, 'putts', p_putts, 'bonus_clovers', coalesce(p_bonus_clovers, 0)));
+    RETURN jsonb_build_object('success', true, 'credits', v_credits);
+  END; $f$;
+`;
