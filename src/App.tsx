@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageFade } from "@/components/PageFade";
 import { ContactSync } from "@/components/ContactSync";
+import { PurchaseSync } from "@/components/PurchaseSync";
 import JoinInvite from "./pages/JoinInvite";
 
 // Domain Screens (5-tab architecture)
@@ -86,6 +87,7 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <ContactSync />
+            <PurchaseSync />
             <PageFade>
             <Routes>
               {/* ── Auth (public) ── */}
