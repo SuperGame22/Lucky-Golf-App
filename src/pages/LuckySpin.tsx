@@ -29,17 +29,18 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClovers } from '@/contexts/CloverContext';
 import { Gift, Star, Sparkles, RotateCcw, Crown, Flag } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  DISCOUNT_CODES, FREE_PUTT_INDEX, GOLD_FILL, LABEL_RADIUS, SAND_FILL, SLICE_ANGLES, pickPrizeIndex, prizes,
+  DISCOUNT_CODES, GOLD_FILL, LABEL_RADIUS, SAND_FILL, SLICE_ANGLES, prizes,
 } from '@/features/spinz/prizes';
 import { rotationToLand } from '@/features/spinz/wheel';
 
 // consume_spin isn't in the generated Supabase types yet, so call it through a narrow signature.
-type ConsumeSpinRpc = (fn: 'consume_spin') => PromiseLike<{ data: { success?: boolean; free_putt?: boolean } | null }>;
+// The database spends the spin, draws the prize and credits it (clovers, Free Putt, spin back);
+// this page only animates the slice it is told about.
+type ConsumeSpinRpc = (fn: 'consume_spin', args: { p_server_prize: boolean }) => PromiseLike<{ data: { success?: boolean; slice?: number } | null }>;
 
 /** SVG path for a pie wedge from the hub to the rim, in degrees clockwise from the wheel top. */
 const wedgePath = (startDeg: number, endDeg: number) => {
@@ -50,14 +51,13 @@ const wedgePath = (startDeg: number, endDeg: number) => {
 
 const LuckySpin = () => {
   const { profile, refreshProfile } = useAuth();
-  const { addClovers } = useClovers();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
-  // Spinz are only won by sinking putts in Lucky Putts. The saved balance lives on the
-  // server (profile.spins); "Free Spin" prizes are a local, this-visit-only extra.
-  const [freeSpins, setFreeSpins] = useState(0);
-  const spinsRemaining = (profile?.spins ?? 0) + freeSpins;
+  // Spinz are only won by sinking putts in Lucky Putts. The balance lives on the server
+  // (profile.spins). While a spin is in flight the one being used is already taken off the
+  // count, but the profile is only refreshed when the wheel stops so the result isn't given away.
+  const spinsRemaining = Math.max((profile?.spins ?? 0) - (spinning ? 1 : 0), 0);
   const [canRespin, setCanRespin] = useState(false);
 
   // Pick up spins won since the profile was last loaded.
@@ -80,28 +80,19 @@ const LuckySpin = () => {
     setResult(null);
     setCanRespin(false);
 
-    // A free-spin prize is spent first; otherwise the server spends one saved spin and
-    // also decides, on its side, whether this spin wins the Free Putt (and credits it).
-    let wonFreePutt = false;
-    if (freeSpins > 0) {
-      setFreeSpins(f => f - 1);
-    } else {
-      let ok = false;
-      try {
-        const { data } = await (supabase.rpc as unknown as ConsumeSpinRpc).call(supabase, 'consume_spin');
-        ok = !!data?.success;
-        wonFreePutt = ok && !!data?.free_putt;
-      } catch { /* treated as no spin below */ }
-      if (!ok) {
-        setSpinning(false);
-        toast.error('No spins available — sink a putt in Lucky Putts to win one.');
-        refreshProfile();
-        return;
-      }
+    // The server spends one saved spin, draws the prize and credits it.
+    let prizeIndex = -1;
+    try {
+      const { data } = await (supabase.rpc as unknown as ConsumeSpinRpc).call(supabase, 'consume_spin', { p_server_prize: true });
+      if (data?.success && Number.isInteger(data.slice) && data.slice! >= 0 && data.slice! < prizes.length) prizeIndex = data.slice!;
+    } catch { /* treated as no spin below */ }
+    if (prizeIndex < 0) {
+      setSpinning(false);
+      toast.error('No spins available — sink a putt in Lucky Putts to win one.');
       refreshProfile();
+      return;
     }
 
-    const prizeIndex = wonFreePutt ? FREE_PUTT_INDEX : pickPrizeIndex();
     const { midDeg } = SLICE_ANGLES[prizeIndex];
     // Land the chosen slice's midpoint under the pointer (top, 0°) — never on a
     // border, so the result always matches what the pointer shows. Rotation is
@@ -111,11 +102,12 @@ const LuckySpin = () => {
 
     setTimeout(async () => {
       const won = prizes[prizeIndex];
+      // Pick up the new balances (clovers, putts, spins) now that the wheel has stopped.
+      await refreshProfile();
       setSpinning(false);
       setResult(won);
 
       if (won.type === 'clovers' && won.clovers > 0) {
-        await addClovers(won.clovers, `Lucky Spin: ${won.label}`);
         toast.success(`+${won.clovers} clovers added to your balance!`);
       } else if (won.type === 'discount') {
         const code = DISCOUNT_CODES[won.label] ?? 'LUCKY';
@@ -123,8 +115,7 @@ const LuckySpin = () => {
       } else if (won.type === 'prize') {
         toast.success(`🎉 You won the ${won.label}! We'll reach out to arrange delivery.`, { duration: 10000 });
       } else if (won.type === 'free_spin') {
-        setFreeSpins(f => f + 1);
-        toast.success(`🎁 Free spin! You've got another one on the house.`, { duration: 6000 });
+        toast.success(`🎁 Free spin! Your spin was handed back.`, { duration: 6000 });
       } else if (won.type === 'free_putt') {
         toast.success(`⛳ Free Putt! It's been added to your Lucky Putts.`, { duration: 8000 });
       } else if (won.type === 'membership') {
@@ -278,7 +269,7 @@ const LuckySpin = () => {
                 </div>
               )}
               {result.type === 'free_spin' && (
-                <p className="text-sm text-cyan-400 mt-1 font-bold">+1 spin added — go again!</p>
+                <p className="text-sm text-cyan-400 mt-1 font-bold">Your spin was handed back — go again!</p>
               )}
               {result.type === 'free_putt' && (
                 <div className="flex items-center justify-center gap-1 mt-3 flex-col">

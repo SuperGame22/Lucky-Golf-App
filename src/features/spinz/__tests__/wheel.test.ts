@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { FREE_PUTT_INDEX, GOLD_SHARE, SELECTION_WEIGHTS, SLICE_ANGLES, LABEL_RADIUS, pickPrizeIndex, prizes } from "../prizes";
+import { GOLD_SHARE, SLICE_ANGLES, LABEL_RADIUS, prizes } from "../prizes";
 import { buildSlices, rotationToLand, sliceUnderPointer } from "../wheel";
 
 const goldIndexes = prizes.map((p, i) => (p.rare ? i : -1)).filter((i) => i >= 0);
@@ -38,7 +36,6 @@ describe("wheel layout", () => {
 
   it("has one Free Putt and no 6-month Clover Club", () => {
     expect(prizes.filter((p) => p.type === "free_putt")).toHaveLength(1);
-    expect(prizes[FREE_PUTT_INDEX].label).toBe("Free Putt");
     expect(prizes.some((p) => p.label.startsWith("6mo"))).toBe(false);
     expect(prizes.filter((p) => p.type === "membership").map((p) => p.label)).toEqual(["1mo Clover Club", "3mo Clover Club"]);
   });
@@ -92,31 +89,5 @@ describe("where the wheel stops", () => {
   it("buildSlices splits by weight", () => {
     const s = buildSlices([1, 1, 2]);
     expect(s.map((x) => x.endDeg - x.startDeg)).toEqual([90, 90, 180]);
-  });
-});
-
-describe("prize odds", () => {
-  it("never picks the Free Putt on its own", () => {
-    for (let k = 0; k < 20000; k++) expect(pickPrizeIndex(() => k / 20000)).not.toBe(FREE_PUTT_INDEX);
-    expect(pickPrizeIndex(() => 0.9999999999)).not.toBe(FREE_PUTT_INDEX);
-  });
-
-  it("keeps every other prize in its original proportion", () => {
-    const N = 200000;
-    const counts = new Array(prizes.length).fill(0);
-    for (let k = 0; k < N; k++) counts[pickPrizeIndex(() => (k + 0.5) / N)]++;
-    const total = SELECTION_WEIGHTS.reduce((s, w, i) => (i === FREE_PUTT_INDEX ? s : s + w), 0);
-    SELECTION_WEIGHTS.forEach((w, i) => {
-      if (i === FREE_PUTT_INDEX) return;
-      expect(Math.abs(counts[i] / N - w / total)).toBeLessThan(1e-3);
-    });
-  });
-
-  it("matches the database's Free Putt odds to the slice's share of the wheel", () => {
-    const sql = readFileSync(resolve(__dirname, "../../../../supabase/migrations/20261008120000_free_putt_spin.sql"), "utf8");
-    const odds = Number(/random\(\)\s*<\s*([0-9.]+)/.exec(sql)?.[1]);
-    const share = SELECTION_WEIGHTS[FREE_PUTT_INDEX] / SELECTION_WEIGHTS.reduce((s, w) => s + w, 0);
-    expect(Number.isFinite(odds)).toBe(true);
-    expect(Math.abs(odds - share)).toBeLessThan(0.0005);
   });
 });

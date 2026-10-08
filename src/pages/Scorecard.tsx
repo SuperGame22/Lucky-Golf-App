@@ -9,7 +9,6 @@ import { FindPlayers } from "@/components/scorecard/FindPlayers";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useClovers } from "@/contexts/CloverContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -48,11 +47,13 @@ const buildHoles = (course?: SelectedCourse) =>
     };
   });
 
-const CLOVERS_PER_ROUND = 5;
+const CLOVERS_PER_ROUND = 5; // display only; the amount and daily limit are enforced by award_round_clovers()
+
+// award_round_clovers isn't in the generated Supabase types, so call it through a narrow signature.
+type AwardRoundRpc = (fn: 'award_round_clovers', args: { p_round_id: string }) => PromiseLike<{ data: { success?: boolean; clovers?: number } | null }>;
 
 const Scorecard = () => {
   const { user, refreshProfile } = useAuth();
-  const { addClovers } = useClovers();
   const navigate = useNavigate();
   const location = useLocation();
   const course = (location.state as { course?: SelectedCourse } | null)?.course;
@@ -129,7 +130,7 @@ const Scorecard = () => {
 
     try {
       // Save round
-      const { error } = await supabase.from('rounds').insert({
+      const { data: inserted, error } = await supabase.from('rounds').insert({
         user_id: user.id,
         course_name: course?.name ?? 'Practice Round',
         holes: roundLength,
@@ -141,16 +142,21 @@ const Scorecard = () => {
         total_putts: finalPuttsTotal,
         holes_played: roundLength,
         completed: true,
-        clovers_earned: CLOVERS_PER_ROUND,
-      });
+        clovers_earned: 0, // the server fills this in when it awards the clovers
+      }).select('id').single();
 
       if (error) throw error;
 
-      // Award clovers via CloverContext (add_clovers RPC → golfer_profiles.clovers)
-      await addClovers(CLOVERS_PER_ROUND, 'round_complete');
+      // The database pays the round's clovers (once per round, with a daily limit) and says how many.
+      let earned = 0;
+      try {
+        const { data: award } = await (supabase.rpc as unknown as AwardRoundRpc).call(supabase, 'award_round_clovers', { p_round_id: inserted.id });
+        earned = award?.success ? award.clovers ?? 0 : 0;
+      } catch { /* the round is saved either way */ }
+      await refreshProfile();
 
       setFinished(true);
-      toast.success(`Round saved! +${CLOVERS_PER_ROUND} clovers earned 🍀`);
+      toast.success(earned > 0 ? `Round saved! +${earned} clovers earned 🍀` : 'Round saved!');
     } catch (e: any) {
       toast.error(e.message || 'Failed to save round');
     } finally {

@@ -117,24 +117,9 @@ export const SLICE_ANGLES = buildSlices(prizes.map((p) => p.width ?? 1));
 // 1/3 as often as before while everything else keeps the same relative odds
 // among itself. The wheel animation itself is unaffected — still a normal
 // random spin, just with the "which prize" step weighted.
+//
+// The draw itself happens in the database (consume_spin, over the spin_wheel_slices table, which a
+// test keeps identical to this list); the page only animates the slice the server returns.
 const CLUB_SELECTION_WEIGHT = 11 / 35; // solved so 3 clubs vs 33 others => combined club odds = (previous 3/36) / 3 = 1/36
 export const SELECTION_WEIGHTS = prizes.map((p) => (p.rare ? CLUB_SELECTION_WEIGHT : 1));
 
-/** Index of the Free Putt slice. */
-export const FREE_PUTT_INDEX = prizes.findIndex((p) => p.type === 'free_putt');
-
-/**
- * Picks the winning slice. The Free Putt slice is a real giveaway (a putt credit), so the
- * database rolls for it in consume_spin() and the page only ever lands on it when told to;
- * every other pick leaves it out, which keeps the rest of the odds in the same proportions.
- */
-export function pickPrizeIndex(random: () => number = Math.random): number {
-  const weights = SELECTION_WEIGHTS.map((w, i) => (i === FREE_PUTT_INDEX ? 0 : w));
-  const total = weights.reduce((sum, w) => sum + w, 0);
-  let r = random() * total;
-  for (let i = 0; i < weights.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return i;
-  }
-  return weights.length - 1;
-}
