@@ -29,6 +29,7 @@ import {
 } from '@/services/realtimeService';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { WagerResults } from './WagerResults';
+import { buildInviteLink, clearPendingInvite, inviteMessage, readPendingInvite, smsHref } from '@/features/invites/invites';
 import {
   Trophy, Crown, Users, Plus, Minus, Zap, Flag, ChevronRight, Check, X,
   Swords, ArrowLeft, Copy, Hash, Loader2, AlertCircle, Wifi, WifiOff, DollarSign,
@@ -282,13 +283,13 @@ export default function LuckyWagers() {
   useEffect(() => { loadPending(); }, [loadPending]);
   const [joinLoading, setJoinLoading] = useState(false);
 
-  const handleJoin = () => {
+  const joinWith = (rawCode: string) => {
     if (!user) { navigate('/auth'); return; }
     if (!profile?.date_of_birth || !profile?.tos_accepted_at) {
       navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
       return;
     }
-    if (joinCode.length < 6) { setError('Enter a 6-character code'); return; }
+    if (rawCode.length < 6) { setError('Enter a 6-character code'); return; }
     setJoinLoading(true);
     setError(null);
     setCompetitionId(null);
@@ -296,8 +297,46 @@ export default function LuckyWagers() {
     setCollecting(false);
     setPaidUserIds(new Set());
     setView('lobby');
-    connectToSession(joinCode.toUpperCase(), false);
+    connectToSession(rawCode.toUpperCase(), false);
     setJoinLoading(false);
+  };
+  const handleJoin = () => joinWith(joinCode);
+
+  // Someone who arrived from an invite link (and signed up or signed in on the way) goes straight in.
+  const autoJoined = useRef(false);
+  useEffect(() => {
+    if (autoJoined.current || !user || !profile || view !== 'mode-select') return;
+    const invite = readPendingInvite(localStorage);
+    if (!invite) return;
+    autoJoined.current = true;
+    if (!profile.date_of_birth || !profile.tos_accepted_at) {
+      // Age check first; the invite stays saved and this runs again when they are back.
+      navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
+      return;
+    }
+    clearPendingInvite(localStorage);
+    if (invite.from) {
+      // (the request only goes out once it is awaited / .then'd)
+      (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => PromiseLike<unknown>)
+        .call(supabase, 'accept_wager_invite', { p_code: invite.code, p_inviter: invite.from })
+        .then(() => undefined, () => undefined);
+    }
+    setJoinCode(invite.code);
+    joinWith(invite.code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile, view]);
+
+  const inviteLink = () => buildInviteLink(window.location.origin, sessionCode, myId);
+  const shareInvite = async () => {
+    const message = inviteMessage(inviteLink(), isHost ? betAmount : null);
+    if (navigator.share) {
+      try { await navigator.share({ text: message }); return; } catch { return; /* closed the sheet */ }
+    }
+    window.location.href = smsHref(message);
+  };
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink());
+    setError(null);
   };
 
   // ── Host: Lock in the wager — this is where real money moves. ──
@@ -600,6 +639,14 @@ export default function LuckyWagers() {
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">Share this code with your opponents</p>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button size="sm" className="font-black uppercase tracking-wider text-xs" onClick={shareInvite} data-testid="invite-text-btn">
+                Text an invite
+              </Button>
+              <Button size="sm" variant="outline" className="font-black uppercase tracking-wider text-xs" onClick={copyInviteLink} data-testid="invite-copy-btn">
+                Copy link
+              </Button>
+            </div>
           </div>
 
           {error && (

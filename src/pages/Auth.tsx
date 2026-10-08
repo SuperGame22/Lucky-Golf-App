@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { CloverLogo } from '@/components/icons/CloverLogo';
+import { afterAuthPath, normalizeUsPhone, readPendingInvite, savePendingContact } from '@/features/invites/invites';
 import {
   Mail,
   Lock,
@@ -20,6 +21,7 @@ import {
   Check,
   AlertCircle,
   Loader2,
+  Phone,
 } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'reset';
@@ -27,10 +29,14 @@ type AuthMode = 'login' | 'signup' | 'reset';
 export default function AuthPage() {
   const navigate = useNavigate();
   const { signIn, signUp, resetPassword, user } = useAuth();
-  const [mode, setMode] = useState<AuthMode>('login');
+  // An invite link sends new players here to sign up first.
+  const pendingInvite = readPendingInvite(localStorage);
+  const [mode, setMode] = useState<AuthMode>(pendingInvite && new URLSearchParams(window.location.search).get('invite') ? 'signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [consent, setConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +44,7 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   if (user) {
-    navigate('/');
+    navigate(afterAuthPath(localStorage));
     return null;
   }
 
@@ -52,13 +58,20 @@ export default function AuthPage() {
       if (mode === 'login') {
         const { error: err } = await signIn(email, password);
         if (err) { setError(err); }
-        else { navigate('/'); }
+        else { navigate(afterAuthPath(localStorage)); }
       } else if (mode === 'signup') {
         if (!displayName.trim()) { setError('Display name is required'); setLoading(false); return; }
         if (password.length < 6) { setError('Password must be at least 6 characters'); setLoading(false); return; }
+        // The mobile number is optional, except for someone joining a wager from an invite link.
+        const typed = phone.trim();
+        const normalized = typed ? normalizeUsPhone(typed) : null;
+        if (typed && !normalized) { setError('Enter a 10-digit US mobile number'); setLoading(false); return; }
+        if (normalized && !consent) { setError('Please tick the box to let us text you, or clear the number'); setLoading(false); return; }
+        if (pendingInvite && !normalized) { setError('Add your mobile number to join this wager'); setLoading(false); return; }
         const { error: err } = await signUp(email, password, displayName);
         if (err) { setError(err); }
-        else { setSuccess('Account created! Check your email to confirm, or sign in now.'); setMode('login'); }
+        else {
+          if (normalized) savePendingContact(localStorage, { phone: normalized, consent: true }); setSuccess('Account created! Check your email to confirm, or sign in now.'); setMode('login'); }
       } else if (mode === 'reset') {
         const { error: err } = await resetPassword(email);
         if (err) { setError(err); }
@@ -91,6 +104,13 @@ export default function AuthPage() {
             {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Join the Club' : 'Reset Password'}
           </p>
         </motion.div>
+
+        {pendingInvite && (
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 mb-4" data-testid="invite-banner">
+            <CloverIcon className="w-4 h-4 text-primary flex-shrink-0" />
+            <p className="text-xs text-primary">You've been invited to a Lucky Wager. {mode === 'signup' ? 'Create your account to join.' : 'Sign in to join.'}</p>
+          </div>
+        )}
 
         {/* Error / Success Messages */}
         <AnimatePresence>
@@ -174,6 +194,29 @@ export default function AuthPage() {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div className="space-y-2">
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder={pendingInvite ? 'Mobile number' : 'Mobile number (optional)'}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={inputCls}
+                  data-testid="auth-phone"
+                  required={!!pendingInvite}
+                />
+              </div>
+              <label className="flex items-start gap-2 text-[11px] text-muted-foreground leading-snug cursor-pointer">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" data-testid="auth-phone-consent" />
+                <span>Yes, Lucky Golf may text me about my wagers and account. Message and data rates may apply.</span>
+              </label>
             </div>
           )}
 

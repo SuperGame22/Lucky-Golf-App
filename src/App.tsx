@@ -12,6 +12,8 @@ import { TierProvider } from "@/contexts/TierContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageFade } from "@/components/PageFade";
+import { ContactSync } from "@/components/ContactSync";
+import JoinInvite from "./pages/JoinInvite";
 
 // Domain Screens (5-tab architecture)
 import HomeScreen from "@/domains/home/screens/HomeScreen";
@@ -83,10 +85,12 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <ContactSync />
             <PageFade>
             <Routes>
               {/* ── Auth (public) ── */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/join/:code" element={<JoinInvite />} />
 
               {/* ── 5-Tab Domain Hubs ── */}
               <Route path="/" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
