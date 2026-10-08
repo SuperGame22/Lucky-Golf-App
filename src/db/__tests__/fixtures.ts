@@ -125,7 +125,8 @@ export const PAYMENTS_LIVE = `
   CREATE TABLE public.wallets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id),
-    balance NUMERIC NOT NULL DEFAULT 0
+    balance NUMERIC NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT now()
   );
   CREATE TABLE public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,7 +135,8 @@ export const PAYMENTS_LIVE = `
     type TEXT NOT NULL,
     amount NUMERIC NOT NULL,
     description TEXT,
-    metadata JSONB NOT NULL DEFAULT '{}'
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now()
   );
   CREATE FUNCTION public.credit_putts(p_user_id UUID, p_putts INTEGER, p_bonus_clovers INTEGER, p_amount NUMERIC, p_ref TEXT)
   RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $f$
@@ -167,15 +169,18 @@ export const COMPETITIONS_LIVE = `
   CREATE TABLE public.competitions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     creator_id UUID NOT NULL REFERENCES auth.users(id),
+    buy_in NUMERIC NOT NULL DEFAULT 0,
     pot_total NUMERIC NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'pending',
     winner_id UUID,
+    created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
   );
   CREATE TABLE public.competition_players (
     competition_id UUID NOT NULL REFERENCES public.competitions(id),
     user_id UUID NOT NULL REFERENCES auth.users(id),
     has_paid BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY (competition_id, user_id)
   );
   CREATE TABLE public.spin_prizes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), label TEXT, weight NUMERIC, active BOOLEAN DEFAULT true);

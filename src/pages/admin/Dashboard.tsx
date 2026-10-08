@@ -49,6 +49,13 @@ const AdminDashboard = () => {
       link: "/admin/jackpots",
       color: "text-primary"
     },
+    {
+      title: "Wager reviews",
+      description: "Pay or refund wagers that were disputed or stuck",
+      icon: ShoppingCart,
+      link: "/admin/wagers",
+      color: "text-primary"
+    },
   ];
 
   return (
