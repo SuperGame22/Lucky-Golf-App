@@ -161,3 +161,47 @@ export const PAYMENTS_LIVE = `
     RETURN jsonb_build_object('success', true, 'credits', v_credits);
   END; $f$;
 `;
+
+/** Wager tables and settle_competition() as they are live (pays the pot to a paid participant). */
+export const COMPETITIONS_LIVE = `
+  CREATE TABLE public.competitions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    creator_id UUID NOT NULL REFERENCES auth.users(id),
+    pot_total NUMERIC NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    winner_id UUID,
+    updated_at TIMESTAMPTZ DEFAULT now()
+  );
+  CREATE TABLE public.competition_players (
+    competition_id UUID NOT NULL REFERENCES public.competitions(id),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    has_paid BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY (competition_id, user_id)
+  );
+  CREATE TABLE public.spin_prizes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), label TEXT, weight NUMERIC, active BOOLEAN DEFAULT true);
+  CREATE TABLE public.spin_results (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, prize_id UUID REFERENCES public.spin_prizes(id));
+  CREATE FUNCTION public.spin_wheel(p_user_id UUID) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $f$
+  BEGIN RETURN jsonb_build_object('success', true); END; $f$;
+  CREATE FUNCTION public.settle_competition(p_competition_id UUID, p_winner_user_id UUID) RETURNS JSONB
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $f$
+  DECLARE v_competition RECORD; v_wallet_id UUID; v_new_balance NUMERIC;
+  BEGIN
+    SELECT * INTO v_competition FROM public.competitions WHERE id = p_competition_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Competition not found'; END IF;
+    IF v_competition.status = 'completed' THEN RETURN jsonb_build_object('success', true, 'duplicate', true); END IF;
+    IF v_competition.status NOT IN ('pending', 'active') THEN RAISE EXCEPTION 'Competition cannot be settled from status %', v_competition.status; END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.competition_players WHERE competition_id = p_competition_id AND user_id = auth.uid() AND has_paid = true) THEN
+      RAISE EXCEPTION 'Only a paid participant in this competition can settle it';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.competition_players WHERE competition_id = p_competition_id AND user_id = p_winner_user_id AND has_paid = true) THEN
+      RAISE EXCEPTION 'Winner was not a paid participant in this competition';
+    END IF;
+    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = p_winner_user_id FOR UPDATE;
+    IF v_wallet_id IS NULL THEN INSERT INTO public.wallets (user_id, balance) VALUES (p_winner_user_id, 0) RETURNING id INTO v_wallet_id; END IF;
+    UPDATE public.wallets SET balance = balance + v_competition.pot_total WHERE id = v_wallet_id RETURNING balance INTO v_new_balance;
+    INSERT INTO public.transactions (user_id, wallet_id, type, amount, description, metadata)
+    VALUES (p_winner_user_id, v_wallet_id, 'winnings', v_competition.pot_total, 'Won foursome wager', jsonb_build_object('competition_id', p_competition_id));
+    UPDATE public.competitions SET status = 'completed', winner_id = p_winner_user_id, updated_at = now() WHERE id = p_competition_id;
+    RETURN jsonb_build_object('success', true, 'winner_id', p_winner_user_id, 'amount', v_competition.pot_total);
+  END; $f$;
+`;
