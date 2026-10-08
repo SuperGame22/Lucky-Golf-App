@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLOVER_HOLD_MS, LEAF_MS, MAX_ANIMATED_CLOVERS, buildRevealPlan, revealDurationMs } from "../reveal";
+import { CLOVER_HOLD_MS, LEAF_MS, MAX_ANIMATED_CLOVERS, SLOWDOWN, buildRevealPlan, revealDurationMs } from "../reveal";
 
 describe("home clover reveal", () => {
   it("does nothing when there is nothing new", () => {
@@ -36,9 +36,31 @@ describe("home clover reveal", () => {
     expect(plan.steps.filter((s) => s.lit > 0)).toHaveLength(40);
   });
 
-  it("keeps a steady rhythm: one leaf at a time", () => {
-    const plan = buildRevealPlan(2, 2, 0);
-    expect(plan.steps.slice(0, 5).map((s) => s.delayMs)).toEqual([LEAF_MS, LEAF_MS, LEAF_MS, LEAF_MS, CLOVER_HOLD_MS]);
+  it("lights one leaf at a time at a steady rhythm", () => {
+    const plan = buildRevealPlan(1, 1, 0);
+    const lights = plan.steps.filter((s) => s.lit > 0).map((s) => s.delayMs);
+    expect(new Set(lights).size).toBe(1);
+  });
+
+  it("runs all but the last two clovers fast, then slows 20% on the fifth and 20% again on the sixth", () => {
+    const plan = buildRevealPlan(6, 6, 0);
+    // time taken by each clover: leaf 2, 3, 4 and the hold after it (leaf 1 is the starting gun)
+    const perClover: number[] = [];
+    let acc = 0;
+    for (const s of plan.steps) {
+      if (s.lit !== 1) acc += s.delayMs;
+      if (s.lit === 0) { perClover.push(acc); acc = 0; }
+    }
+    expect(perClover).toHaveLength(6);
+    const fast = perClover[0];
+    expect(perClover.slice(0, 4)).toEqual([fast, fast, fast, fast]);
+    expect(fast).toBe(3 * LEAF_MS + CLOVER_HOLD_MS);
+    expect(Math.abs(perClover[4] / fast - SLOWDOWN)).toBeLessThan(0.01);
+    expect(Math.abs(perClover[5] / perClover[4] - SLOWDOWN)).toBeLessThan(0.01);
+  });
+
+  it("the fast pace is faster than the old 120ms per leaf", () => {
+    expect(LEAF_MS).toBeLessThan(120);
   });
 
   it("shortens a huge backlog but still ends on the right numbers", () => {
