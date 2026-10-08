@@ -36,7 +36,7 @@ export default function CareerStats() {
             const Icon = stat.icon;
             const isPositive = stat.trend.startsWith('+') || stat.trend.startsWith('-');
             return (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="glass-card p-4"
               >
                 <Icon className="w-5 h-5 text-primary mb-2" />

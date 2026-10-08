@@ -59,7 +59,7 @@ export default function HomeScreen() {
         </motion.div>
 
         {/* Clover Balance */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden glass-card p-5 glow-green">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
           <div className="relative flex items-start justify-between gap-4">
@@ -67,7 +67,7 @@ export default function HomeScreen() {
               <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
               <div className="flex items-center gap-4">
                 <SpendClover className="w-[76px] h-[76px]" litLeaves={reveal.lit} earnedPulse={reveal.pulse} />
-                <span className={`${String(clovers).length >= 4 ? 'text-5xl' : 'text-6xl'} font-display font-bold text-gradient-green -ml-3`} style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
+                <span className={`${String(clovers).length >= 4 ? 'text-[41px] leading-none' : 'text-[51px] leading-none'} font-display font-bold text-gradient-green -ml-3`} style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
               </div>
               <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
                 <Sparkles className="w-5 h-5" />
@@ -113,7 +113,7 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <div className="grid grid-cols-4 gap-3">
           {quickActions.map((action, index) => (
-            <motion.div key={action.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            <motion.div key={action.path} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + index * 0.05 }}>
               <Link to={action.path}
                 className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-300 relative ${action.color}`}>
@@ -125,7 +125,7 @@ export default function HomeScreen() {
         </div>
 
         {/* Wagers CTA */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="glass-card p-5 cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/play/wagers')}>
           <div className="flex items-center gap-4">
@@ -141,7 +141,7 @@ export default function HomeScreen() {
         </motion.div>
 
         {/* Activity — From Supabase transactions */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="glass-card p-5">
           <h3 className="font-display font-semibold text-lg mb-3">Activity</h3>
           {activity.length === 0 ? (

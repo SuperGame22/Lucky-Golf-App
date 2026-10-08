@@ -51,7 +51,7 @@ export const MatchPlayersModal = ({ userLuckyLevel, onClose }: MatchPlayersModal
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         className="glass-card p-5 space-y-4"

@@ -67,7 +67,7 @@ export default function WeeklyRaffle() {
           <div className="text-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
         ) : !jackpot ? (
           /* No active jackpot */
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className="glass-card p-10 text-center">
             <Gift className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="font-black text-lg mb-2">No Active Jackpot</p>
@@ -105,7 +105,7 @@ export default function WeeklyRaffle() {
             </motion.div>
 
             {/* Your entries */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="glass-card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -125,7 +125,7 @@ export default function WeeklyRaffle() {
             </motion.div>
 
             {/* How to earn more entries */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="glass-card p-5">
               <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Earn More Entries</p>
               <div className="space-y-2">

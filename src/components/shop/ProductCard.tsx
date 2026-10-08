@@ -6,7 +6,7 @@ import { ProductCategory } from '@/data/shopCategories';
 export function ProductCard({ product, index }: { product: ProductCategory; index: number }) {
   return (
     <motion.a href={product.url} target="_blank" rel="noopener noreferrer"
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
       className="glass-card overflow-hidden hover:border-primary/50 transition-all active:scale-95 block relative">
       {product.badge && (
         <div className="absolute top-2 left-2 z-10">

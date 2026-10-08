@@ -81,7 +81,7 @@ const Membership = () => {
             return (
               <motion.div
                 key={tier.name}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className={`relative overflow-hidden rounded-2xl ${

@@ -99,7 +99,7 @@ export default function ProfileEditor() {
           </motion.div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="glass-card p-6 text-center">
           <div className="relative inline-block mb-4">
             <div
@@ -137,7 +137,7 @@ export default function ProfileEditor() {
           <p className="text-xs text-muted-foreground mt-2">Tap to change avatar</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="space-y-4">
           <div>
             <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground block mb-2">

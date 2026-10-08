@@ -30,7 +30,7 @@ export default function LuckyCoach() {
         </motion.div>
 
         {/* Coach Ace */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="glass-card p-6 border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-900/5 cursor-pointer hover:border-primary/40 transition-colors"
           onClick={() => navigate('/coach/ace')}>
           <div className="flex items-start gap-4">
@@ -48,7 +48,7 @@ export default function LuckyCoach() {
         </motion.div>
 
         {/* Quick topics */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Ask Coach Ace about</p>
           <div className="flex flex-wrap gap-2">
             {['Fix my slice', 'Club selection', 'Putting tips', 'Course management', 'Mental game', 'Sand trap escape', 'Grip pressure', 'Ball position'].map(t => (
