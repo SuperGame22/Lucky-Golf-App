@@ -5,10 +5,13 @@
  */
 
 export const LEAVES_PER_CLOVER = 4;
-/** Pause between one leaf lighting and the next. */
-export const LEAF_MS = 120;
-/** Pause when the fourth leaf lights and the count ticks up, before the leaves clear. */
-export const CLOVER_HOLD_MS = 280;
+/** Pause between one leaf lighting and the next, at the fast pace. */
+export const LEAF_MS = 90;
+/** Pause when the fourth leaf lights and the count ticks up, before the leaves clear, at the fast pace. */
+export const CLOVER_HOLD_MS = 220;
+/** Every clover runs at the fast pace except the last two, which ease off: the second-to-last
+ *  is this much slower than the fast pace, and the last is this much slower again. */
+export const SLOWDOWN = 1.2;
 /** A very large backlog is shortened to this many animated clovers; the rest is added up front. */
 export const MAX_ANIMATED_CLOVERS = 15;
 
@@ -48,15 +51,19 @@ export function buildRevealPlan(pending: number, clovers: number, weekCount: num
   let count = startCount;
   let week = startWeek;
   for (let c = 0; c < animated; c++) {
+    const fromEnd = animated - 1 - c; // 0 = last clover, 1 = second to last
+    const slow = fromEnd === 0 ? SLOWDOWN * SLOWDOWN : fromEnd === 1 ? SLOWDOWN : 1;
+    const leafMs = Math.round(LEAF_MS * slow);
+    const holdMs = Math.round(CLOVER_HOLD_MS * slow);
     for (let leaf = 1; leaf <= LEAVES_PER_CLOVER; leaf++) {
       const done = leaf === LEAVES_PER_CLOVER;
       if (done) {
         count += 1;
         week += 1;
       }
-      steps.push({ delayMs: leaf === 1 && c > 0 ? 0 : LEAF_MS, lit: leaf, count, week, pulse: done });
+      steps.push({ delayMs: leaf === 1 && c > 0 ? 0 : leafMs, lit: leaf, count, week, pulse: done });
     }
-    steps.push({ delayMs: CLOVER_HOLD_MS, lit: 0, count, week, pulse: false });
+    steps.push({ delayMs: holdMs, lit: 0, count, week, pulse: false });
   }
   return { startCount, startWeek, steps };
 }

@@ -67,7 +67,7 @@ export default function HomeScreen() {
               <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
               <div className="flex items-center gap-4">
                 <SpendClover className="w-[76px] h-[76px]" litLeaves={reveal.lit} earnedPulse={reveal.pulse} />
-                <span className="text-6xl font-display font-bold text-gradient-green" style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
+                <span className={`${String(clovers).length >= 4 ? 'text-5xl' : 'text-6xl'} font-display font-bold text-gradient-green -ml-3`} style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
               </div>
               <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
                 <Sparkles className="w-5 h-5" />
