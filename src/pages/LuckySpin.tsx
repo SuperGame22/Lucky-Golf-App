@@ -159,10 +159,19 @@ const LuckySpin = () => {
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
             </div>
-            <motion.div animate={{ rotate: rotation }} transition={{ duration: SPIN_DURATION_S, ease: SPIN_EASE }}
-              style={{ willChange: 'transform', width: '100%', aspectRatio: '1 / 1' }}
+            {/* Static shadow: a filter on the rotating element would be repainted every frame. */}
+            <div className="absolute rounded-full shadow-2xl pointer-events-none" style={{ width: '100%', aspectRatio: '1 / 1' }} />
+            {/* The turn is a CSS transition, which the browser runs on the GPU compositor, so
+                the long slow-down stays smooth even if the page is busy. */}
+            <div
+              style={{
+                willChange: 'transform', width: '100%', aspectRatio: '1 / 1',
+                transform: `rotate(${rotation}deg) translateZ(0)`,
+                transition: `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
+                backfaceVisibility: 'hidden',
+              }}
               className="relative">
-              <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
                 {prizes.map((prize, i) => {
                   const { startDeg, endDeg } = SLICE_ANGLES[i];
                   // The sand slivers are painted as part of their sand/gold/sand cluster below.
@@ -188,6 +197,8 @@ const LuckySpin = () => {
                       stroke="hsl(var(--border))" strokeWidth="0.3" />
                   );
                 })}
+                {/* Thin gold rim so every slice meets the same line. */}
+                <circle cx="50" cy="50" r="49.85" fill="none" stroke={GOLD_FILL} strokeWidth="0.3" />
                 <circle cx="50" cy="50" r="8" fill={GOLD_FILL} />
               </svg>
               {/* Labels run "long ways" — radially outward, out near the rim
@@ -205,7 +216,7 @@ const LuckySpin = () => {
                 const isThinSliver = isSand && (prize.width ?? 1) < 1;
                 return (
                   <div key={i}
-                    className={`absolute leading-none whitespace-nowrap ${isThinSliver ? 'text-[4.05px] font-bold' : 'text-[10.8px] font-semibold'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
+                    className={`absolute leading-none whitespace-nowrap ${isThinSliver ? 'text-[5px] font-bold' : prize.rare ? 'text-[10.8px] font-semibold' : 'text-[11.3px] font-semibold'} ${prize.rare ? 'text-accent-foreground' : isSand ? 'text-amber-950' : 'text-foreground'}`}
                     style={{
                       left: `${50 + R * Math.cos(rad)}%`,
                       top: `${50 + R * Math.sin(rad)}%`,
@@ -215,7 +226,7 @@ const LuckySpin = () => {
                   </div>
                 );
               })}
-            </motion.div>
+            </div>
             {/* Static hub logo — sits outside the rotating wheel so it
                 stays upright instead of spinning with it. */}
             <img src="/clover-logo.png" alt="Lucky Golf" draggable={false}
