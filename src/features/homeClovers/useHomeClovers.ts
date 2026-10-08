@@ -9,10 +9,15 @@ interface HomeCloverRow {
   total: number;
   pending: number;
   week_count: number;
+  // Spend leaves (older databases don't send these; the reveal then treats everything as whole clovers).
+  cents?: number;
+  pending_leaves?: number;
+  rest_leaves?: number;
+  spend_pending_clovers?: number;
 }
 
 // These two functions aren't in the generated Supabase types, so call them through a narrow signature.
-type Rpc = (fn: 'get_home_clovers' | 'ack_home_clovers', args?: { p_seen_total: number }) => PromiseLike<{ data: HomeCloverRow | null }>;
+type Rpc = (fn: 'get_home_clovers' | 'ack_home_clovers', args?: { p_seen_total: number; p_seen_cents?: number }) => PromiseLike<{ data: HomeCloverRow | null }>;
 const rpc: Rpc = (fn, args) => (supabase.rpc as unknown as Rpc).call(supabase, fn, args);
 
 export interface HomeCloverView {
@@ -66,27 +71,35 @@ export function useHomeClovers(): HomeCloverView {
       return;
     }
 
-    const plan = buildRevealPlan(data.pending, data.clovers, data.week_count);
-    setView((v) => ({ ...v, ready: true, count: plan.startCount, week: plan.startWeek, lit: 0 }));
+    const plan = buildRevealPlan({
+      clovers: data.clovers,
+      weekCount: data.week_count,
+      pending: data.pending,
+      pendingLeaves: data.pending_leaves ?? 0,
+      restLeaves: data.rest_leaves ?? 0,
+      spendPendingClovers: data.spend_pending_clovers ?? 0,
+    });
+    setView((v) => ({ ...v, ready: true, count: plan.startCount, week: plan.startWeek, lit: plan.startLit }));
 
     const finish = async () => {
       let row: HomeCloverRow | null = null;
       try {
-        ({ data: row } = await rpc('ack_home_clovers', { p_seen_total: data!.total }));
+        ({ data: row } = await rpc('ack_home_clovers', { p_seen_total: data!.total, p_seen_cents: data!.cents }));
       } catch { /* the reveal simply plays again next visit */ }
       if (my !== runId.current) return;
       playing.current = false;
       setView((v) => ({
         ...v,
-        lit: 0,
+        lit: row?.success ? row.rest_leaves ?? plan.endLit : plan.endLit,
         count: row?.success ? row.clovers : data!.clovers,
-        week: row?.success ? row.week_count : plan.startWeek + data!.pending,
+        week: row?.success ? row.week_count : plan.startWeek + Math.max(0, plan.steps.filter((x) => x.pulse).length),
       }));
     };
 
     const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const hasNews = data.pending > 0 || (data.pending_leaves ?? 0) > 0;
     if (plan.steps.length === 0 || reduceMotion) {
-      if (data.pending > 0) { playing.current = true; await finish(); }
+      if (hasNews) { playing.current = true; await finish(); }
       return;
     }
 
