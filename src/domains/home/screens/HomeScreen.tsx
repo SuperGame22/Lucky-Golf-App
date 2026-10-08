@@ -5,7 +5,8 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRecentTransactions } from '@/services/cloverService';
-import { CloverIcon } from '@/components/icons/CloverIcon';
+import { SpendClover } from '@/components/icons/SpendClover';
+import { useHomeClovers } from '@/features/homeClovers/useHomeClovers';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -28,12 +29,14 @@ export default function HomeScreen() {
   const navigate = useNavigate();
 
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Golfer';
-  const clovers = profile?.clovers ?? 0;
+  // New clovers are held back and revealed here (leaf by leaf) when the page is viewed.
+  const reveal = useHomeClovers();
+  const clovers = reveal.ready ? reveal.count : (profile?.clovers ?? 0);
   const totalClovers = profile?.total_clovers ?? 0;
   const handicap = profile?.handicap_index ?? 0;
   const luckyLevel = profile?.lucky_level ?? 1;
   // Placeholder (matches local build) until a weekly clover ledger exists.
-  const cloversThisWeek = 3;
+  const cloversThisWeek = reveal.week ?? 3;
   const goldBalance = (profile as any)?.gold_balance ?? 0;
 
   const [activity, setActivity] = useState<any[]>([]);
@@ -63,10 +66,13 @@ export default function HomeScreen() {
             <div className="flex-shrink-0">
               <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
               <div className="flex items-center gap-4">
-                <CloverIcon className="w-12 h-14 text-primary animate-float" />
-                <span className="text-5xl font-display font-black text-gradient-green">{clovers}</span>
+                <SpendClover className="w-[76px] h-[76px]" litLeaves={reveal.lit} earnedPulse={reveal.pulse} />
+                <span className="text-6xl font-display font-bold text-gradient-green" style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
               </div>
-              <p className="mt-3 text-lg font-medium text-primary">+{cloversThisWeek} clovers this week</p>
+              <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
+                <Sparkles className="w-5 h-5" />
+                <span data-testid="home-week">+{cloversThisWeek} this week</span>
+              </div>
               {totalClovers > clovers && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
