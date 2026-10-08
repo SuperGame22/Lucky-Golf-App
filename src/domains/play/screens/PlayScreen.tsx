@@ -3,6 +3,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function PlayScreen() {
   }, [user]);
 
   return (
-    <div className="min-h-screen pb-20 bg-background">
+    <AppLayout hideHeader>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-3xl font-display font-bold">Play</h1>
@@ -41,7 +42,7 @@ export default function PlayScreen() {
         </div>
 
         {/* Start Round CTA */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
           <h2 className="font-display font-bold mb-4">Start a New Round</h2>
           <Button className="w-full" size="lg" onClick={() => navigate('/play/start')}>
             <Play className="w-5 h-5 mr-2" /> Start Round
@@ -53,7 +54,7 @@ export default function PlayScreen() {
           {FEATURES.map((f, i) => {
             const Icon = f.icon;
             return (
-              <motion.div key={f.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div key={f.path} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 className="glass-card p-4 flex flex-col items-start gap-3 cursor-pointer hover:border-primary/50 transition-all hover:scale-105"
                 onClick={() => navigate(f.path)}>
@@ -70,7 +71,7 @@ export default function PlayScreen() {
         </div>
 
         {/* Recent Rounds */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
           className="glass-card p-6">
           <h2 className="font-display font-bold mb-4">Recent Rounds</h2>
           {rounds.length === 0 ? (
@@ -111,6 +112,6 @@ export default function PlayScreen() {
           )}
         </motion.div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

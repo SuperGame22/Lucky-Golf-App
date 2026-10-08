@@ -410,16 +410,15 @@ export default function PuttingGame(){
 
   return(
     <AppLayout hideHeader>
-      <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-        {/* pr-11 keeps the title clear of the page's floating mute button (top-right) now that the header is hidden */}
-        <div className="flex items-center gap-3 pr-11">
-          <Button variant="ghost" size="icon" onClick={()=>nav('/practice')}><ArrowLeft className="w-5 h-5"/></Button>
+      <div className="max-w-lg mx-auto px-4 pt-1 pb-3 space-y-1.5">
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={()=>nav('/practice')}><ArrowLeft className="w-5 h-5"/></Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black uppercase tracking-wider">Lucky Putts</h1>
-            <div className="flex items-center gap-2 flex-wrap min-h-[22px]">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Hole {hi+1}/{cc.length} · {h.label}{hs?' · Break':''}</p>
-              {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
+            <div className="flex items-center gap-x-1.5 flex-wrap">
+              <h1 className="text-xl font-black uppercase tracking-wider">Lucky Putts</h1>
+              {prac&&gs==='aim'&&<span className="bg-yellow-500/20 text-yellow-400 text-[8.5px] font-black uppercase tracking-widest px-2 py-px rounded-full border border-yellow-500/30 animate-pulse" data-testid="practice-badge">Practice Mode</span>}
             </div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest" data-testid="putt-subtext">{prac&&gs==='aim'?'Use a practice try to read the slope':`Hole ${hi+1}/${cc.length} · ${h.label}${hs?' · Break':''}`}</p>
           </div>
         </div>
 

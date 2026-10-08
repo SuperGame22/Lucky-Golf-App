@@ -74,7 +74,7 @@ export default function CloverPacks() {
         {/* Packs */}
         <div className="space-y-3">
           {PACKS.map((pack, i) => (
-            <motion.div key={pack.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            <motion.div key={pack.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               onClick={() => setSelected(pack.id)}
               className={`glass-card p-5 cursor-pointer transition-all relative ${
                 selected === pack.id ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30'

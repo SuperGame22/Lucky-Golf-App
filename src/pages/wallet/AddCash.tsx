@@ -68,7 +68,7 @@ export default function AddCash() {
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Choose an amount</p>
           <div className="grid grid-cols-2 gap-3">
             {AMOUNTS.map((amt, i) => (
-              <motion.div key={amt} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              <motion.div key={amt} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelected(amt)}
                 className={`glass-card p-5 cursor-pointer text-center transition-all ${
                   selected === amt ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/30' : 'hover:border-primary/30'

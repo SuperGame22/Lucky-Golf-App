@@ -76,7 +76,7 @@ export default function PersonalCaddie() {
             {RECOMMENDATIONS.map((rec, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 onClick={() => setSelectedClub(i)}

@@ -3,6 +3,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ export default function CareerScreen() {
   }, [user]);
 
   return (
-    <div className="min-h-screen pb-20 bg-background">
+    <AppLayout hideHeader>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -61,7 +62,7 @@ export default function CareerScreen() {
         </div>
 
         {/* Tier Progress */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="glass-card p-6 bg-gradient-to-br from-primary/10 to-accent/10">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Lucky Level: {luckyLevel}</p>
@@ -83,7 +84,7 @@ export default function CareerScreen() {
           ].map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }} className="glass-card p-4">
                 <Icon className="w-5 h-5 text-primary mb-2" />
                 <p className="text-2xl font-display font-bold">{stat.value}</p>
@@ -102,7 +103,7 @@ export default function CareerScreen() {
         ].map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <motion.div key={feature.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            <motion.div key={feature.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + index * 0.05 }}
               className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => navigate(feature.path)}>
@@ -125,7 +126,7 @@ export default function CareerScreen() {
         })}
 
         {/* Empty State CTA */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
           className="glass-card p-6 text-center">
           <Play className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">Play rounds to build your career stats</p>
@@ -133,7 +134,7 @@ export default function CareerScreen() {
         </motion.div>
 
         {/* Beta Feedback */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
           <Button
             variant="outline"
             className="w-full h-12 font-bold uppercase tracking-wider text-xs border-primary/30 hover:bg-primary/10 gap-2"
@@ -145,6 +146,6 @@ export default function CareerScreen() {
         </motion.div>
       </div>
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-    </div>
+    </AppLayout>
   );
 }

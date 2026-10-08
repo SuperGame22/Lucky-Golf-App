@@ -789,7 +789,7 @@ export default function LuckyWagers() {
             {sorted.map((p, i) => {
               const isWinner = p.userId === winner?.userId;
               return (
-                <motion.div key={p.userId} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+                <motion.div key={p.userId} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
                   className={`glass-card p-4 flex items-center justify-between ${isWinner ? 'border-primary/50 bg-primary/5' : ''}`}>
                   <div className="flex items-center gap-3">
                     <span className={`text-lg font-black w-8 ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : 'text-orange-600'}`}>#{i + 1}</span>

@@ -168,7 +168,7 @@ export default function FoursomeFinder() {
           ) : (
             <div className="space-y-3">
               {groups.map((g: any, i: number) => (
-                <motion.div key={g.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                   className="glass-card p-5"
                 >
                   <div className="flex items-start justify-between mb-3">

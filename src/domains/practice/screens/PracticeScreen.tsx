@@ -3,6 +3,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { useNavigate } from 'react-router-dom';
 import { Target, TrendingUp, Brain, Crosshair, Clock, BarChart3 } from 'lucide-react';
 
@@ -20,7 +21,7 @@ export default function PracticeScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen pb-20 bg-background">
+    <AppLayout hideHeader>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-3xl font-display font-bold">Practice</h1>
@@ -28,7 +29,7 @@ export default function PracticeScreen() {
         </div>
 
         {/* AI Coach CTA */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="glass-card p-5 cursor-pointer hover:border-primary/50 transition-colors border-primary/20 bg-primary/5"
           onClick={() => navigate('/coach/ace')}>
           <div className="flex items-center gap-4">
@@ -48,7 +49,7 @@ export default function PracticeScreen() {
             {DRILLS.map((d, i) => {
               const Icon = d.icon;
               return (
-                <motion.div key={d.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div key={d.path} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   className="glass-card p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/50 transition-all hover:scale-105"
                   onClick={() => navigate(d.path)}>
@@ -72,7 +73,7 @@ export default function PracticeScreen() {
             {TRACKING.map((t, i) => {
               const Icon = t.icon;
               return (
-                <motion.div key={t.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div key={t.path} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.05 }}
                   className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => navigate(t.path)}>
@@ -89,6 +90,6 @@ export default function PracticeScreen() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

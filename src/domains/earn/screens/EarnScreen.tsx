@@ -32,7 +32,7 @@ export default function EarnScreen() {
             { label: 'Lucky Putts', icon: Crosshair, path: '/practice/putting', rim: true },
             { label: 'Clover Packs', icon: Gift, path: '/earn/packs', rim: false },
           ].map(item => (
-            <motion.div key={item.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            <motion.div key={item.path} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className={`glass-card p-3 text-center cursor-pointer transition-colors ${
                 item.rim
                   ? 'border-yellow-400/60 shadow-[0_0_10px_rgba(250,204,21,0.25)] hover:border-yellow-300'
