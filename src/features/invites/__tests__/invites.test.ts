@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  publicBaseUrl,
   INVITE_TTL_MS, afterAuthPath, buildInviteLink, clearPendingInvite, inviteMessage, normalizeUsPhone, parseInviteCode,
   readPendingContact, readPendingInvite, savePendingContact, savePendingInvite, smsHref, type KV,
 } from "../invites";
@@ -80,5 +81,15 @@ describe("pending contact", () => {
     expect(readPendingContact(s)).toEqual({ phone: "+14155550132", consent: true });
     s.data["lg_pending_contact"] = '{"phone":5}';
     expect(readPendingContact(s)).toBeNull();
+  });
+});
+
+describe("publicBaseUrl", () => {
+  it("uses the permanent address when configured, trimming trailing slashes", () => {
+    expect(publicBaseUrl("https://luckygolf.app/", "https://x.vercel.app")).toBe("https://luckygolf.app");
+  });
+  it("falls back to where the app is open when unset or not a web address", () => {
+    expect(publicBaseUrl(undefined, "https://x.vercel.app")).toBe("https://x.vercel.app");
+    expect(publicBaseUrl("luckygolf.app", "https://x.vercel.app/")).toBe("https://x.vercel.app");
   });
 });

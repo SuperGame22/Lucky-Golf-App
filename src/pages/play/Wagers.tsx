@@ -29,7 +29,7 @@ import {
 } from '@/services/realtimeService';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { WagerResults } from './WagerResults';
-import { buildInviteLink, clearPendingInvite, inviteMessage, readPendingInvite, smsHref } from '@/features/invites/invites';
+import { buildInviteLink, clearPendingInvite, inviteMessage, publicBaseUrl, readPendingInvite, smsHref, type PendingInvite } from '@/features/invites/invites';
 import {
   Trophy, Crown, Users, Plus, Minus, Zap, Flag, ChevronRight, Check, X,
   Swords, ArrowLeft, Copy, Hash, Loader2, AlertCircle, Wifi, WifiOff, DollarSign,
@@ -303,18 +303,23 @@ export default function LuckyWagers() {
   const handleJoin = () => joinWith(joinCode);
 
   // Someone who arrived from an invite link (and signed up or signed in on the way) goes straight in.
-  const autoJoined = useRef(false);
+  // An invite waits here for one tap on Accept; the code box is already filled in.
+  const [invite, setInvite] = useState<PendingInvite | null>(null);
   useEffect(() => {
-    if (autoJoined.current || !user || !profile || view !== 'mode-select') return;
-    const invite = readPendingInvite(localStorage);
-    if (!invite) return;
-    autoJoined.current = true;
+    if (!user || !profile || view !== 'mode-select') return;
+    const waiting = readPendingInvite(localStorage);
+    if (waiting) { setInvite(waiting); setJoinCode(waiting.code); }
+  }, [user, profile, view]);
+  const declineInvite = () => { clearPendingInvite(localStorage); setInvite(null); setJoinCode(''); };
+  const acceptInvite = () => {
+    if (!invite || !profile) return;
     if (!profile.date_of_birth || !profile.tos_accepted_at) {
-      // Age check first; the invite stays saved and this runs again when they are back.
+      // Age check first; the invite stays saved and the card is back when they return.
       navigate('/wagers/verify', { state: { returnTo: '/play/wagers' } });
       return;
     }
     clearPendingInvite(localStorage);
+    setInvite(null);
     if (invite.from) {
       // (the request only goes out once it is awaited / .then'd)
       (supabase.rpc as unknown as (fn: string, a: Record<string, unknown>) => PromiseLike<unknown>)
@@ -323,10 +328,9 @@ export default function LuckyWagers() {
     }
     setJoinCode(invite.code);
     joinWith(invite.code);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profile, view]);
+  };
 
-  const inviteLink = () => buildInviteLink(window.location.origin, sessionCode, myId);
+  const inviteLink = () => buildInviteLink(publicBaseUrl(import.meta.env.VITE_PUBLIC_APP_URL, window.location.origin), sessionCode, myId);
   const shareInvite = async () => {
     const message = inviteMessage(inviteLink(), isHost ? betAmount : null);
     if (navigator.share) {
@@ -544,6 +548,18 @@ export default function LuckyWagers() {
                   <ChevronRight className="w-5 h-5 text-amber-400" />
                 </motion.div>
               ))}
+            </div>
+          )}
+
+          {invite && (
+            <div className="glass-card p-5 border-primary/40 space-y-3" data-testid="invite-card">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-primary">You're invited</p>
+              <p className="text-sm">A friend invited you to a Lucky Wager.</p>
+              <p className="text-3xl font-mono font-black tracking-[0.3em] text-primary text-center" data-testid="invite-card-code">{invite.code}</p>
+              <div className="flex gap-2">
+                <Button className="flex-1 font-black uppercase tracking-wider text-xs" onClick={acceptInvite} data-testid="invite-accept">Accept</Button>
+                <Button variant="outline" className="font-black uppercase tracking-wider text-xs" onClick={declineInvite} data-testid="invite-decline">Not now</Button>
+              </div>
             </div>
           )}
 

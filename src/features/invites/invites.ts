@@ -24,6 +24,15 @@ export function parseInviteCode(raw: string | null | undefined): string | null {
   return CODE_RE.test(code) ? code : null;
 }
 
+/**
+ * The address invite links point at: VITE_PUBLIC_APP_URL when set (the permanent domain), otherwise
+ * wherever the app is open right now. Trailing slashes are dropped.
+ */
+export function publicBaseUrl(configured: string | undefined, origin: string): string {
+  const c = (configured ?? '').trim();
+  return (/^https?:\/\//i.test(c) ? c : origin).replace(/\/+$/, '');
+}
+
 export function buildInviteLink(origin: string, code: string, fromUserId: string): string {
   const c = parseInviteCode(code);
   if (!c) throw new Error('Invalid invite code');
