@@ -36,6 +36,7 @@ import {
   DISCOUNT_CODES, GOLD_FILL, LABEL_RADIUS, SAND_FILL, SLICE_ANGLES, prizes,
 } from '@/features/spinz/prizes';
 import { rotationToLand } from '@/features/spinz/wheel';
+import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
 
 // consume_spin isn't in the generated Supabase types yet, so call it through a narrow signature.
 // The database spends the spin, draws the prize and credits it (clovers, Free Putt, spin back);
@@ -51,6 +52,7 @@ const wedgePath = (startDeg: number, endDeg: number) => {
 
 const LuckySpin = () => {
   const { profile, refreshProfile } = useAuth();
+  const { discount, shopConnected, refresh: refreshDiscount } = useMyDiscount();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   // True for a moment after a spin so the wheel can be re-based to a small angle without animating.
@@ -113,6 +115,7 @@ const LuckySpin = () => {
       finished = true;
       finishRef.current = null;
       const won = prizes[prizeIndex];
+      if (won.type === 'discount') refreshDiscount();
       // Pick up the new balances (clovers, putts, spins) now that the wheel has stopped.
       await refreshProfile();
       setSpinning(false);
@@ -277,9 +280,26 @@ const LuckySpin = () => {
               )}
               {result.type === 'discount' && (
                 <div className="mt-2">
-                  <p className="text-xs text-muted-foreground">Your discount code:</p>
-                  <p className="text-lg font-mono font-black text-accent tracking-widest mt-1">{DISCOUNT_CODES[result.label] ?? 'LUCKY'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Use at checkout · one-time use</p>
+                  {shopConnected && discount?.code ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">Saved to your account — your code:</p>
+                      <p className="text-lg font-mono font-black text-accent tracking-widest mt-1" data-testid="discount-code">{discount.code}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {discount.percent}% off · good until {new Date(discount.expiresAt).toLocaleDateString()} · one-time use
+                      </p>
+                      {checkoutLink(discount.code) && (
+                        <a href={checkoutLink(discount.code)!} className="inline-block mt-2 text-xs font-bold text-primary underline" target="_blank" rel="noreferrer">
+                          Use it at checkout
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">Your discount code:</p>
+                      <p className="text-lg font-mono font-black text-accent tracking-widest mt-1">{DISCOUNT_CODES[result.label] ?? 'LUCKY'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Use at checkout · one-time use</p>
+                    </>
+                  )}
                   <p className="text-xs text-amber-300/90 mt-2">🎅 Secret-Santa style: this swaps out any discount you had. Good for a month!</p>
                 </div>
               )}

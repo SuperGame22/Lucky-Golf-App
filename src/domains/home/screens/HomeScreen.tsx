@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getRecentTransactions } from '@/services/cloverService';
 import { SpendClover } from '@/components/icons/SpendClover';
 import { useHomeClovers } from '@/features/homeClovers/useHomeClovers';
+import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Golfer';
   // New clovers are held back and revealed here (leaf by leaf) when the page is viewed.
   const reveal = useHomeClovers();
+  const { discount, shopConnected } = useMyDiscount();
   const clovers = reveal.ready ? reveal.count : (profile?.clovers ?? 0);
   const totalClovers = profile?.total_clovers ?? 0;
   const handicap = profile?.handicap_index ?? 0;
@@ -123,6 +125,25 @@ export default function HomeScreen() {
             </motion.div>
           ))}
         </div>
+
+        {/* The player's current Spinz discount (only once the store is connected and a code exists) */}
+        {shopConnected && discount?.code && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-4 border-accent/30 flex items-center justify-between gap-3" data-testid="home-discount">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-accent">Your discount</p>
+              <p className="font-display font-bold text-lg">{discount.percent}% off</p>
+              <p className="text-xs text-muted-foreground">
+                Code <span className="font-mono font-bold text-foreground">{discount.code}</span> · until {new Date(discount.expiresAt).toLocaleDateString()}
+              </p>
+            </div>
+            {checkoutLink(discount.code) && (
+              <a href={checkoutLink(discount.code)!} target="_blank" rel="noreferrer">
+                <Button size="sm">Use it</Button>
+              </a>
+            )}
+          </motion.div>
+        )}
 
         {/* Wagers CTA */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
