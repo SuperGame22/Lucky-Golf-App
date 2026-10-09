@@ -3,6 +3,7 @@
  * Bonus clovers = 1 per $4 spent (rounded down), credited with the purchase.
  */
 
+import { startCheckout } from '@/features/checkout/checkout';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +11,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { ArrowLeft, Zap, Loader2, Target } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 // Display only — create-checkout is the source of truth for putts and price.
@@ -31,12 +31,7 @@ export default function PuttingPacks() {
     if (!selected) return;
     setPurchasing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { mode: 'putt_pack', packId: selected },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error('No checkout URL returned');
-      window.location.href = data.url;
+      await startCheckout({ mode: 'putt_pack', packId: selected }, navigate, 'Putt pack');
     } catch (err) {
       toast({
         title: 'Could not start checkout',

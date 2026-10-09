@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, RotateCcw, Trophy, Loader2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { startCheckout } from '@/features/checkout/checkout';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -228,9 +229,7 @@ export default function PuttingGame(){
       if(error)throw error;
       if(data?.success){setCredits(data.credits??0);toast({title:'+1 Putt',description:'Charged $1 to your saved card.'});}
       else if(data?.needs_checkout){
-        const r=await supabase.functions.invoke('create-checkout',{body:{mode:'putt'}});
-        if(r.error)throw r.error;if(!r.data?.url)throw new Error('No checkout URL returned');
-        window.location.href=r.data.url;return;
+        await startCheckout({mode:'putt'},nav,'Buy a putt');return;
       }else throw new Error(data?.error||'Purchase failed');
     }catch(e){
       toast({title:'Could not buy putt',description:e instanceof Error?e.message:'Please try again.',variant:'destructive'});

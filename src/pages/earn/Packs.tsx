@@ -2,6 +2,7 @@
  * Clover Packs - Purchase clover credits
  */
 
+import { startCheckout } from '@/features/checkout/checkout';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { ArrowLeft, Zap, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useClovers } from '@/contexts/CloverContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,12 +33,7 @@ export default function CloverPacks() {
     if (!selected) return;
     setPurchasing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { packId: selected },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error('No checkout URL returned');
-      window.location.href = data.url;
+      await startCheckout({ packId: selected }, navigate, 'Clover pack');
     } catch (err) {
       toast({
         title: 'Could not start checkout',
