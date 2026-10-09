@@ -3,13 +3,13 @@
  * (wallets.balance), used to fund Foursome Wager buy-ins and payouts.
  */
 
+import { startCheckout } from '@/features/checkout/checkout';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, DollarSign, Loader2, Wallet } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useWallet } from '@/contexts/WalletContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,12 +27,7 @@ export default function AddCash() {
   const handleAddCash = async () => {
     setPurchasing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { mode: 'cash', amountUsd: selected },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error('No checkout URL returned');
-      window.location.href = data.url;
+      await startCheckout({ mode: 'cash', amountUsd: selected }, navigate, 'Add cash');
     } catch (err) {
       toast({
         title: 'Could not start checkout',

@@ -15,6 +15,8 @@ import { PageFade } from "@/components/PageFade";
 import { ContactSync } from "@/components/ContactSync";
 import { PurchaseSync } from "@/components/PurchaseSync";
 import JoinInvite from "./pages/JoinInvite";
+import Pay from "./pages/pay/Pay";
+import PayReturn from "./pages/pay/PayReturn";
 
 // Domain Screens (5-tab architecture)
 import HomeScreen from "@/domains/home/screens/HomeScreen";
@@ -93,6 +95,8 @@ const App = () => (
               {/* ── Auth (public) ── */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/join/:code" element={<JoinInvite />} />
+              <Route path="/pay" element={<ProtectedRoute><Pay /></ProtectedRoute>} />
+              <Route path="/pay/return" element={<ProtectedRoute><PayReturn /></ProtectedRoute>} />
 
               {/* ── 5-Tab Domain Hubs ── */}
               <Route path="/" element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
