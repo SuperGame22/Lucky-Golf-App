@@ -8,6 +8,7 @@ import { getRecentTransactions } from '@/services/cloverService';
 import { SpendClover } from '@/components/icons/SpendClover';
 import { useHomeClovers } from '@/features/homeClovers/useHomeClovers';
 import { InstallCard } from '@/components/InstallCard';
+import { RaffleCard } from '@/components/RaffleCard';
 import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { motion } from 'framer-motion';
@@ -62,6 +63,7 @@ export default function HomeScreen() {
         </motion.div>
 
         <InstallCard />
+        <RaffleCard />
 
         {/* Clover Balance */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -75,7 +77,6 @@ export default function HomeScreen() {
                 <span className={`${String(clovers).length >= 4 ? 'text-[41px] leading-none' : 'text-[51px] leading-none'} font-display font-bold text-gradient-green -ml-3`} style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
               </div>
               <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
-                <Sparkles className="w-5 h-5" />
                 <span data-testid="home-week">+{cloversThisWeek} this week</span>
               </div>
               {totalClovers > clovers && (

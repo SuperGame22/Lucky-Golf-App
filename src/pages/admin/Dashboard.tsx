@@ -43,10 +43,10 @@ const AdminDashboard = () => {
   // than shipping 404s from the admin panel.
   const menuItems = [
     {
-      title: "Jackpots",
-      description: "Manage the weekly raffle jackpot",
+      title: "Weekly raffle",
+      description: "Queue prizes for the coming weeks; drawn automatically Sundays",
       icon: TrendingUp,
-      link: "/admin/jackpots",
+      link: "/admin/raffle",
       color: "text-primary"
     },
     {
