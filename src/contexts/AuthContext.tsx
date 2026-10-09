@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { buildInviteLink, publicBaseUrl, readPendingInvite } from '@/features/invites/invites';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -73,7 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // The confirmation email returns to the invite link when signing up from one, so the code survives
+    // even if the email is opened in a different browser.
+    const invite = readPendingInvite(localStorage);
+    const base = publicBaseUrl(import.meta.env.VITE_PUBLIC_APP_URL, window.location.origin);
+    const emailRedirectTo = invite ? buildInviteLink(base, invite.code, invite.from ?? '') : undefined;
+    const { data, error } = await supabase.auth.signUp({ email, password, options: emailRedirectTo ? { emailRedirectTo } : undefined });
     if (error) return { error: error.message };
     // Create golfer_profiles row with display_name using the returned user ID
     if (data.user) {
