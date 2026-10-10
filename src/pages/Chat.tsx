@@ -28,6 +28,8 @@ interface Conversation {
   unread: number;
 }
 
+interface SearchResult { user_id: string; display_name: string | null; username: string | null }
+
 export default function Chat() {
   const { user, profile } = useAuth();
   const [view, setView] = useState<'list' | 'conversation' | 'search'>('list');
@@ -36,7 +38,7 @@ export default function Chat() {
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -165,7 +167,7 @@ export default function Chat() {
     setSearchResults(data || []);
   };
 
-  const startConversation = (result: any) => {
+  const startConversation = (result: SearchResult) => {
     const conv: Conversation = {
       user_id: result.user_id,
       display_name: result.display_name || result.username || 'Golfer',

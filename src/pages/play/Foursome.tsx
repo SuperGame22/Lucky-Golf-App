@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   createFoursomePost,
+  type FoursomePost,
   joinFoursome,
   getOpenFoursomes,
   generateInviteCode,
@@ -36,7 +37,7 @@ export default function FoursomeFinder() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [view, setView] = useState<View>('browse');
-  const [groups, setGroups] = useState<any[]>([]);
+  const [groups, setGroups] = useState<FoursomePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -75,7 +76,7 @@ export default function FoursomeFinder() {
     setError(null);
     const { data, error: err } = await joinFoursome(inviteCode.trim());
     if (err) setError(err);
-    else { setSuccess(`Joined foursome at ${(data as any)?.course_name || 'the course'}!`); setInviteCode(''); loadGroups(); }
+    else { setSuccess(`Joined foursome at ${(data as { course_name?: string } | null)?.course_name || 'the course'}!`); setInviteCode(''); loadGroups(); }
     setJoinLoading(false);
   };
 
@@ -90,7 +91,7 @@ export default function FoursomeFinder() {
     const { data, error: err } = await createFoursomePost(newPost);
     if (err) setError(err);
     else {
-      setCreatedCode((data as any)?.invite_code || null);
+      setCreatedCode((data as { invite_code?: string } | null)?.invite_code || null);
       setSuccess('Foursome created!');
       loadGroups();
     }
@@ -167,7 +168,7 @@ export default function FoursomeFinder() {
             </div>
           ) : (
             <div className="space-y-3">
-              {groups.map((g: any, i: number) => (
+              {groups.map((g, i) => (
                 <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                   className="glass-card p-5"
                 >

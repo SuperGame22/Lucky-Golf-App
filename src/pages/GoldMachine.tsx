@@ -43,7 +43,7 @@ const GoldMachine = () => {
 
   // Load saved pot value from profile (but don't auto-activate machine)
   useEffect(() => {
-    const gold = (profile as any)?.gold_balance ?? 0;
+    const gold = profile?.gold_balance ?? 0;
     if (gold > 0) setPotValue(gold);
   }, [profile]);
 

@@ -12,14 +12,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 
+type Stats = { rounds: number; bestDiff: number; clovers: number };
+
 const ACHIEVEMENTS = [
-  { id: 'first_round', name: 'First Round', desc: 'Complete your first round', icon: '🏌️', check: (stats: any) => stats.rounds >= 1 },
-  { id: 'five_rounds', name: 'Regulars Club', desc: 'Complete 5 rounds', icon: '🏅', check: (s: any) => s.rounds >= 5 },
-  { id: 'ten_rounds', name: 'Dedicated Golfer', desc: 'Complete 10 rounds', icon: '🔟', check: (s: any) => s.rounds >= 10 },
-  { id: 'hundred_rounds', name: 'Marathon', desc: 'Play 100 rounds', icon: '🏃', check: (s: any) => s.rounds >= 100 },
-  { id: 'under_par', name: 'Under Par', desc: 'Finish a round under par', icon: '🔥', check: (s: any) => s.bestDiff < 0 },
-  { id: 'clover_100', name: 'Clover Collector', desc: 'Earn 100 clovers', icon: '🍀', check: (s: any) => s.clovers >= 100 },
-  { id: 'clover_500', name: 'Clover Hoarder', desc: 'Earn 500 clovers', icon: '🌿', check: (s: any) => s.clovers >= 500 },
+  { id: 'first_round', name: 'First Round', desc: 'Complete your first round', icon: '🏌️', check: (stats: Stats) => stats.rounds >= 1 },
+  { id: 'five_rounds', name: 'Regulars Club', desc: 'Complete 5 rounds', icon: '🏅', check: (s: Stats) => s.rounds >= 5 },
+  { id: 'ten_rounds', name: 'Dedicated Golfer', desc: 'Complete 10 rounds', icon: '🔟', check: (s: Stats) => s.rounds >= 10 },
+  { id: 'hundred_rounds', name: 'Marathon', desc: 'Play 100 rounds', icon: '🏃', check: (s: Stats) => s.rounds >= 100 },
+  { id: 'under_par', name: 'Under Par', desc: 'Finish a round under par', icon: '🔥', check: (s: Stats) => s.bestDiff < 0 },
+  { id: 'clover_100', name: 'Clover Collector', desc: 'Earn 100 clovers', icon: '🍀', check: (s: Stats) => s.clovers >= 100 },
+  { id: 'clover_500', name: 'Clover Hoarder', desc: 'Earn 500 clovers', icon: '🌿', check: (s: Stats) => s.clovers >= 500 },
   { id: 'ace', name: 'Ace!', desc: 'Score a hole-in-one', icon: '⛳', check: () => false },
   { id: 'wager_win', name: 'Wager King', desc: 'Win 10 Lucky Wagers', icon: '👑', check: () => false },
   { id: 'social', name: 'Social Butterfly', desc: 'Play with 10 different players', icon: '🦋', check: () => false },

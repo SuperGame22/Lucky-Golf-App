@@ -27,13 +27,13 @@ const Profile = () => {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      const db = supabase as any;
+      const db = supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => PromiseLike<{ data: Record<string, unknown> | null }> } } } };
       const [{ data: gp }, { data: gm }] = await Promise.all([
         db.from("golfer_profiles").select("membership_tier").eq("user_id", user.id).maybeSingle(),
         db.from("gold_machines").select("pot_mg").eq("user_id", user.id).maybeSingle(),
       ]);
       if (cancelled) return;
-      setTier(gp?.membership_tier ?? "free");
+      setTier(String(gp?.membership_tier ?? "free"));
       setPotMg(Number(gm?.pot_mg ?? 0));
     })();
     return () => { cancelled = true; };

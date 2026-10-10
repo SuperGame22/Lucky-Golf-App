@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
+import { errMessage } from '@/lib/errors';
 
 // Placeholder par/yardage (par 72 total), used when no course is selected or a hole has no data.
 const PLACEHOLDER_HOLES = Array.from({ length: 18 }, (_, i) => ({
@@ -157,8 +158,8 @@ const Scorecard = () => {
 
       setFinished(true);
       toast.success(earned > 0 ? `Round saved! +${earned} clovers earned 🍀` : 'Round saved!');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to save round');
+    } catch (e) {
+      toast.error(errMessage(e, 'Failed to save round'));
     } finally {
       setSaving(false);
     }

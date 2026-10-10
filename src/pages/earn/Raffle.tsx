@@ -35,7 +35,7 @@ function useCountdown(endsAt: string | null) {
 
 export default function WeeklyRaffle() {
   const navigate = useNavigate();
-  const [jackpot, setJackpot] = useState<any>(null);
+  const [jackpot, setJackpot] = useState<{ prize_name: string; prize_value: number | null; prize_image_url: string | null; description: string | null; ends_at: string; prize_credit?: number; prize_spins?: number; prize_products?: string | null } | null>(null);
   const [userEntries, setUserEntries] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
   const [loading, setLoading] = useState(true);

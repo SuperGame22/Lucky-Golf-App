@@ -57,7 +57,7 @@ export default function ProfileEditor() {
     setSaving(true);
     setError(null);
 
-    const updates: Record<string, any> = {
+    const updates: Record<string, string | number | null> = {
       display_name: displayName.trim(),
       avatar_url: avatar,
     };

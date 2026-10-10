@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Send, GraduationCap, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { errMessage } from '@/lib/errors';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -69,9 +70,9 @@ export default function CoachAce() {
         }
       }
       if (!accumulated) { setMessages(prev => prev.filter(m => m.id !== coachId)); throw new Error('No response'); }
-    } catch (err: any) {
+    } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== coachId));
-      toast.error(err.message || 'Coach unavailable right now');
+      toast.error(errMessage(err, 'Coach unavailable right now'));
     } finally { setIsLoading(false); }
   };
 

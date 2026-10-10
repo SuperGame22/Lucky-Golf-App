@@ -14,7 +14,7 @@ import { ArrowLeft, TrendingUp, BarChart3 } from 'lucide-react';
 export default function ScorePatterns() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [rounds, setRounds] = useState<any[]>([]);
+  const [rounds, setRounds] = useState<{ total_score: number; total_par: number; score_diff: number; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ScorePatterns() {
               </div>
               <div className="flex items-end gap-1 h-24">
                 {rounds.slice(-10).map((r, i) => {
-                  const max = Math.max(...rounds.slice(-10).map((x: any) => Math.abs(x.score_diff)), 1);
+                  const max = Math.max(...rounds.slice(-10).map((x) => Math.abs(x.score_diff)), 1);
                   const height = Math.max(10, (Math.abs(r.score_diff) / max) * 100);
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">

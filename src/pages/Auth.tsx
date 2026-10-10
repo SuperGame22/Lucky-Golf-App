@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { CloverLogo } from '@/components/icons/CloverLogo';
 import { afterAuthPath, normalizeUsPhone, readPendingInvite, savePendingContact } from '@/features/invites/invites';
+import { errMessage } from '@/lib/errors';
 import {
   Mail,
   Lock,
@@ -77,8 +78,8 @@ export default function AuthPage() {
         if (err) { setError(err); }
         else { setSuccess('Password reset email sent. Check your inbox.'); }
       }
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err) {
+      setError(errMessage(err, 'Something went wrong'));
     }
     setLoading(false);
   };
