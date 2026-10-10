@@ -11,6 +11,22 @@ export default defineConfig({
     host: "::",
     port: 8080,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Stable vendor files are cached across releases, so a small app change does not re-download React etc.
+        manualChunks: (id: string) => {
+          if (!id.includes("node_modules")) return undefined;
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return "react";
+          if (id.includes("@supabase")) return "supabase";
+          if (id.includes("framer-motion")) return "motion";
+          if (id.includes("@radix-ui")) return "radix";
+          if (id.includes("lucide-react")) return "icons";
+          return undefined;
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     // Phones need HTTPS for the camera on a LAN address: `npm run dev:https`.
