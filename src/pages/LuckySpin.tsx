@@ -56,7 +56,6 @@ const LuckySpin = () => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   // True for a moment after a spin so the wheel can be re-based to a small angle without animating.
-  const [instant, setInstant] = useState(false);
   const finishRef = useRef<(() => void) | null>(null);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
   // Spinz are only won by sinking putts in Lucky Putts. The balance lives on the server
@@ -103,7 +102,6 @@ const LuckySpin = () => {
     // border, so the result always matches what the pointer shows. Rotation is
     // cumulative across spins, so rotationToLand corrects for wherever the
     // wheel already stopped last time.
-    setInstant(false);
     setRotation(prev => rotationToLand(prev, midDeg, SPIN_ROTATIONS));
 
     // Everything that happens at the end (result card, toasts, balances) waits for the wheel to
@@ -114,6 +112,9 @@ const LuckySpin = () => {
       if (finished) return;
       finished = true;
       finishRef.current = null;
+      // Give the wheel a beat to be completely still before anything else on the page changes
+      // (balances, result card, toasts); nothing here touches the wheel itself.
+      await new Promise<void>((resolve) => setTimeout(resolve, 350));
       const won = prizes[prizeIndex];
       if (won.type === 'discount') refreshDiscount();
       // Pick up the new balances (clovers, putts, spins) now that the wheel has stopped.
@@ -140,10 +141,6 @@ const LuckySpin = () => {
 
       if (won.type !== 'prize') setCanRespin(true); // the Re-spin button only shows while spins remain
 
-      // Keep the angle small for the next spin (same picture, no animation).
-      setInstant(true);
-      setRotation(r => ((r % 360) + 360) % 360);
-      requestAnimationFrame(() => requestAnimationFrame(() => setInstant(false)));
     };
     finishRef.current = finish;
     // Safety net if the browser never reports the transition ending (e.g. a hidden tab).
@@ -180,7 +177,7 @@ const LuckySpin = () => {
               style={{
                 willChange: 'transform', width: '100%', aspectRatio: '1 / 1',
                 transform: `rotate(${rotation}deg)`,
-                transition: instant ? 'none' : `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
+                transition: `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
               }}
               onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'transform') finishRef.current?.(); }}
               className="relative">
