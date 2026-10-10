@@ -9,6 +9,7 @@ import { SpendClover } from '@/components/icons/SpendClover';
 import { useHomeClovers } from '@/features/homeClovers/useHomeClovers';
 import { InstallCard } from '@/components/InstallCard';
 import { RaffleCard } from '@/components/RaffleCard';
+import { SurveyCard } from '@/components/SurveyCard';
 import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { motion } from 'framer-motion';
@@ -64,6 +65,7 @@ export default function HomeScreen() {
 
         <InstallCard />
         <RaffleCard />
+        <SurveyCard />
 
         {/* Clover Balance */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

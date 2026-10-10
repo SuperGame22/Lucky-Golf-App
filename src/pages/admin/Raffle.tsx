@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { SURVEY_LABELS } from '@/features/survey/questions';
 import { CSV_HEADER, describePrize, easternDate, parsePrizeCsv, upcomingWeeks, type PrizeItem } from '@/features/raffle/raffle';
 
 interface Row {
@@ -35,6 +36,7 @@ export default function AdminRaffle() {
   const [saving, setSaving] = useState(false);
   const [paste, setPaste] = useState('');
   const [drawing, setDrawing] = useState<string | null>(null);
+  const [survey, setSurvey] = useState<{ question_key: string; answer: string; n: number }[]>([]);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('weekly_jackpots').select('*').neq('status', 'cancelled').order('starts_at', { ascending: false }).limit(60);
@@ -42,6 +44,12 @@ export default function AdminRaffle() {
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    rpc('admin_survey_results').then(({ data }) => {
+      const res = data as { success?: boolean; results?: typeof survey } | null;
+      if (res?.success) setSurvey(res.results ?? []);
+    }, () => undefined);
+  }, []);
 
   const byWeek = useMemo(() => new Map(rows.map((r) => [easternDate(new Date(r.starts_at)), r])), [rows]);
   const weeks = useMemo(() => upcomingWeeks(new Date(), 13), []);
@@ -185,6 +193,18 @@ export default function AdminRaffle() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : `Queue ${parsed.items.length || ''} week${parsed.items.length === 1 ? '' : 's'}`}
           </Button>
         </div>
+
+        {survey.length > 0 && (
+          <div className="glass-card p-4 space-y-2" data-testid="survey-results">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Beta survey results</p>
+            {survey.map((r) => (
+              <div key={`${r.question_key}:${r.answer}`} className="flex items-center justify-between text-sm">
+                <span>{SURVEY_LABELS[`${r.question_key}:${r.answer}`] ?? r.answer}</span>
+                <span className="font-bold text-primary">{r.n}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {past.length > 0 && (
           <div className="space-y-2">
