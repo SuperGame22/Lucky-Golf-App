@@ -176,10 +176,20 @@ export default function StartRound() {
           {nearMe && results.length > 0 && (
             <p className="text-xs text-muted-foreground text-center">The {results.length} closest to you.</p>
           )}
-          {!loading && !error && results.length === 0 && (
+          {!loading && !error && results.length === 0 && clean(query).length < 2 && (
             <p className="text-sm text-muted-foreground text-center py-6">
               Search by name or city, or tap Courses near me.
             </p>
+          )}
+          {!loading && results.length === 0 && (clean(query).length >= 2 || nearMe) && (
+            <div className="glass-card p-5 text-center space-y-3" data-testid="no-courses">
+              <p className="text-sm">We don't have that course yet.</p>
+              <Button variant="outline" className="font-black uppercase tracking-wider text-xs"
+                onClick={() => navigate(`/play/add-course${clean(query) ? `?name=${encodeURIComponent(clean(query))}` : ''}`)} data-testid="add-course-btn">
+                Add your course
+              </Button>
+              <p className="text-[11px] text-muted-foreground">Send a photo of the scorecard and earn a clover when it's added.</p>
+            </div>
           )}
         </div>
 

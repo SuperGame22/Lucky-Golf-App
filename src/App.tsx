@@ -70,6 +70,8 @@ import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminJackpots from "./pages/admin/Jackpots";
 import AdminRaffle from "./pages/admin/Raffle";
+import AdminCourseRequests from "./pages/admin/CourseRequests";
+import AddCourse from "./pages/play/AddCourse";
 import AdminWagers from "./pages/admin/Wagers";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -115,6 +117,7 @@ const App = () => (
               <Route path="/play/wagers" element={<ProtectedRoute><LuckyWagers /></ProtectedRoute>} />
               <Route path="/play/flyover" element={<ProtectedRoute><Course /></ProtectedRoute>} />
               <Route path="/play/foursome" element={<ProtectedRoute><FoursomeFinder /></ProtectedRoute>} />
+              <Route path="/play/add-course" element={<ProtectedRoute><AddCourse /></ProtectedRoute>} />
               <Route path="/play/caddie" element={<ProtectedRoute><PersonalCaddie /></ProtectedRoute>} />
               <Route path="/play/start" element={<ProtectedRoute><StartRound /></ProtectedRoute>} />
               <Route path="/play/round" element={<ProtectedRoute><Scorecard /></ProtectedRoute>} />
@@ -172,6 +175,7 @@ const App = () => (
               <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/jackpots" element={<AdminRoute><AdminJackpots /></AdminRoute>} />
               <Route path="/admin/raffle" element={<AdminRoute><AdminRaffle /></AdminRoute>} />
+              <Route path="/admin/courses" element={<AdminRoute><AdminCourseRequests /></AdminRoute>} />
               <Route path="/admin/wagers" element={<AdminRoute><AdminWagers /></AdminRoute>} />
 
               <Route path="*" element={<NotFound />} />
