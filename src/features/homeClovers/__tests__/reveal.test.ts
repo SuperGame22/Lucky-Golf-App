@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLOVER_HOLD_MS, LEAF_MS, MAX_ANIMATED_CLOVERS, SLOWDOWN, buildRevealPlan, revealDurationMs, type RevealInput } from "../reveal";
+import { CLEAR_GAP_MS, CLOVER_HOLD_MS, LEAF_MS, MAX_ANIMATED_CLOVERS, SLOWDOWN, buildRevealPlan, revealDurationMs, type RevealInput } from "../reveal";
 
 const input = (o: Partial<RevealInput>): RevealInput => ({ clovers: 0, weekCount: 0, pending: 0, pendingLeaves: 0, restLeaves: 0, spendPendingClovers: 0, ...o });
 /** Spending: `dollars` spent on top of `restLeaves` leaves already lit. */
@@ -100,5 +100,14 @@ describe("home clover reveal", () => {
   it("ignores nonsense input", () => {
     expect(buildRevealPlan(input({ pending: -3, pendingLeaves: -2, restLeaves: 9 })).steps).toEqual([]);
     expect(buildRevealPlan(input({ clovers: 5, pending: 1.9 })).steps.filter((s) => s.pulse)).toHaveLength(1);
+  });
+
+  it("shows the leaves dark for an eighth of a second before the next clover's first leaf lights", () => {
+    const plan = buildRevealPlan({ clovers: 2, weekCount: 0, pending: 0, pendingLeaves: 6, restLeaves: 0, spendPendingClovers: 0 });
+    const lits = plan.steps.map((s) => s.lit);
+    expect(lits).toEqual([1, 2, 3, 4, 0, 1, 2]);
+    expect(plan.steps[4].lit).toBe(0); // cleared
+    expect(plan.steps[5]).toMatchObject({ lit: 1, delayMs: CLEAR_GAP_MS });
+    expect(CLEAR_GAP_MS).toBe(125);
   });
 });

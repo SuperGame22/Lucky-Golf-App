@@ -11,6 +11,9 @@ export const LEAVES_PER_CLOVER = 4;
 export const LEAF_MS = 90;
 /** Pause when the fourth leaf lights and the count ticks up, before the leaves clear, at the fast pace. */
 export const CLOVER_HOLD_MS = 220;
+/** After a clover completes and the leaves clear, they stay dark this long before the first leaf of the
+ *  next clover lights (an eighth of a second), so the new cycle visibly starts from empty. */
+export const CLEAR_GAP_MS = 125;
 /** Every clover runs at the fast pace except the last two, which ease off: the second-to-last
  *  is this much slower than the fast pace, and the last is this much slower again. */
 export const SLOWDOWN = 1.2;
@@ -87,8 +90,8 @@ export function buildRevealPlan(input: RevealInput): RevealPlan {
       week += 1;
       done += 1;
     }
-    const first = steps.length === 0 || steps[steps.length - 1].lit === 0;
-    steps.push({ delayMs: first && steps.length > 0 ? 0 : Math.round(LEAF_MS * slow), lit, count, week, pulse: complete });
+    const afterClear = steps.length > 0 && steps[steps.length - 1].lit === 0;
+    steps.push({ delayMs: afterClear ? CLEAR_GAP_MS : Math.round(LEAF_MS * slow), lit, count, week, pulse: complete });
     if (complete) {
       steps.push({ delayMs: Math.round(CLOVER_HOLD_MS * slow), lit: 0, count, week, pulse: false });
       lit = 0;

@@ -69,8 +69,12 @@ export default function HomeScreen() {
 
         {/* Clover Balance */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden glass-card p-5 glow-green">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+          className="relative glass-card p-5 glow-green">
+          {/* The glow is clipped by its own rounded wrapper (clip-path), not by the card, so the card's
+              outer glow stays and the blurred corner can't poke out past the rounded corner. */}
+          <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none" style={{ clipPath: 'inset(0 round 1rem)' }}>
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+          </div>
           <div className="relative flex items-start justify-between gap-4">
             <div className="flex-shrink-0">
               <p className="text-lg font-semibold text-muted-foreground mb-2">Your Clovers</p>
