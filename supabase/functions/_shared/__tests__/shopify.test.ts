@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPriceRule, makeDiscountCode, parsePaidOrder, verifyShopifyHmac } from "../shopify";
+import { buildPriceRule, makeDiscountCode, makeTokenGetter, parsePaidOrder, verifyShopifyHmac } from "../shopify";
 
 const sign = async (body: string, secret: string) => {
   const enc = new TextEncoder();
@@ -56,5 +56,42 @@ describe("discount codes", () => {
     expect(open.prerequisite_customer_ids).toBeUndefined();
     expect(() => buildPriceRule({ percent: 0, title: "t", startsAt: new Date(), endsAt: new Date() })).toThrow();
     expect(() => buildPriceRule({ percent: 150, title: "t", startsAt: new Date(), endsAt: new Date() })).toThrow();
+  });
+});
+
+describe("makeTokenGetter", () => {
+  const okResponse = (token: string, expires = 86399) => async () => ({ ok: true, status: 200, json: async () => ({ access_token: token, expires_in: expires }) });
+
+  it("uses a permanent token as is, without asking Shopify", async () => {
+    let calls = 0;
+    const get = makeTokenGetter("s.myshopify.com", { staticToken: "shpat_old" }, async () => { calls++; throw new Error("no"); });
+    expect(await get!()).toBe("shpat_old");
+    expect(calls).toBe(0);
+  });
+  it("returns null when nothing is configured", () => {
+    expect(makeTokenGetter("s.myshopify.com", {}, okResponse("x"))).toBeNull();
+    expect(makeTokenGetter("s.myshopify.com", { clientId: "id" }, okResponse("x"))).toBeNull();
+  });
+  it("fetches a token with the client credentials and reuses it until shortly before it expires", async () => {
+    const requests: { url: string; body: string }[] = [];
+    let t = 1_000_000;
+    const fetchImpl = async (url: string, init: { body: string; method: string; headers: Record<string, string> }) => {
+      requests.push({ url, body: init.body });
+      return { ok: true, status: 200, json: async () => ({ access_token: `tok${requests.length}`, expires_in: 3600 }) };
+    };
+    const get = makeTokenGetter("s.myshopify.com", { clientId: "id", clientSecret: "secret" }, fetchImpl, () => t)!;
+    expect(await get()).toBe("tok1");
+    t += 30 * 60 * 1000;
+    expect(await get()).toBe("tok1");
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toBe("https://s.myshopify.com/admin/oauth/access_token");
+    expect(JSON.parse(requests[0].body)).toEqual({ client_id: "id", client_secret: "secret", grant_type: "client_credentials" });
+    t += 26 * 60 * 1000; // within 5 minutes of expiry: refresh
+    expect(await get()).toBe("tok2");
+    expect(requests).toHaveLength(2);
+  });
+  it("fails clearly when Shopify refuses", async () => {
+    const get = makeTokenGetter("s.myshopify.com", { clientId: "id", clientSecret: "bad" }, async () => ({ ok: false, status: 400, json: async () => ({}) }))!;
+    await expect(get()).rejects.toThrow(/token request failed \(400\)/);
   });
 });
