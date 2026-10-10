@@ -612,6 +612,9 @@ export default function LuckyWagers() {
                 </Button>
               </div>
             </div>
+            <button className="text-xs text-primary font-bold underline w-full text-center" onClick={() => navigate('/play/add-course')} data-testid="wager-add-course">
+              Playing a course that isn't listed? Add it and earn a clover
+            </button>
           </div>
 
           {error && (

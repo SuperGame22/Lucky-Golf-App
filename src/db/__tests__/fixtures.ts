@@ -233,3 +233,12 @@ export const JACKPOTS_LIVE = `
   );
   DROP TRIGGER IF EXISTS trg_award_spins ON public.golfer_profiles;
 `;
+
+/** The courses table (OpenStreetMap import) as the app reads it. */
+export const COURSES_LIVE = `
+  CREATE TABLE public.courses (
+    id BIGINT PRIMARY KEY, name TEXT NOT NULL, city TEXT, state TEXT NOT NULL, holes INTEGER, par INTEGER,
+    hole_data JSONB, lat DOUBLE PRECISION, lon DOUBLE PRECISION
+  );
+  INSERT INTO public.courses (id, name, city, state, holes, par) VALUES (41, 'Existing Links', 'Austin', 'TX', 18, 72);
+`;

@@ -10,7 +10,8 @@ import {
   Users,
   TrendingUp,
   LogOut,
-  Settings
+  Settings,
+  MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -47,6 +48,13 @@ const AdminDashboard = () => {
       description: "Queue prizes for the coming weeks; drawn automatically Sundays",
       icon: TrendingUp,
       link: "/admin/raffle",
+      color: "text-primary"
+    },
+    {
+      title: "Course requests",
+      description: "Review scorecards players sent to add new courses",
+      icon: MapPin,
+      link: "/admin/courses",
       color: "text-primary"
     },
     {
