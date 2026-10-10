@@ -69,6 +69,7 @@ import Profile from "./pages/Profile";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminJackpots from "./pages/admin/Jackpots";
+import AdminRaffle from "./pages/admin/Raffle";
 import AdminWagers from "./pages/admin/Wagers";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -170,6 +171,7 @@ const App = () => (
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/jackpots" element={<AdminRoute><AdminJackpots /></AdminRoute>} />
+              <Route path="/admin/raffle" element={<AdminRoute><AdminRaffle /></AdminRoute>} />
               <Route path="/admin/wagers" element={<AdminRoute><AdminWagers /></AdminRoute>} />
 
               <Route path="*" element={<NotFound />} />

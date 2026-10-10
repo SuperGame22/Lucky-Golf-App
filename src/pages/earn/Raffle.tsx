@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { supabase } from '@/integrations/supabase/client';
+import { describePrize } from '@/features/raffle/raffle';
 import { ArrowLeft, Trophy, Clock, Users, Ticket, Gift } from 'lucide-react';
 
 function useCountdown(endsAt: string | null) {
@@ -86,6 +87,9 @@ export default function WeeklyRaffle() {
               )}
               <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">This Week's Prize</p>
               <p className="text-2xl font-black text-yellow-400 mb-1">{jackpot.prize_name}</p>
+              {describePrize(jackpot) && jackpot.prize_name !== 'Prize to be announced' && (
+                <p className="text-sm text-muted-foreground mb-2">{describePrize(jackpot)}</p>
+              )}
               {jackpot.prize_value && (
                 <p className="text-sm text-muted-foreground mb-3">Value: ${Number(jackpot.prize_value).toFixed(2)}</p>
               )}

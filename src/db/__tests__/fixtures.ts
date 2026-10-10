@@ -210,3 +210,26 @@ export const COMPETITIONS_LIVE = `
     RETURN jsonb_build_object('success', true, 'winner_id', p_winner_user_id, 'amount', v_competition.pot_total);
   END; $f$;
 `;
+
+/** The weekly jackpot tables as they are live today (before the weekly raffle migration). */
+export const JACKPOTS_LIVE = `
+  ALTER TABLE public.golfer_profiles ADD COLUMN IF NOT EXISTS role TEXT, ADD COLUMN IF NOT EXISTS display_name TEXT;
+  CREATE TABLE public.weekly_jackpots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT, description TEXT, prize_name TEXT, prize_value NUMERIC, prize_image_url TEXT,
+    starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, status TEXT DEFAULT 'draft',
+    winner_user_id UUID, winning_entry_id UUID, winner_selected_at TIMESTAMPTZ, fulfilled_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now()
+  );
+  CREATE TABLE public.jackpot_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    jackpot_id UUID, user_id UUID, source TEXT DEFAULT 'clover_earned', source_ref_id UUID,
+    entry_count INTEGER DEFAULT 1, metadata JSONB, created_at TIMESTAMPTZ DEFAULT now()
+  );
+  CREATE INDEX jackpot_entries_jackpot_user ON public.jackpot_entries (jackpot_id, user_id);
+  CREATE TABLE public.admin_audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), admin_user_id UUID, action TEXT, entity_type TEXT,
+    entity_id UUID, before JSONB, after JSONB, created_at TIMESTAMPTZ DEFAULT now()
+  );
+  DROP TRIGGER IF EXISTS trg_award_spins ON public.golfer_profiles;
+`;
