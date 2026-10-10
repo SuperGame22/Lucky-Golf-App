@@ -15,8 +15,8 @@ import { PageFade } from "@/components/PageFade";
 import { ContactSync } from "@/components/ContactSync";
 import { PurchaseSync } from "@/components/PurchaseSync";
 import JoinInvite from "./pages/JoinInvite";
-import Pay from "./pages/pay/Pay";
-import PayReturn from "./pages/pay/PayReturn";
+const Pay = lazy(() => import("./pages/pay/Pay"));
+const PayReturn = lazy(() => import("./pages/pay/PayReturn"));
 
 // Domain Screens (5-tab architecture)
 import HomeScreen from "@/domains/home/screens/HomeScreen";
@@ -26,59 +26,74 @@ import CareerScreen from "@/domains/career/screens/CareerScreen";
 import EarnScreen from "@/domains/earn/screens/EarnScreen";
 
 // ── Play Sub-Routes ──
-import Rangefinder from "./pages/Rangefinder";
-import Course from "./pages/Course";
-import Scorecard from "./pages/Scorecard";
-import LuckyWagers from "./pages/play/Wagers";
-import FoursomeFinder from "./pages/play/Foursome";
-import PersonalCaddie from "./pages/play/Caddie";
-import StartRound from "./pages/play/StartRound";
+const Rangefinder = lazy(() => import("./pages/Rangefinder"));
+const Course = lazy(() => import("./pages/Course"));
+const Scorecard = lazy(() => import("./pages/Scorecard"));
+const LuckyWagers = lazy(() => import("./pages/play/Wagers"));
+const FoursomeFinder = lazy(() => import("./pages/play/Foursome"));
+const PersonalCaddie = lazy(() => import("./pages/play/Caddie"));
+const StartRound = lazy(() => import("./pages/play/StartRound"));
 
 // ── Practice Sub-Routes ──
-import PuttingGrid from "./pages/practice/Putting";
-import DistanceControl from "./pages/practice/Distance";
-import PracticeSessions from "./pages/practice/Sessions";
-import PracticeProgress from "./pages/practice/Progress";
+const PuttingGrid = lazy(() => import("./pages/practice/Putting"));
+const DistanceControl = lazy(() => import("./pages/practice/Distance"));
+const PracticeSessions = lazy(() => import("./pages/practice/Sessions"));
+const PracticeProgress = lazy(() => import("./pages/practice/Progress"));
 
 // ── Career Sub-Routes ──
-import CareerStats from "./pages/career/Stats";
-import ScorePatterns from "./pages/career/Patterns";
-import Leaderboards from "./pages/career/Leaderboards";
-import Achievements from "./pages/career/Achievements";
+const CareerStats = lazy(() => import("./pages/career/Stats"));
+const ScorePatterns = lazy(() => import("./pages/career/Patterns"));
+const Leaderboards = lazy(() => import("./pages/career/Leaderboards"));
+const Achievements = lazy(() => import("./pages/career/Achievements"));
 
 // ── Earn Sub-Routes ──
-import GoldMachine from "./pages/GoldMachine";
-import LuckySpin from "./pages/LuckySpin";
-import Shop from "./pages/Shop";
-import WeeklyRaffle from "./pages/earn/Raffle";
-import CloverPacks from "./pages/earn/Packs";
-import PuttingPacks from "./pages/earn/PuttingPacks";
-import AddCash from "./pages/wallet/AddCash";
-import VerifyTerms from "./pages/wagers/VerifyTerms";
+const GoldMachine = lazy(() => import("./pages/GoldMachine"));
+const LuckySpin = lazy(() => import("./pages/LuckySpin"));
+const Shop = lazy(() => import("./pages/Shop"));
+const WeeklyRaffle = lazy(() => import("./pages/earn/Raffle"));
+const CloverPacks = lazy(() => import("./pages/earn/Packs"));
+const PuttingPacks = lazy(() => import("./pages/earn/PuttingPacks"));
+const AddCash = lazy(() => import("./pages/wallet/AddCash"));
+const VerifyTerms = lazy(() => import("./pages/wagers/VerifyTerms"));
 
 // ── Cross-Domain ──
-import Membership from "./pages/Membership";
+const Membership = lazy(() => import("./pages/Membership"));
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import CoachAce from "./pages/CoachAce";
-import LuckyCoach from "./pages/LuckyCoach";
-import ProfileEditor from "./pages/ProfileEditor";
-import Profile from "./pages/Profile";
+const CoachAce = lazy(() => import("./pages/CoachAce"));
+const LuckyCoach = lazy(() => import("./pages/LuckyCoach"));
+const ProfileEditor = lazy(() => import("./pages/ProfileEditor"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // ── Admin ──
-import AdminLogin from "./pages/admin/Login";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminJackpots from "./pages/admin/Jackpots";
-import AdminRaffle from "./pages/admin/Raffle";
-import AdminCourseRequests from "./pages/admin/CourseRequests";
-import AddCourse from "./pages/play/AddCourse";
-import AdminWagers from "./pages/admin/Wagers";
+const AdminLogin = lazy(() => import("./pages/admin/Login"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminJackpots = lazy(() => import("./pages/admin/Jackpots"));
+const AdminRaffle = lazy(() => import("./pages/admin/Raffle"));
+const AdminCourseRequests = lazy(() => import("./pages/admin/CourseRequests"));
+const AddCourse = lazy(() => import("./pages/play/AddCourse"));
+const AdminWagers = lazy(() => import("./pages/admin/Wagers"));
 import { AdminRoute } from "./components/AdminRoute";
 
 // Camera, detector and bracket editor load only when Monocle is opened.
 const Monocle = lazy(() => import("./pages/Monocle"));
 
 const queryClient = new QueryClient();
+
+// Once the app is up and the browser is idle, fetch the pages people open most so the first tap is instant.
+const warmRoutes = () => {
+  const run = () => {
+    void import("./pages/play/StartRound");
+    void import("./pages/Scorecard");
+    void import("./pages/practice/Putting");
+    void import("./pages/LuckySpin");
+    void import("./pages/play/Wagers");
+    void import("./pages/earn/Packs");
+  };
+  const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+  if (idle) idle(run, { timeout: 4000 }); else setTimeout(run, 2500);
+};
+if (typeof window !== "undefined") window.addEventListener("load", warmRoutes, { once: true });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -94,6 +109,7 @@ const App = () => (
             <ContactSync />
             <PurchaseSync />
             <PageFade>
+            <Suspense fallback={<div className="min-h-screen w-full bg-background" />}>
             <Routes>
               {/* ── Auth (public) ── */}
               <Route path="/auth" element={<Auth />} />
@@ -180,6 +196,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
             </PageFade>
             <BottomNavigation />
           </BrowserRouter>

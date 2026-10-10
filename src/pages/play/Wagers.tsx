@@ -244,6 +244,7 @@ export default function LuckyWagers() {
             status: 'lobby',
             players: { [myId]: me },
             hostId: myId,
+            competitionId: null,
           });
         }, 300);
       }
