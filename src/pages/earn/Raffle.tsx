@@ -39,9 +39,12 @@ export default function WeeklyRaffle() {
   const [userEntries, setUserEntries] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [last, setLast] = useState<{ winner_name: string; prize_name: string; i_won: boolean } | null>(null);
   const countdown = useCountdown(jackpot?.ends_at ?? null);
 
   useEffect(() => {
+    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { last_result?: typeof last } | null }>).call(supabase, 'get_raffle_home')
+      .then(({ data }) => setLast(data?.last_result ?? null), () => undefined);
     supabase.rpc('get_active_jackpot_for_user').then(({ data, error }) => {
       if (!error && data) {
         setJackpot(data.jackpot ?? null);
@@ -63,6 +66,17 @@ export default function WeeklyRaffle() {
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Earn clovers, win prizes</p>
           </div>
         </div>
+
+        {last && (
+          <div className={`glass-card p-4 flex items-center gap-3 ${last.i_won ? 'border-yellow-500/50' : ''}`} data-testid="raffle-winner">
+            <Trophy className="w-6 h-6 text-yellow-500 shrink-0" />
+            <p className="text-sm">
+              {last.i_won
+                ? <><b>You won the last raffle!</b> Your prize: {last.prize_name}.</>
+                : <>Last winner: <b>{last.winner_name}</b>, who won {last.prize_name}.</>}
+            </p>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -147,6 +161,10 @@ export default function WeeklyRaffle() {
             </motion.div>
           </>
         )}
+
+        <p className="text-center text-sm text-muted-foreground pt-2" data-testid="raffle-juicier">
+          The more users that join, the juicier the prizes get.
+        </p>
       </div>
     </AppLayout>
   );
