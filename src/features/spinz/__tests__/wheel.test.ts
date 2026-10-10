@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GOLD_SHARE, SLICE_ANGLES, LABEL_RADIUS, prizes } from "../prizes";
-import { buildSlices, rotationToLand, sliceUnderPointer } from "../wheel";
+import { buildSlices, cubicBezier, rotationToLand, sliceUnderPointer } from "../wheel";
 
 const goldIndexes = prizes.map((p, i) => (p.rare ? i : -1)).filter((i) => i >= 0);
 const isGold = (i: number) => !!prizes[i].rare;
@@ -89,5 +89,33 @@ describe("where the wheel stops", () => {
   it("buildSlices splits by weight", () => {
     const s = buildSlices([1, 1, 2]);
     expect(s.map((x) => x.endDeg - x.startDeg)).toEqual([90, 90, 180]);
+  });
+});
+
+describe("cubicBezier (the spin easing)", () => {
+  const ease = cubicBezier(0.25, 1, 0.5, 1);
+  it("starts at exactly 0 and ends at exactly 1", () => {
+    expect(ease(0)).toBe(0);
+    expect(ease(1)).toBe(1);
+    expect(ease(-0.5)).toBe(0);
+    expect(ease(2)).toBe(1);
+  });
+  it("only ever moves forward, never overshoots, and slows to a standstill", () => {
+    let prev = 0;
+    let lastStep = Infinity;
+    for (let i = 1; i <= 2000; i++) {
+      const v = ease(i / 2000);
+      expect(v).toBeGreaterThanOrEqual(prev);
+      expect(v).toBeLessThanOrEqual(1);
+      lastStep = v - prev;
+      prev = v;
+    }
+    expect(lastStep).toBeLessThan(1e-6); // the final frames barely move
+  });
+  it("matches the CSS ease-out curve at known points", () => {
+    const cssEase = cubicBezier(0.25, 0.1, 0.25, 1); // CSS "ease": about 0.80 at the halfway mark
+    expect(cssEase(0.5)).toBeCloseTo(0.8024, 3);
+    const linear = cubicBezier(0, 0, 1, 1);
+    expect(linear(0.3)).toBeCloseTo(0.3, 5);
   });
 });

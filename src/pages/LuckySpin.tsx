@@ -35,7 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   DISCOUNT_CODES, GOLD_FILL, LABEL_RADIUS, SAND_FILL, SLICE_ANGLES, prizes,
 } from '@/features/spinz/prizes';
-import { rotationToLand } from '@/features/spinz/wheel';
+import { cubicBezier, rotationToLand } from '@/features/spinz/wheel';
 import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
 
 // consume_spin isn't in the generated Supabase types yet, so call it through a narrow signature.
@@ -55,8 +55,11 @@ const LuckySpin = () => {
   const { discount, shopConnected, refresh: refreshDiscount } = useMyDiscount();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  // True for a moment after a spin so the wheel can be re-based to a small angle without animating.
-  const finishRef = useRef<(() => void) | null>(null);
+  // The wheel is turned frame by frame from here (not a CSS transition), so there is no hand-off between
+  // an animation and a final state at the stop: the last frame is simply where it stops.
+  const wheelRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
   // Spinz are only won by sinking putts in Lucky Putts. The balance lives on the server
   // (profile.spins). While a spin is in flight the one being used is already taken off the
@@ -102,7 +105,8 @@ const LuckySpin = () => {
     // border, so the result always matches what the pointer shows. Rotation is
     // cumulative across spins, so rotationToLand corrects for wherever the
     // wheel already stopped last time.
-    setRotation(prev => rotationToLand(prev, midDeg, SPIN_ROTATIONS));
+    const from = rotation;
+    const to = rotationToLand(from, midDeg, SPIN_ROTATIONS);
 
     // Everything that happens at the end (result card, toasts, balances) waits for the wheel to
     // actually stop (its transition ending), not a timer that can fire a little early on a phone
@@ -111,7 +115,11 @@ const LuckySpin = () => {
     const finish = async () => {
       if (finished) return;
       finished = true;
-      finishRef.current = null;
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      // The wheel rests exactly on the final angle (no-op if the last frame already put it there).
+      if (wheelRef.current) wheelRef.current.style.transform = `rotate(${to}deg)`;
+      setRotation(to);
       // Give the wheel a beat to be completely still before anything else on the page changes
       // (balances, result card, toasts); nothing here touches the wheel itself.
       await new Promise<void>((resolve) => setTimeout(resolve, 350));
@@ -142,8 +150,17 @@ const LuckySpin = () => {
       if (won.type !== 'prize') setCanRespin(true); // the Re-spin button only shows while spins remain
 
     };
-    finishRef.current = finish;
-    // Safety net if the browser never reports the transition ending (e.g. a hidden tab).
+    // Turn the wheel by elapsed time, so a skipped frame never makes it run slow or stop early.
+    const ease = cubicBezier(...SPIN_EASE);
+    const startedAt = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(Math.max((now - startedAt) / (SPIN_DURATION_S * 1000), 0), 1);
+      if (wheelRef.current) wheelRef.current.style.transform = `rotate(${from + (to - from) * ease(p)}deg)`;
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
+      else finish();
+    };
+    rafRef.current = requestAnimationFrame(step);
+    // Safety net if the browser never runs frames (e.g. a hidden tab).
     setTimeout(finish, SPIN_DURATION_S * 1000 + 1500);
   };
 
@@ -164,7 +181,7 @@ const LuckySpin = () => {
         {/* Wheel */}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           className="relative flex items-center justify-center py-4 overflow-hidden -mx-[2.5%]">
-          <div className="absolute w-64 h-64 bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-20 animate-pulse pointer-events-none" />
+          <div className={`absolute w-64 h-64 bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-20 pointer-events-none ${spinning ? '' : 'animate-pulse'}`} />
           <div className="relative flex items-center justify-center w-full">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
               <div className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[30px] border-l-transparent border-r-transparent border-t-accent drop-shadow-lg" />
@@ -174,12 +191,8 @@ const LuckySpin = () => {
             {/* The turn is a CSS transition, which the browser runs on the GPU compositor, so
                 the long slow-down stays smooth even if the page is busy. */}
             <div
-              style={{
-                willChange: 'transform', width: '100%', aspectRatio: '1 / 1',
-                transform: `rotate(${rotation}deg)`,
-                transition: `transform ${SPIN_DURATION_S}s cubic-bezier(${SPIN_EASE.join(',')})`,
-              }}
-              onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'transform') finishRef.current?.(); }}
+              ref={wheelRef}
+              style={{ willChange: 'transform', width: '100%', aspectRatio: '1 / 1', transform: `rotate(${rotation}deg)` }}
               className="relative">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {prizes.map((prize, i) => {
