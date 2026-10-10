@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, RotateCcw, Trophy, Loader2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { startCheckout } from '@/features/checkout/checkout';
+import { callRpc } from '@/lib/rpc';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -77,11 +78,11 @@ function unlockAudio(){
   if (audioUnlocked) return;
   audioUnlocked = true;
   try {
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     audioCtx = new Ctx();
     audioCtx.resume().catch(() => {});
     loadBuffers();
-  } catch {}
+  } catch { /* sound is optional */ }
   // Cheap fallback insurance for the (very rare) case Web Audio itself is
   // unavailable: same play-then-pause trick as before, kept as a backstop.
   [HIT_SOUND, ...SINK_AUDIO].forEach(a => {
@@ -90,7 +91,7 @@ function unlockAudio(){
       a.pause();
       a.currentTime = 0;
       if (p && typeof p.catch === 'function') p.catch(() => {});
-    } catch {}
+    } catch { /* sound is optional */ }
   });
 }
 function playBuffer(key: string, volume: number){
@@ -108,7 +109,7 @@ function playBuffer(key: string, volume: number){
 }
 function playSound(a: HTMLAudioElement){
   unlockAudio(); // no-op if already unlocked; a safety net for any trigger path that isn't a direct green touch
-  try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch { /* sound is optional */ }
 }
 // Putter hit — real recording (Web Audio first, HTMLAudioElement fallback)
 function sndHit(){ if(!playBuffer('hit',0.8)) playSound(HIT_SOUND); }
@@ -128,7 +129,7 @@ function sndHitSynth(){
     const g=ctx.createGain();g.gain.setValueAtTime(0.35,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
     o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+0.18);
     setTimeout(()=>ctx.close(),400);
-  } catch {}
+  } catch { /* sound is optional */ }
 }
 // Sink sound — one of three real recordings, picked at random each time
 // (never repeating the previous pick, so across sinks they cycle/alternate).
@@ -169,7 +170,7 @@ const REST_GAP = 0.525, MAX_PULL = 9, STANCE_SKEW = 0, CONTACT_DIP = 0.15; // RE
 
 // Point-in-SVG-path test (ray casting)
 function parsePath(d:string):{x:number;y:number}[][]{
-  const segs:any[]=[];let cur:{x:number;y:number}[]=[];
+  const segs:{x:number;y:number}[][]=[];let cur:{x:number;y:number}[]=[];
   d.replace(/([MCLZ])\s*([^MCLZ]*)/gi,(_, cmd, args)=>{
     const nums=(args.match(/-?[\d.]+/g)||[]).map(Number);
     if(cmd==='M'||cmd==='m'){if(cur.length)segs.push(cur);cur=[{x:nums[0],y:nums[1]}];}
@@ -210,7 +211,7 @@ export default function PuttingGame(){
   const[credits,setCredits]=useState(0);const[buying,setBuying]=useState(false);
   const spendingRef=useRef(false);
   const refreshPuttStatus=useCallback(async()=>{
-    const{data}=await (supabase as any).rpc('get_putt_status');
+    const data=(await callRpc('get_putt_status')).data as {credits?:number}|null;
     if(data)setCredits(data.credits??0);
     return data;
   },[]);
@@ -275,7 +276,8 @@ export default function PuttingGame(){
     const needPutt=()=>{setMsg('Need a Putt');setSub('Tap Buy a Putt · $1');setTimeout(()=>{setMsg(null);setSub(null);},1800);};
     if(credits<=0){needPutt();return;}
     spendingRef.current=true;
-    (supabase as any).rpc('spend_putt').then(({data}:any)=>{
+    Promise.resolve(callRpc('spend_putt')).then((res)=>{
+      const data=res.data as {success?:boolean;credits?:number}|null;
       spendingRef.current=false;
       if(!data?.success){setCredits(0);needPutt();return;}
       setCredits(data.credits??0);launch();
@@ -346,7 +348,7 @@ export default function PuttingGame(){
   const doSunk=async()=>{
     setGs('sunk');setSk(n=>n+1);setMsg('Sunk!');setSub(null);
     try{
-      const{data}=await (supabase as any).rpc('award_putt_spin');
+      const data=(await callRpc('award_putt_spin')).data as {success?:boolean}|null;
       if(data?.success){setSp(n=>n+1);setSub('+1 Spin');await refreshProfile();}
     }catch{/* no Spin this time; the round continues */}
     setTimeout(()=>{setMsg(null);setSub(null);if(hi<cc.length-1){setHi(n=>n+1);setBp({x:50,y:88});setPrac(true);setGs('aim');}},2200);

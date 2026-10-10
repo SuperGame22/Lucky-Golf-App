@@ -19,7 +19,7 @@ const FEATURES = [
 export default function PlayScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [rounds, setRounds] = useState<any[]>([]);
+  const [rounds, setRounds] = useState<{ id: string; course_name: string | null; total_score: number | null; total_par: number | null; score_diff: number; holes_played: number | null; created_at: string }[]>([]);
 
   useEffect(() => {
     if (!user) return;

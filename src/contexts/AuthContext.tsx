@@ -14,6 +14,7 @@ interface Profile {
   clovers: number;
   total_clovers: number;
   spins?: number;
+  gold_balance?: number;
   bio: string;
   role?: string;
   date_of_birth?: string | null;

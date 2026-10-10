@@ -61,7 +61,7 @@ export default function AdminJackpots() {
   const [editing, setEditing] = useState<Jackpot | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
-  const [winner, setWinner] = useState<any>(null);
+  const [winner, setWinner] = useState<{ winner_user_id?: string; total_entries?: number; winning_entry_number?: number } | null>(null);
   const [selectingWinner, setSelectingWinner] = useState(false);
   const [imageMode, setImageMode] = useState<'url' | 'upload'>('url');
   const [uploading, setUploading] = useState(false);
@@ -80,7 +80,7 @@ export default function AdminJackpots() {
   };
 
   // Role guard
-  const isAdmin = (profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -361,7 +361,7 @@ export default function AdminJackpots() {
                     <input
                       className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
                       placeholder={placeholder}
-                      value={(form as any)[key]}
+                      value={(form as Record<string, string>)[key]}
                       onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     />
                   </div>
@@ -417,7 +417,7 @@ export default function AdminJackpots() {
                       </label>
                       <input type="datetime-local"
                         className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
-                        value={(form as any)[key]}
+                        value={(form as Record<string, string>)[key]}
                         onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                       />
                     </div>

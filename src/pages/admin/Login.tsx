@@ -8,6 +8,7 @@ import { CloverLogo } from '@/components/icons/CloverLogo';
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { errMessage } from '@/lib/errors';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -48,7 +49,7 @@ const AdminLogin = () => {
       });
 
       navigate("/admin/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Login Failed",
         description: error.message || "Invalid credentials",

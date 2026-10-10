@@ -160,7 +160,7 @@ export async function getOpenFoursomes(): Promise<{ data: FoursomePost[]; error:
 
   if (error) return { data: [], error: error.message };
 
-  const posts = (data || []).map((row: any) => ({
+  const posts = (data || []).map((row) => ({
     ...row,
     spots_available: row.spots_needed,
     status: row.spots_needed > 0 ? 'open' : 'full',

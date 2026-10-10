@@ -42,9 +42,9 @@ export default function HomeScreen() {
   const luckyLevel = profile?.lucky_level ?? 1;
   // Placeholder (matches local build) until a weekly clover ledger exists.
   const cloversThisWeek = reveal.week ?? 3;
-  const goldBalance = (profile as any)?.gold_balance ?? 0;
+  const goldBalance = profile?.gold_balance ?? 0;
 
-  const [activity, setActivity] = useState<any[]>([]);
+  const [activity, setActivity] = useState<{ id?: string; type: string; description?: string | null; amount?: number; created_at: string }[]>([]);
   useEffect(() => {
     getRecentTransactions(5).then(setActivity);
   }, []);
@@ -183,7 +183,7 @@ export default function HomeScreen() {
             </div>
           ) : (
             <div className="space-y-3">
-              {activity.map((txn: any, i: number) => (
+              {activity.map((txn, i) => (
                 <div key={txn.id || i} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">

@@ -137,7 +137,7 @@ export const GoldMachineVisual = ({ machineLevel, isCollecting }: GoldMachineVis
               <div
                 key={i}
                 className="absolute w-2 h-2 bg-gradient-to-br from-yellow-300 to-amber-500 rounded-full shadow-inner"
-                style={pos as any}
+                style={pos as React.CSSProperties}
               />
             ))}
 

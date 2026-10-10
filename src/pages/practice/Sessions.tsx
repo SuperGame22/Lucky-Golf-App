@@ -4,15 +4,15 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Target, Dumbbell, Crosshair } from 'lucide-react';
+import { ArrowLeft, Target, Dumbbell, Crosshair, type LucideIcon } from 'lucide-react';
 
-const DRILL_ICONS: Record<string, any> = { putting: Target, distance: Dumbbell, rangefinder: Crosshair };
+const DRILL_ICONS: Record<string, LucideIcon> = { putting: Target, distance: Dumbbell, rangefinder: Crosshair };
 const DRILL_LABELS: Record<string, string> = { putting: 'Putting Grid', distance: 'Distance Control', rangefinder: 'Rangefinder Sim' };
 
 export default function PracticeSessions() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<{ id: string; drill_type: string; created_at: string; duration_seconds: number | null; [k: string]: unknown }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

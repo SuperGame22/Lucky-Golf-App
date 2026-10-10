@@ -18,7 +18,8 @@ describe("lock wheel and settle", () => {
   const asAnon = async () => db.exec(`RESET ROLE; SELECT set_config('test.uid', '', false); SET ROLE anon;`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const settle = async (comp: string, winner: string): Promise<Record<string, any>> =>
-    (await db.query<{ r: Record<string, any> }>(`SELECT public.settle_competition('${comp}', '${winner}') AS r`)).rows[0].r;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (await db.query<{ r: Record<string, any> }>(`SELECT public.settle_competition('${comp}', '${winner}') AS r`)).rows[0].r;
   const balance = async (uid: string) => {
     await asAdmin();
     return Number((await db.query<{ balance: string }>(`SELECT balance FROM public.wallets WHERE user_id = '${uid}'`)).rows[0]?.balance ?? 0);
