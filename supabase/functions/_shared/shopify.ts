@@ -87,3 +87,50 @@ export function buildPriceRule(opts: { percent: number; title: string; startsAt:
   }
   return { price_rule: rule };
 }
+
+// ── Admin API access without a permanent token ──
+// Shopify no longer creates "legacy custom apps" with a never-expiring token. Apps made in the Dev Dashboard
+// swap their Client ID + Client secret for a token that lasts 24 hours (client credentials grant).
+
+export interface TokenSource {
+  /** A permanent token from an older custom app, if there is one. */
+  staticToken?: string | null;
+  clientId?: string | null;
+  clientSecret?: string | null;
+}
+
+type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{
+  ok: boolean; status: number; json: () => Promise<unknown>;
+}>;
+
+/**
+ * Returns a function that gives a valid Admin API token: the static one if configured, otherwise a token
+ * fetched with the client credentials and reused until a few minutes before it expires.
+ * Returns null from the factory when nothing is configured.
+ */
+export function makeTokenGetter(
+  domain: string,
+  src: TokenSource,
+  fetchImpl: FetchLike,
+  now: () => number = Date.now,
+): (() => Promise<string>) | null {
+  if (src.staticToken) {
+    const t = src.staticToken;
+    return async () => t;
+  }
+  if (!src.clientId || !src.clientSecret) return null;
+  let cached: { token: string; expiresAt: number } | null = null;
+  return async () => {
+    if (cached && now() < cached.expiresAt - 5 * 60 * 1000) return cached.token;
+    const res = await fetchImpl(`https://${domain}/admin/oauth/access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ client_id: src.clientId, client_secret: src.clientSecret, grant_type: "client_credentials" }),
+    });
+    if (!res.ok) throw new Error(`Shopify token request failed (${res.status})`);
+    const body = (await res.json()) as { access_token?: string; expires_in?: number };
+    if (!body.access_token) throw new Error("Shopify did not return a token");
+    cached = { token: body.access_token, expiresAt: now() + (body.expires_in ?? 86399) * 1000 };
+    return cached.token;
+  };
+}

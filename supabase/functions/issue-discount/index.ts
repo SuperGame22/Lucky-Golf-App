@@ -1,11 +1,13 @@
 // Turns a player's active Spinz discount into a single-use Shopify discount code.
 // Called by the app (signed-in player). Returns { configured: false } until the Shopify secrets
 // are set, so the app keeps working before Shopify is connected.
-// Secrets: SHOPIFY_STORE_DOMAIN (e.g. luckygolf.myshopify.com), SHOPIFY_ADMIN_TOKEN (Admin API access
-// token with write_price_rules / write_discounts and read/write customers), optional SHOPIFY_API_VERSION.
+// Secrets: SHOPIFY_STORE_DOMAIN (e.g. luckygolf.myshopify.com), and either SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET
+// (an app made in the Shopify Dev Dashboard; tokens are fetched automatically) or SHOPIFY_ADMIN_TOKEN (an older
+// custom app's permanent token). The app needs write_price_rules / write_discounts and read/write customers.
+// Optional: SHOPIFY_API_VERSION.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildPriceRule, makeDiscountCode } from "../_shared/shopify.ts";
+import { buildPriceRule, makeDiscountCode, makeTokenGetter } from "../_shared/shopify.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -26,8 +28,16 @@ serve(async (req) => {
   if (!user) return json({ error: "Not authenticated" }, 401);
 
   const domain = Deno.env.get("SHOPIFY_STORE_DOMAIN");
-  const token = Deno.env.get("SHOPIFY_ADMIN_TOKEN");
-  if (!domain || !token) return json({ configured: false });
+  const getToken = domain
+    ? makeTokenGetter(domain, {
+      staticToken: Deno.env.get("SHOPIFY_ADMIN_TOKEN"),
+      clientId: Deno.env.get("SHOPIFY_CLIENT_ID"),
+      clientSecret: Deno.env.get("SHOPIFY_CLIENT_SECRET"),
+    }, fetch)
+    : null;
+  if (!domain || !getToken) return json({ configured: false });
+  let token: string;
+  try { token = await getToken(); } catch (e) { return json({ configured: true, error: e instanceof Error ? e.message : "Shopify sign-in failed" }, 502); }
   const api = `https://${domain}/admin/api/${Deno.env.get("SHOPIFY_API_VERSION") ?? "2024-10"}`;
   const shopify = async (path: string, init?: RequestInit) => {
     const r = await fetch(`${api}${path}`, {
