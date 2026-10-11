@@ -9,6 +9,7 @@ import { ArrowLeft, RotateCcw, Trophy, Loader2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { startCheckout } from '@/features/checkout/checkout';
 import { callRpc } from '@/lib/rpc';
+import { startClock, stepsDue } from '@/features/putting/timestep';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -292,7 +293,7 @@ export default function PuttingGame(){
   const sim=(ivx:number,ivy:number)=>{
     setGs(prac?'practice':'roll');
     let x=bp.x,y=bp.y,vx=ivx,vy=ivy,lipCD=0;
-    const tick=()=>{
+    const step=():boolean=>{
       vx+=h.sx*SLK;vy+=h.sy*SLK;
       const spd=Math.sqrt(vx*vx+vy*vy);
       // Single smooth curve (no speed branch) — the old version jumped to a
@@ -307,11 +308,11 @@ export default function PuttingGame(){
       if(!inGreen(x,y)){
         cancelAnimationFrame(raf.current);
         setBp({x:Math.max(2,Math.min(98,x)),y:Math.max(2,Math.min(98,y))});
-        if(prac){endPrac('Practice Over','Now for the real putt');return;}
+        if(prac){endPrac('Practice Over','Now for the real putt');return true;}
         if(inBunker(x,y)){setGs('sand');setMsg('Trapped in Sand');setSub('Ball hit the bunker');}
         else{setGs('miss');setMsg('Off the Green');setSub('Into the rough');}
         setTimeout(()=>{setMsg(null);setSub(null);setBp({x:50,y:88});setGs('aim');},1800);
-        return;
+        return true;
       }
 
       if(lipCD>0)lipCD--;const cs=Math.sqrt(vx*vx+vy*vy);
@@ -320,8 +321,8 @@ export default function PuttingGame(){
         const nx=hdx/(dist||0.001),ny=hdy/(dist||0.001);
         if(dist<CAP_R&&cs<CAP_S){
           cancelAnimationFrame(raf.current);setBp({x:h.hx,y:h.hy});
-          if(prac){endPrac('Nice Read!','Now the real putt');return;}
-          sndSink();doSunk();return;
+          if(prac){endPrac('Nice Read!','Now the real putt');return true;}
+          sndSink();doSunk();return true;
         }
         if(dist>LIPI&&lipCD===0){
           if(cs>CAP_S*3){lipCD=15;const tx=-ny,ty=nx,dot=vx*tx+vy*ty;const rv=vx-dot*tx,rvy2=vy-dot*ty;vx=dot*tx*0.8-rv*0.3;vy=dot*ty*0.8-rvy2*0.3;x=h.hx+nx*(LIP+0.3);y=h.hy+ny*(LIP+0.3);if(!prac){setGs('lip');setMsg('Lip Out');setSub('Too much pace');setTimeout(()=>{setMsg(null);setSub(null);setGs('roll');},900);}}
@@ -329,18 +330,26 @@ export default function PuttingGame(){
         }
         if(dist<LIP*1.5&&cs<CAP_S*2){const gv=0.02*(1-dist/(LIP*1.5));vx-=nx*gv;vy-=ny*gv;}
       }
-      setBp({x,y});
       if(cs<STOP){
+        setBp({x,y});
         cancelAnimationFrame(raf.current);
         const fd=Math.sqrt((x-h.hx)**2+(y-h.hy)**2);
-        if(fd<CAP_R+0.2){setBp({x:h.hx,y:h.hy});if(prac){endPrac('Nice Read!','Real putt next');return;}sndSink();doSunk();}
+        if(fd<CAP_R+0.2){setBp({x:h.hx,y:h.hy});if(prac){endPrac('Nice Read!','Real putt next');return true;}sndSink();doSunk();}
         else if(prac){endPrac('Practice Over','Now the real putt');}
         else{setGs('miss');setMsg(fd<LIP*1.5?'Close':'Missed');setSub(fd<LIP*1.5?'Almost':'Read the line');setTimeout(()=>{setMsg(null);setSub(null);setGs('aim');},1500);}
-        return;
+        return true;
       }
-      raf.current=requestAnimationFrame(tick);
+      return false;
     };
-    raf.current=requestAnimationFrame(tick);
+    // One physics step is 1/60 s however fast the screen refreshes, so the ball rolls at the same pace on a
+    // 30, 60 or 120 Hz screen (it used to take one step per frame, which slowed it whenever frames dropped).
+    const clock=startClock(performance.now());
+    const frame=(now:number)=>{
+      for(let n=stepsDue(clock,now);n>0;n--){if(step())return;}
+      setBp({x,y});
+      raf.current=requestAnimationFrame(frame);
+    };
+    raf.current=requestAnimationFrame(frame);
   };
 
   // A sunk paid putt wins exactly one Spin — the only way to earn Spinz. The server
