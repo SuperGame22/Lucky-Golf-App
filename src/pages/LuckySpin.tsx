@@ -180,7 +180,7 @@ const LuckySpin = () => {
 
         {/* Wheel */}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative flex items-center justify-center py-4 overflow-hidden -mx-[2.5%]">
+          className="relative flex items-center justify-center py-4 -mx-[2.5%]">
           <div className={`absolute w-64 h-64 bg-gradient-to-r from-primary via-accent to-primary rounded-full blur-3xl opacity-20 pointer-events-none ${spinning ? '' : 'animate-pulse'}`} />
           <div className="relative flex items-center justify-center w-full">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
@@ -272,7 +272,7 @@ const LuckySpin = () => {
           {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Sink a putt in Lucky Putts to win your next spin'}
         </p>
         <p className="text-center text-xs text-amber-300/90" data-testid="discount-note">
-          🎅 Secret-Santa rules: a new discount swaps in for your old one, and it keeps for a month. Spin wisely!
+          You only get your most recent discount.
         </p>
 
         {/* Result */}
@@ -310,7 +310,7 @@ const LuckySpin = () => {
                       <p className="text-xs text-muted-foreground mt-1">Use at checkout · one-time use</p>
                     </>
                   )}
-                  <p className="text-xs text-amber-300/90 mt-2">🎅 Secret-Santa style: this swaps out any discount you had. Good for a month!</p>
+                  <p className="text-xs text-amber-300/90 mt-2">You only get your most recent discount.</p>
                 </div>
               )}
               {result.type === 'prize' && (
