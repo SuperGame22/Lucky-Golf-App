@@ -9,6 +9,7 @@ import { CloverProvider } from "@/contexts/CloverContext";
 import { BottomNavigation } from "@/shared/components/BottomNavigation";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TierProvider } from "@/contexts/TierContext";
+import { ClubGate } from "@/components/ClubGate";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageFade } from "@/components/PageFade";
@@ -155,8 +156,8 @@ const App = () => (
               <Route path="/practice/progress" element={<ProtectedRoute><PracticeProgress /></ProtectedRoute>} />
 
               {/* ── Career Sub-Routes ── */}
-              <Route path="/career/stats" element={<ProtectedRoute><CareerStats /></ProtectedRoute>} />
-              <Route path="/career/patterns" element={<ProtectedRoute><ScorePatterns /></ProtectedRoute>} />
+              <Route path="/career/stats" element={<ProtectedRoute><ClubGate title="Enhanced Stats"><CareerStats /></ClubGate></ProtectedRoute>} />
+              <Route path="/career/patterns" element={<ProtectedRoute><ClubGate title="Score Patterns"><ScorePatterns /></ClubGate></ProtectedRoute>} />
               <Route path="/career/leaderboards" element={<ProtectedRoute><Leaderboards /></ProtectedRoute>} />
               <Route path="/career/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
 

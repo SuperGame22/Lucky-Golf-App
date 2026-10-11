@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeedbackModal } from '@/components/FeedbackModal';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, TrendingUp, Award, Crown, BarChart3, Target, Play, Settings, MessageSquareText } from 'lucide-react';
+import { Trophy, TrendingUp, Award, Crown, BarChart3, Target, Play, Settings, MessageSquareText, Lock } from 'lucide-react';
+import { isClubMember } from '@/lib/membership';
 
 interface RoundStats {
   total: number;
@@ -28,6 +29,7 @@ export default function CareerScreen() {
   const clovers = profile?.clovers ?? 0;
   const displayName = profile?.display_name || 'Golfer';
   const isVIP = luckyLevel >= 5;
+  const isMember = isClubMember(profile?.membership_tier);
 
   useEffect(() => {
     if (!user) return;
@@ -97,7 +99,7 @@ export default function CareerScreen() {
         {/* Feature Cards */}
         {[
           { title: 'Enhanced Stats', description: 'Deep dive into your performance metrics', path: '/career/stats', tier: 'clover', icon: BarChart3 },
-          { title: 'Score Patterns', description: 'Analyze your scoring trends over time', path: '/career/patterns', tier: 'gold', icon: TrendingUp },
+          { title: 'Score Patterns', description: 'Analyze your scoring trends over time', path: '/career/patterns', tier: 'clover', icon: TrendingUp },
           { title: 'Leaderboards', description: 'See where you rank globally and locally', path: '/career/leaderboards', tier: 'free', icon: Trophy },
           { title: 'Achievements', description: 'Your badges, milestones, and wins', path: '/career/achievements', tier: 'free', icon: Award },
         ].map((feature, index) => {
@@ -114,13 +116,14 @@ export default function CareerScreen() {
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-semibold">{feature.title}</p>
                   {feature.tier !== 'free' && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${feature.tier === "clover" ? "bg-primary/20 text-primary" : "bg-accent/20 text-accent"}`}>
-                      {feature.tier.toUpperCase()}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-primary/20 text-primary">
+                      CLOVER CLUB
                     </span>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
+              {feature.tier !== 'free' && !isMember && <Lock className="w-5 h-5 text-yellow-400 flex-shrink-0" />}
             </motion.div>
           );
         })}
