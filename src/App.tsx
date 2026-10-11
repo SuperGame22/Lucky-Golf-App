@@ -36,8 +36,6 @@ const StartRound = lazy(() => import("./pages/play/StartRound"));
 
 // ── Practice Sub-Routes ──
 const PuttingGrid = lazy(() => import("./pages/practice/Putting"));
-const DistanceControl = lazy(() => import("./pages/practice/Distance"));
-const PracticeSessions = lazy(() => import("./pages/practice/Sessions"));
 const PracticeProgress = lazy(() => import("./pages/practice/Progress"));
 
 // ── Career Sub-Routes ──
@@ -152,8 +150,8 @@ const App = () => (
                 }
               />
               <Route path="/practice/putting" element={<ProtectedRoute><PuttingGrid /></ProtectedRoute>} />
-              <Route path="/practice/distance" element={<ProtectedRoute><DistanceControl /></ProtectedRoute>} />
-              <Route path="/practice/sessions" element={<ProtectedRoute><PracticeSessions /></ProtectedRoute>} />
+              <Route path="/practice/distance" element={<Navigate to="/practice" replace />} />
+              <Route path="/practice/sessions" element={<Navigate to="/practice" replace />} />
               <Route path="/practice/progress" element={<ProtectedRoute><PracticeProgress /></ProtectedRoute>} />
 
               {/* ── Career Sub-Routes ── */}
