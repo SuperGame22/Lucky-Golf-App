@@ -17,6 +17,7 @@ interface Profile {
   gold_balance?: number;
   bio: string;
   role?: string;
+  membership_tier?: 'free' | 'clover' | 'gold' | null;
   date_of_birth?: string | null;
   tos_accepted_at?: string | null;
   tos_version?: string | null;

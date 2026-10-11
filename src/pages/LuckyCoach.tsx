@@ -7,12 +7,14 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, ChevronRight } from 'lucide-react';
+import { GraduationCap, ChevronRight, Lock } from 'lucide-react';
+import { isClubMember } from '@/lib/membership';
 
 export default function LuckyCoach() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const displayName = profile?.display_name || 'Golfer';
+  const locked = !!profile && !isClubMember(profile.membership_tier);
 
   return (
     <AppLayout>
@@ -29,6 +31,22 @@ export default function LuckyCoach() {
           </div>
         </motion.div>
 
+        {locked ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="glass-card p-6 text-center border-yellow-400/40" data-testid="coach-locked">
+            <div className="w-14 h-14 rounded-2xl bg-yellow-400/10 flex items-center justify-center mx-auto mb-3">
+              <Lock className="w-7 h-7 text-yellow-400" />
+            </div>
+            <p className="font-black text-lg">Coach Ace</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">
+              Lucky Coach is for Clover Club members.
+            </p>
+            <Button variant="gold" className="w-full font-black uppercase tracking-wider" onClick={() => navigate('/membership')}>
+              Upgrade
+            </Button>
+          </motion.div>
+        ) : (
+          <>
         {/* Coach Ace */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="glass-card p-6 border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-900/5 cursor-pointer hover:border-primary/40 transition-colors"
@@ -60,6 +78,8 @@ export default function LuckyCoach() {
             ))}
           </div>
         </motion.div>
+          </>
+        )}
       </div>
     </AppLayout>
   );

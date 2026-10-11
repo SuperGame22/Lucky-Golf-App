@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Send, GraduationCap, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { errMessage } from '@/lib/errors';
+import { isClubMember } from '@/lib/membership';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -75,6 +77,8 @@ export default function CoachAce() {
       toast.error(errMessage(err, 'Coach unavailable right now'));
     } finally { setIsLoading(false); }
   };
+
+  if (profile && !isClubMember(profile.membership_tier)) return <Navigate to="/coach" replace />;
 
   return (
     <AppLayout hideHeader>
