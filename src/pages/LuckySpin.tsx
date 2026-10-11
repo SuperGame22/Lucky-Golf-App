@@ -272,7 +272,7 @@ const LuckySpin = () => {
           {spinsRemaining > 0 ? `${spinsRemaining} spin${spinsRemaining > 1 ? 's' : ''} available!` : 'Sink a putt in Lucky Putts to win your next spin'}
         </p>
         <p className="text-center text-xs text-amber-300/90" data-testid="discount-note">
-          You only get your most recent discount.
+          You only get your most recent discount. Try your luck wisely!
         </p>
 
         {/* Result */}
