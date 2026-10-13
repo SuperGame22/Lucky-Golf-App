@@ -11,10 +11,11 @@ import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TERMS_SECTIONS, TERMS_VERSION } from '@/features/content/terms';
+import { TERMS_TEXT, TERMS_VERSION } from '@/features/content/terms';
 
 const MAX_PHOTO = 15 * 1024 * 1024;
 const MAX_VIDEO = 50 * 1024 * 1024;
+const MIN_VIDEO_SECONDS = 10;
 const MAX_VIDEO_SECONDS = 60;
 const BUCKET = 'content-submissions';
 
@@ -82,6 +83,7 @@ export default function ShareContent() {
     if (f.size > MAX_VIDEO) { toast.error('Video is over 50 MB. Keep it short.'); return; }
     const secs = await videoSeconds(f);
     if (secs !== null && secs > MAX_VIDEO_SECONDS) { toast.error('Video must be 60 seconds or less'); return; }
+    if (secs !== null && secs < MIN_VIDEO_SECONDS) { toast.error('Video must be at least 10 seconds'); return; }
     setVideo(f);
   };
 
@@ -139,7 +141,7 @@ export default function ShareContent() {
             <p className="font-black">1 free Clover for every approved set</p>
           </div>
           <p className="text-sm text-muted-foreground">Send 3 pictures and a short video. Each approved set earns 1 free Clover, which is 1 entry in the weekly drawing.</p>
-          <p className="text-sm text-muted-foreground">Photos up to 15 MB. Video up to 60 seconds and 50 MB. By sending, you let Lucky Golf use your content.</p>
+          <p className="text-sm text-muted-foreground">Show yourself using Lucky Golf products. Photos up to 15 MB. Video 10 to 60 seconds, up to 50 MB. Open to US residents 18 and older. By sending, you let Lucky Golf use your content.</p>
         </div>
 
         <div>
@@ -187,12 +189,9 @@ export default function ShareContent() {
             <span>I have read and agree to the <button type="button" className="underline text-primary" onClick={() => setShowTerms((s) => !s)}>Clovers Terms and Conditions</button>, and I allow Lucky Golf to use this content.</span>
           </label>
           {showTerms && (
-            <div className="max-h-56 overflow-y-auto text-xs text-muted-foreground space-y-2 border-t border-border pt-3">
-              {TERMS_SECTIONS.map((s) => (
-                <div key={s.title}>
-                  <p className="font-bold text-foreground">{s.title}</p>
-                  {s.body.map((p, i) => <p key={i} className="mt-1">{p}</p>)}
-                </div>
+            <div className="max-h-72 overflow-y-auto text-xs text-muted-foreground space-y-2 border-t border-border pt-3">
+              {TERMS_TEXT.split('\n\n').map((para, i) => (
+                <p key={i} className={/^(\d+\.\s+[A-Z]|\d+\.\d+ [A-Z]|CLOVERS TERMS|COMPANY CONTACT)/.test(para) && para.length < 90 ? 'font-bold text-foreground pt-1' : ''}>{para}</p>
               ))}
             </div>
           )}
