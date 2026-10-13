@@ -25,9 +25,10 @@ export default function AdminContentSubmissions() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<'pending' | 'approved'>('pending');
 
   const load = useCallback(async () => {
-    const { data } = await rpc('admin_list_content_submissions', { p_status: 'pending' });
+    const { data } = await rpc('admin_list_content_submissions', { p_status: tab });
     const res = data as { success?: boolean; submissions?: Sub[] } | null;
     const list = res?.success ? res.submissions ?? [] : [];
     setSubs(list);
@@ -38,8 +39,8 @@ export default function AdminContentSubmissions() {
       next[s.id] = { photos: await Promise.all(s.photo_paths.map(sign)), video: (await sign(s.video_path)) || null };
     }));
     setUrls(next);
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  }, [tab]);
+  useEffect(() => { setLoading(true); load(); }, [load]);
 
   const act = async (s: Sub, kind: 'approve' | 'reject') => {
     setBusy(s.id);
@@ -64,8 +65,15 @@ export default function AdminContentSubmissions() {
           </div>
         </div>
 
+        <div className="flex gap-2">
+          {(['pending', 'approved'] as const).map((t) => (
+            <button key={t} type="button" onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize ${tab === t ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground'}`}>{t}</button>
+          ))}
+        </div>
+
         {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : subs.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-12">Nothing waiting for review.</p>
+          <p className="text-center text-sm text-muted-foreground py-12">Nothing here.</p>
         ) : subs.map((s) => (
           <div key={s.id} className="glass-card p-4 space-y-3" data-testid="content-sub">
             <div className="flex justify-between text-xs text-muted-foreground">
@@ -82,12 +90,14 @@ export default function AdminContentSubmissions() {
               {(urls[s.id]?.photos ?? []).map((u, i) => <a key={i} href={u} download className="flex items-center gap-1 underline"><Download className="w-3 h-3" />Photo {i + 1}</a>)}
               {urls[s.id]?.video && <a href={urls[s.id].video as string} download className="flex items-center gap-1 underline"><Download className="w-3 h-3" />Video</a>}
             </div>
+            {tab === 'pending' && (<>
             <input value={reasons[s.id] ?? ''} onChange={(e) => setReasons((r) => ({ ...r, [s.id]: e.target.value }))} maxLength={300}
               placeholder="Reject reason (optional)" className="w-full h-10 px-3 bg-black/40 border border-border rounded-lg text-sm" />
             <div className="flex gap-3">
               <Button className="flex-1" disabled={busy === s.id} onClick={() => act(s, 'approve')}>Approve +1 clover</Button>
               <Button className="flex-1" variant="outline" disabled={busy === s.id} onClick={() => act(s, 'reject')}>Reject</Button>
             </div>
+            </>)}
           </div>
         ))}
       </div>
