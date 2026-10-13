@@ -11,7 +11,8 @@ import {
   TrendingUp,
   LogOut,
   Settings,
-  MapPin
+  MapPin,
+  Camera
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -56,6 +57,13 @@ const AdminDashboard = () => {
       description: "Review scorecards players sent to add new courses",
       icon: MapPin,
       link: "/admin/courses",
+      color: "text-primary"
+    },
+    {
+      title: "Fan content",
+      description: "Approve photo + video sets; each approval gives the player 1 clover",
+      icon: Camera,
+      link: "/admin/content",
       color: "text-primary"
     },
     {

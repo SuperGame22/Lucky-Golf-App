@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Package, Crosshair, Gift } from 'lucide-react';
+import { Package, Crosshair, Gift, Camera } from 'lucide-react';
 import { useState } from 'react';
 import { CATEGORIES, FILTERS } from '@/data/shopCategories';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -44,6 +44,13 @@ export default function EarnScreen() {
             </motion.div>
           ))}
         </div>
+
+        {/* Share content for a free Clover */}
+        <motion.button type="button" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          onClick={() => navigate('/earn/share')} data-testid="share-content-bar"
+          className="glass-card w-full p-3 flex items-center justify-center gap-2 text-sm font-bold hover:border-primary/50 transition-colors">
+          <Camera className="w-4 h-4 text-primary" /> Share Your Clips · Earn a Free Clover
+        </motion.button>
 
         {/* Category Filter */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">

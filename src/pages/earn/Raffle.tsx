@@ -122,6 +122,10 @@ export default function WeeklyRaffle() {
               </div>
             </motion.div>
 
+            <Button className="w-full" onClick={() => navigate('/earn/share')} data-testid="raffle-share-content">
+              Share content to enter the drawing.
+            </Button>
+
             {/* Your entries */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="glass-card p-5">

@@ -70,6 +70,8 @@ const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminJackpots = lazy(() => import("./pages/admin/Jackpots"));
 const AdminRaffle = lazy(() => import("./pages/admin/Raffle"));
 const AdminCourseRequests = lazy(() => import("./pages/admin/CourseRequests"));
+const AdminContentSubmissions = lazy(() => import("./pages/admin/ContentSubmissions"));
+const ShareContent = lazy(() => import("./pages/earn/ShareContent"));
 const AddCourse = lazy(() => import("./pages/play/AddCourse"));
 const AdminWagers = lazy(() => import("./pages/admin/Wagers"));
 import { AdminRoute } from "./components/AdminRoute";
@@ -165,6 +167,7 @@ const App = () => (
               <Route path="/earn/spin" element={<ProtectedRoute><LuckySpin /></ProtectedRoute>} />
               <Route path="/earn/gold-machine" element={<ProtectedRoute><GoldMachine /></ProtectedRoute>} />
               <Route path="/earn/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
+              <Route path="/earn/share" element={<ProtectedRoute><ShareContent /></ProtectedRoute>} />
               <Route path="/earn/raffle" element={<ProtectedRoute><WeeklyRaffle /></ProtectedRoute>} />
               <Route path="/earn/packs" element={<ProtectedRoute><CloverPacks /></ProtectedRoute>} />
               <Route path="/earn/putting-packs" element={<ProtectedRoute><PuttingPacks /></ProtectedRoute>} />
@@ -191,6 +194,7 @@ const App = () => (
               <Route path="/admin/jackpots" element={<AdminRoute><AdminJackpots /></AdminRoute>} />
               <Route path="/admin/raffle" element={<AdminRoute><AdminRaffle /></AdminRoute>} />
               <Route path="/admin/courses" element={<AdminRoute><AdminCourseRequests /></AdminRoute>} />
+              <Route path="/admin/content" element={<AdminRoute><AdminContentSubmissions /></AdminRoute>} />
               <Route path="/admin/wagers" element={<AdminRoute><AdminWagers /></AdminRoute>} />
 
               <Route path="*" element={<NotFound />} />
