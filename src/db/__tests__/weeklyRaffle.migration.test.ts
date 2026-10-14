@@ -32,7 +32,7 @@ describe("weekly raffle", () => {
   const nextSundays = async (n: number) => {
     await asAdmin();
     const r = await db.query<{ d: string }>(
-      `SELECT to_char(d::date, 'YYYY-MM-DD') AS d FROM generate_series((now() + interval '8 days')::date, (now() + interval '60 days')::date, interval '1 day') d
+      `SELECT to_char(d::date, 'YYYY-MM-DD') AS d FROM generate_series((now() + interval '8 days')::date, (now() + interval '120 days')::date, interval '1 day') d
        WHERE extract(dow FROM d) = 0 ORDER BY d LIMIT ${n}`);
     return r.rows.map((x) => x.d);
   };
