@@ -1,7 +1,7 @@
 /**
  * CloverContext — real Supabase-backed clover balance
  * Reads from golfer_profiles.clovers via AuthContext profile.
- * addClovers calls the add_clovers RPC and syncs back.
+ * Clovers are only ever granted by the server (rounds, Spinz, purchases, raffle); this just reads them.
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -10,14 +10,13 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface CloverContextType {
   cloverBalance: number;
-  addClovers: (amount: number, reason?: string) => Promise<void>;
   refreshBalance: () => Promise<void>;
 }
 
 const CloverContext = createContext<CloverContextType | null>(null);
 
 export function CloverProvider({ children, initialBalance = 0 }: { children: ReactNode; initialBalance?: number }) {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [cloverBalance, setCloverBalance] = useState(initialBalance);
 
   // Sync from profile whenever it changes
@@ -26,33 +25,6 @@ export function CloverProvider({ children, initialBalance = 0 }: { children: Rea
       setCloverBalance(profile.clovers);
     }
   }, [profile?.clovers]);
-
-  const addClovers = async (amount: number, reason = 'app') => {
-    if (!user) return;
-
-    // Optimistic update
-    setCloverBalance(prev => prev + amount);
-
-    const { data, error } = await supabase.rpc('add_clovers', {
-      p_user_id: user.id,
-      p_amount: amount,
-    });
-
-    if (error) {
-      console.error('add_clovers RPC error:', error);
-      // Revert optimistic update
-      setCloverBalance(prev => prev - amount);
-      return;
-    }
-
-    // Sync authoritative balance from DB
-    if (data?.new_balance !== undefined) {
-      setCloverBalance(data.new_balance);
-    }
-
-    // Also refresh auth profile so other components see the update
-    await refreshProfile();
-  };
 
   const refreshBalance = async () => {
     if (!user) return;
@@ -67,7 +39,7 @@ export function CloverProvider({ children, initialBalance = 0 }: { children: Rea
   };
 
   return (
-    <CloverContext.Provider value={{ cloverBalance, addClovers, refreshBalance }}>
+    <CloverContext.Provider value={{ cloverBalance, refreshBalance }}>
       {children}
     </CloverContext.Provider>
   );

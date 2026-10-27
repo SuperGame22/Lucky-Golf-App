@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, Settings, Trophy, ChevronRight, Crown, LogOut } from "lucide-react";
@@ -7,37 +6,20 @@ import { CloverIcon } from "@/components/icons/CloverIcon";
 import { GoldCoinIcon } from "@/components/icons/GoldCoinIcon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 
 const TIER_LABEL: Record<string, string> = { free: "Lucky Member", clover: "Clover Member", gold: "Gold Member" };
 
 const menu = [
   { icon: Crown, label: "Membership", to: "/membership" },
-  { icon: Trophy, label: "Scorecard History", to: "/play/scorecard" },
+  { icon: Trophy, label: "Scorecard History", to: "/play/rounds" },
   { icon: Settings, label: "Edit Profile", to: "/profile/edit" },
 ];
 
 const Profile = () => {
-  const { user, profile, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [tier, setTier] = useState<string>("free");
-  const [potMg, setPotMg] = useState<number>(0);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const db = supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => PromiseLike<{ data: Record<string, unknown> | null }> } } } };
-      const [{ data: gp }, { data: gm }] = await Promise.all([
-        db.from("golfer_profiles").select("membership_tier").eq("user_id", user.id).maybeSingle(),
-        db.from("gold_machines").select("pot_mg").eq("user_id", user.id).maybeSingle(),
-      ]);
-      if (cancelled) return;
-      setTier(String(gp?.membership_tier ?? "free"));
-      setPotMg(Number(gm?.pot_mg ?? 0));
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+  const tier = profile?.membership_tier ?? "free";
+  const gold = Number(profile?.gold_balance ?? 0);
 
   const clovers = profile?.clovers ?? 0;
   const handleSignOut = async () => { await signOut(); navigate("/auth"); };
@@ -64,9 +46,9 @@ const Profile = () => {
             <p className="text-3xl font-display font-bold text-primary mt-1">{clovers.toLocaleString()}</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><GoldCoinIcon className="w-5 h-5 text-accent" /><span>Gold Pot</span></div>
-            <p className="text-3xl font-display font-bold text-accent mt-1">${(potMg / 1000).toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">{Math.round(potMg).toLocaleString()}mg collected</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground"><GoldCoinIcon className="w-5 h-5 text-accent" /><span>Gold</span></div>
+            <p className="text-3xl font-display font-bold text-accent mt-1">${gold.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Gold Machine coming soon</p>
           </motion.div>
         </div>
 

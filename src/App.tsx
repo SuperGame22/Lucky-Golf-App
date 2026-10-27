@@ -6,11 +6,11 @@ import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { CloverProvider } from "@/contexts/CloverContext";
-import { BottomNavigation } from "@/shared/components/BottomNavigation";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { TierProvider } from "@/contexts/TierContext";
 import { ClubGate } from "@/components/ClubGate";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageFade } from "@/components/PageFade";
 import { ContactSync } from "@/components/ContactSync";
@@ -21,15 +21,17 @@ const PayReturn = lazy(() => import("./pages/pay/PayReturn"));
 
 // Domain Screens (5-tab architecture)
 import HomeScreen from "@/domains/home/screens/HomeScreen";
-import PracticeScreen from "@/domains/practice/screens/PracticeScreen";
-import PlayScreen from "@/domains/play/screens/PlayScreen";
-import CareerScreen from "@/domains/career/screens/CareerScreen";
-import EarnScreen from "@/domains/earn/screens/EarnScreen";
+const PracticeScreen = lazy(() => import("@/domains/practice/screens/PracticeScreen"));
+const PlayScreen = lazy(() => import("@/domains/play/screens/PlayScreen"));
+const CareerScreen = lazy(() => import("@/domains/career/screens/CareerScreen"));
+const EarnScreen = lazy(() => import("@/domains/earn/screens/EarnScreen"));
 
 // ── Play Sub-Routes ──
 const Rangefinder = lazy(() => import("./pages/Rangefinder"));
 const Course = lazy(() => import("./pages/Course"));
 const Scorecard = lazy(() => import("./pages/Scorecard"));
+const RoundDetail = lazy(() => import("./pages/play/RoundDetail"));
+const RoundHistory = lazy(() => import("./pages/play/RoundHistory"));
 const LuckyWagers = lazy(() => import("./pages/play/Wagers"));
 const FoursomeFinder = lazy(() => import("./pages/play/Foursome"));
 const PersonalCaddie = lazy(() => import("./pages/play/Caddie"));
@@ -37,7 +39,6 @@ const StartRound = lazy(() => import("./pages/play/StartRound"));
 
 // ── Practice Sub-Routes ──
 const PuttingGrid = lazy(() => import("./pages/practice/Putting"));
-const PracticeProgress = lazy(() => import("./pages/practice/Progress"));
 
 // ── Career Sub-Routes ──
 const CareerStats = lazy(() => import("./pages/career/Stats"));
@@ -71,6 +72,7 @@ const AdminJackpots = lazy(() => import("./pages/admin/Jackpots"));
 const AdminRaffle = lazy(() => import("./pages/admin/Raffle"));
 const AdminCourseRequests = lazy(() => import("./pages/admin/CourseRequests"));
 const AdminContentSubmissions = lazy(() => import("./pages/admin/ContentSubmissions"));
+const AdminPrizes = lazy(() => import("./pages/admin/Prizes"));
 const ShareContent = lazy(() => import("./pages/earn/ShareContent"));
 const AddCourse = lazy(() => import("./pages/play/AddCourse"));
 const AdminWagers = lazy(() => import("./pages/admin/Wagers"));
@@ -84,6 +86,10 @@ const queryClient = new QueryClient();
 // Once the app is up and the browser is idle, fetch the pages people open most so the first tap is instant.
 const warmRoutes = () => {
   const run = () => {
+    void import("@/domains/practice/screens/PracticeScreen");
+    void import("@/domains/play/screens/PlayScreen");
+    void import("@/domains/career/screens/CareerScreen");
+    void import("@/domains/earn/screens/EarnScreen");
     void import("./pages/play/StartRound");
     void import("./pages/Scorecard");
     void import("./pages/practice/Putting");
@@ -99,16 +105,17 @@ if (typeof window !== "undefined") window.addEventListener("load", warmRoutes, {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-    <TierProvider>
     <CloverProvider initialBalance={0}>
       <WalletProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <UpdatePrompt />
           <BrowserRouter>
             <ScrollToTop />
             <ContactSync />
             <PurchaseSync />
+            <RouteErrorBoundary>
             <PageFade>
             <Suspense fallback={<div className="min-h-screen w-full bg-background" />}>
             <Routes>
@@ -138,7 +145,8 @@ const App = () => (
               <Route path="/play/caddie" element={<ProtectedRoute><PersonalCaddie /></ProtectedRoute>} />
               <Route path="/play/start" element={<ProtectedRoute><StartRound /></ProtectedRoute>} />
               <Route path="/play/round" element={<ProtectedRoute><Scorecard /></ProtectedRoute>} />
-              <Route path="/play/rounds/:id" element={<ProtectedRoute><Scorecard /></ProtectedRoute>} />
+              <Route path="/play/rounds" element={<ProtectedRoute><RoundHistory /></ProtectedRoute>} />
+              <Route path="/play/rounds/:id" element={<ProtectedRoute><RoundDetail /></ProtectedRoute>} />
 
               {/* ── Practice Sub-Routes ── */}
               <Route path="/practice/rangefinder" element={<ProtectedRoute><Rangefinder /></ProtectedRoute>} />
@@ -155,7 +163,7 @@ const App = () => (
               <Route path="/practice/putting" element={<ProtectedRoute><PuttingGrid /></ProtectedRoute>} />
               <Route path="/practice/distance" element={<Navigate to="/practice" replace />} />
               <Route path="/practice/sessions" element={<Navigate to="/practice" replace />} />
-              <Route path="/practice/progress" element={<ProtectedRoute><PracticeProgress /></ProtectedRoute>} />
+              <Route path="/practice/progress" element={<Navigate to="/career/stats" replace />} />
 
               {/* ── Career Sub-Routes ── */}
               <Route path="/career/stats" element={<ProtectedRoute><ClubGate title="Enhanced Stats"><CareerStats /></ClubGate></ProtectedRoute>} />
@@ -194,6 +202,7 @@ const App = () => (
               <Route path="/admin/jackpots" element={<AdminRoute><AdminJackpots /></AdminRoute>} />
               <Route path="/admin/raffle" element={<AdminRoute><AdminRaffle /></AdminRoute>} />
               <Route path="/admin/courses" element={<AdminRoute><AdminCourseRequests /></AdminRoute>} />
+              <Route path="/admin/prizes" element={<AdminRoute><AdminPrizes /></AdminRoute>} />
               <Route path="/admin/content" element={<AdminRoute><AdminContentSubmissions /></AdminRoute>} />
               <Route path="/admin/wagers" element={<AdminRoute><AdminWagers /></AdminRoute>} />
 
@@ -201,12 +210,11 @@ const App = () => (
             </Routes>
             </Suspense>
             </PageFade>
-            <BottomNavigation />
+            </RouteErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </WalletProvider>
     </CloverProvider>
-    </TierProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

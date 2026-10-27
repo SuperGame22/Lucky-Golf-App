@@ -124,7 +124,8 @@ const LuckySpin = () => {
       // (balances, result card, toasts); nothing here touches the wheel itself.
       await new Promise<void>((resolve) => setTimeout(resolve, 350));
       const won = prizes[prizeIndex];
-      if (won.type === 'discount') refreshDiscount();
+      // A won discount becomes the player's personal code (when the store is connected).
+      const mine = won.type === 'discount' ? await refreshDiscount() : null;
       // Pick up the new balances (clovers, putts, spins) now that the wheel has stopped.
       await refreshProfile();
       setSpinning(false);
@@ -133,7 +134,7 @@ const LuckySpin = () => {
       if (won.type === 'clovers' && won.clovers > 0) {
         toast.success(`+${won.clovers} clovers added to your balance!`);
       } else if (won.type === 'discount') {
-        const code = DISCOUNT_CODES[won.label] ?? 'LUCKY';
+        const code = mine?.code ?? DISCOUNT_CODES[won.label] ?? 'LUCKY';
         toast.success(`Your code: ${code} — use at checkout!`, { duration: 8000 });
       } else if (won.type === 'prize') {
         toast.success(`🎉 You won the ${won.label}! We'll reach out to arrange delivery.`, { duration: 10000 });
@@ -355,15 +356,6 @@ const LuckySpin = () => {
           )}
         </AnimatePresence>
 
-        {/* No fake Recent Winners — show empty state */}
-        <div className="glass-card p-5">
-          <h3 className="font-display font-semibold text-lg mb-3">Recent Winners</h3>
-          <div className="text-center py-4">
-            <Sparkles className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No recent wins to show</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Be the first to spin and win!</p>
-          </div>
-        </div>
       </div>
     </AppLayout>
   );

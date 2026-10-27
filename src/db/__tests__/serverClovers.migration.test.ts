@@ -224,7 +224,7 @@ describe("server-side clovers", () => {
       const ids: string[] = [];
       for (let i = 0; i < 5; i++) ids.push(await newRound(ALICE));
       await asUser(ALICE);
-      const results = [];
+      const results: number[] = [];
       for (const id of ids) results.push((await award(id)).clovers);
       expect(results).toEqual([5, 5, 5, 0, 0]);
       expect((await award(ids[3])).already_awarded).toBe(true);

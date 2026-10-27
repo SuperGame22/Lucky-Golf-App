@@ -14,7 +14,8 @@ export default function LuckyCoach() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const displayName = profile?.display_name || 'Golfer';
-  const locked = !!profile && !isClubMember(profile.membership_tier);
+  // Fail closed: without a loaded profile we can't tell membership, so show the lock.
+  const locked = !isClubMember(profile?.membership_tier);
 
   return (
     <AppLayout>

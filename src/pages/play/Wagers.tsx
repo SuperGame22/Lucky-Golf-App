@@ -76,6 +76,9 @@ export default function LuckyWagers() {
   const isHostRef = useRef(false);
   const competitionIdRef = useRef<string | null>(null);
   const hasPaidRef = useRef(false);
+  const betAmountRef = useRef(betAmount);
+  const startingRef = useRef(false);
+  useEffect(() => { betAmountRef.current = betAmount; }, [betAmount]);
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
   useEffect(() => { competitionIdRef.current = competitionId; }, [competitionId]);
   useEffect(() => { hasPaidRef.current = hasPaid; }, [hasPaid]);
@@ -104,6 +107,8 @@ export default function LuckyWagers() {
       }, 600);
       return () => clearTimeout(timer);
     }
+    // Deliberately keyed on lobby changes only; the other values are read fresh at broadcast time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHost, collecting, playerList.length, betAmount, mode]);
 
   // ── Cleanup channel on unmount ──
@@ -239,7 +244,7 @@ export default function LuckyWagers() {
         setTimeout(() => {
           broadcastStateSync(ch, {
             mode: selectedMode || 'winner-takes-all',
-            betAmount,
+            betAmount: betAmountRef.current,
             currentHole: 1,
             status: 'lobby',
             players: { [myId]: me },
@@ -249,7 +254,7 @@ export default function LuckyWagers() {
         }, 300);
       }
     }, 500);
-  }, [myId, myName]);
+  }, [myId, myName, navigate]);
 
   // ── Host: Create Session ──
   const handleCreate = (selectedMode: WagerMode) => {
@@ -351,14 +356,25 @@ export default function LuckyWagers() {
   // game actually go live (see the effect below).
   const startGame = async () => {
     if (!channelRef.current || playerList.length < 2 || !mode) return;
+    // One start at a time: a double tap must never create two competitions (and charge twice).
+    if (startingRef.current) return;
+    startingRef.current = true;
     setStarting(true);
     setError(null);
+    try {
+      await startGameInner();
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
+    }
+  };
+  const startGameInner = async () => {
+    if (!channelRef.current || !mode) return;
     const { data, error: rpcErr } = await supabase.rpc('create_competition', {
       p_user_id: myId,
       p_buy_in: betAmount,
       p_course_name: 'Lucky Wagers',
     });
-    setStarting(false);
     if (rpcErr || !data?.competition_id) {
       const reason = rpcErr?.message || 'Could not start the wager';
       if (reason.includes('AGE_VERIFICATION_REQUIRED')) {

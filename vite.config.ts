@@ -32,7 +32,9 @@ export default defineConfig({
     // Phones need HTTPS for the camera on a LAN address: `npm run dev:https`.
     process.env.HTTPS === "1" && basicSsl(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt": a new version waits until the player taps Reload (src/components/UpdatePrompt.tsx), so it
+      // never reloads the page in the middle of a round, a wager or a payment.
+      registerType: "prompt",
       // Registered manually in src/main.tsx so previews and iframes can opt out.
       injectRegister: null,
       includeAssets: ["favicon.ico", "icons/apple-touch-icon.png"],

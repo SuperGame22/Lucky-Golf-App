@@ -8,6 +8,7 @@ interface ScorecardHeaderProps {
   totalPutts: number;
   scoreDiff: number;
   roundLength: 9 | 18;
+  courseName?: string;
   activeHole: number;
   onRoundLengthChange: (length: 9 | 18) => void;
 }
@@ -18,12 +19,13 @@ export const ScorecardHeader = ({
   totalPutts,
   scoreDiff,
   roundLength,
+  courseName,
   activeHole,
   onRoundLengthChange,
 }: ScorecardHeaderProps) => {
-  // Course selection is off until a later version, so the subtitle only names the nine in play.
-  const roundLabel =
+  const nine =
     roundLength === 9 ? "Front 9" : activeHole <= 9 ? "Front 9 of 18" : "Back 9 of 18";
+  const roundLabel = courseName ? `${courseName} · ${nine}` : nine;
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -35,7 +37,7 @@ export const ScorecardHeader = ({
           <h1 className="text-2xl font-display font-bold">Scorecard</h1>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="w-4 h-4" />
-            <span>{roundLabel}</span>
+            <span className="truncate max-w-[60vw]">{roundLabel}</span>
           </div>
         </div>
         <div className="text-right">
@@ -69,6 +71,7 @@ export const ScorecardHeader = ({
           <button
             key={len}
             onClick={() => onRoundLengthChange(len)}
+            aria-pressed={roundLength === len}
             className={cn(
               "py-2 rounded-lg text-sm font-medium transition-all",
               roundLength === len

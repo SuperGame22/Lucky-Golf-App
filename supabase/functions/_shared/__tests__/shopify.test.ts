@@ -35,6 +35,9 @@ describe("paid order parsing", () => {
     expect(parsePaidOrder({ ...base, test: true }, { acceptTest: true })).toMatchObject({ ok: true });
     expect(parsePaidOrder({ ...base, cancelled_at: "2026-10-01" })).toEqual({ ok: false, reason: "cancelled" });
     expect(parsePaidOrder({ ...base, financial_status: "pending" })).toMatchObject({ ok: false });
+    // A deposit isn't a paid order: no clovers until it's fully paid.
+    expect(parsePaidOrder({ ...base, financial_status: "partially_paid" })).toMatchObject({ ok: false });
+    expect(parsePaidOrder({ ...base, financial_status: "partially_refunded" })).toMatchObject({ ok: true });
     expect(parsePaidOrder({ ...base, email: "" })).toEqual({ ok: false, reason: "no email" });
     expect(parsePaidOrder({ ...base, current_subtotal_price: "0.00", subtotal_price: "0.00" })).toEqual({ ok: false, reason: "no amount" });
     expect(parsePaidOrder({ email: "a@b.com" })).toEqual({ ok: false, reason: "no order id" });

@@ -24,7 +24,7 @@ const QUICK_TAPS = [
 ];
 
 export default function CoachAce() {
-  const { profile, session } = useAuth();
+  const { profile, session, profileLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([{
     id: 'welcome', role: 'coach',
     text: `Hey${profile?.display_name ? ` ${profile.display_name}` : ''}! I'm Coach Ace. Ask me anything about golf — swing fixes, club selection, rules, or mental game. Fire away.`,
@@ -33,6 +33,9 @@ export default function CoachAce() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  // Stop a reply that's still streaming when the player leaves the page.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -48,37 +51,52 @@ export default function CoachAce() {
     const coachId = `c-${Date.now()}`;
     setMessages(prev => [...prev, { id: coachId, role: 'coach', text: '', timestamp: new Date() }]);
     try {
-      const authHeader = session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${SUPABASE_KEY}`;
+      if (!session?.access_token) throw new Error('Please sign in again to chat with Coach Ace');
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const response = await fetch(`${SUPABASE_URL}/functions/v1/coach-chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: authHeader, apikey: SUPABASE_KEY },
-        body: JSON.stringify({ messages: history.map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.text })) }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY },
+        // The welcome line is ours, not part of the conversation.
+        body: JSON.stringify({ messages: history.filter(m => m.id !== 'welcome').map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.text })) }),
+        signal: controller.signal,
       });
-      if (!response.ok) throw new Error(`Error ${response.status}`);
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `Error ${response.status}`);
+      }
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No stream');
       const decoder = new TextDecoder();
       let accumulated = '';
+      let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        // A server-sent event line can be split across chunks: keep the unfinished tail for next time.
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
           if (line.startsWith('data: ') && !line.includes('[DONE]')) {
             try {
               const delta = JSON.parse(line.slice(6)).choices?.[0]?.delta?.content;
               if (delta) { accumulated += delta; setMessages(prev => prev.map(m => m.id === coachId ? { ...m, text: accumulated } : m)); }
-            } catch { /* partial */ }
+            } catch { /* not JSON */ }
           }
         }
       }
       if (!accumulated) { setMessages(prev => prev.filter(m => m.id !== coachId)); throw new Error('No response'); }
     } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
       setMessages(prev => prev.filter(m => m.id !== coachId));
       toast.error(errMessage(err, 'Coach unavailable right now'));
     } finally { setIsLoading(false); }
   };
 
-  if (profile && !isClubMember(profile.membership_tier)) return <Navigate to="/coach" replace />;
+  if (profileLoading && !profile) return null;
+  if (!isClubMember(profile?.membership_tier)) return <Navigate to="/coach" replace />;
 
   return (
     <AppLayout hideHeader>
@@ -131,8 +149,9 @@ export default function CoachAce() {
           <form onSubmit={e => { e.preventDefault(); handleSend(input); }} className="max-w-lg mx-auto flex gap-2">
             <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Coach Ace anything..."
               disabled={isLoading}
-              className="flex-1 h-11 bg-muted/50 border border-border rounded-xl px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50" />
-            <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="h-11 w-11 rounded-xl">
+              aria-label="Message Coach Ace"
+              className="flex-1 h-11 bg-muted/50 border border-border rounded-xl px-4 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50" />
+            <Button type="submit" size="icon" aria-label="Send" disabled={!input.trim() || isLoading} className="h-11 w-11 rounded-xl">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </form>

@@ -3,44 +3,47 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { CloverIcon } from "@/components/icons/CloverIcon";
 import { Check, Crown, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const tiers = [
   {
+    key: "free",
     name: "Lucky Member",
     price: 0,
     period: "",
     description: "Get started with core features",
     features: [
-      "GPS Rangefinder",
+      "Wedge Monocle rangefinder",
       "Digital Scorecard",
-      "Basic AR Clover Hunting",
+      "Clover hunting",
       "1 clover per $4 spent",
     ],
-    cta: "Current Plan",
     popular: false,
     comingSoon: false,
     icon: Sparkles,
     gradient: "from-muted to-muted/50",
   },
   {
+    key: "clover",
     name: "Clover Club",
     price: 7,
     period: "/mo",
     description: "For the dedicated golfer",
     features: [
       "Everything in Lucky Member",
+      "Coach Ace, Enhanced Stats & Score Patterns",
       "3 free putts a month",
       "Priority Lucky Tees access",
       "Exclusive member discounts",
       "Priority support",
     ],
-    cta: "Start Free Trial",
     popular: true,
     comingSoon: false,
     icon: CloverIcon,
     gradient: "from-primary to-lucky-emerald",
   },
   {
+    key: "gold",
     name: "Gold Club",
     price: 20,
     period: "/mo",
@@ -54,7 +57,6 @@ const tiers = [
       "VIP event access",
       "Personal concierge",
     ],
-    cta: "Go Gold",
     popular: false,
     comingSoon: true,
     icon: Crown,
@@ -63,6 +65,8 @@ const tiers = [
 ];
 
 const Membership = () => {
+  const { profile } = useAuth();
+  const current = profile?.membership_tier ?? "free";
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
@@ -129,13 +133,15 @@ const Membership = () => {
                     ))}
                   </ul>
 
+                  {/* Paid sign-up isn't connected to Stripe yet, so the button says so instead of doing nothing. */}
                   <Button
-                    variant={tier.popular ? "lucky" : tier.price === 0 || tier.comingSoon ? "outline" : "gold"}
+                    variant={tier.key === current ? "outline" : tier.popular ? "lucky" : tier.comingSoon ? "outline" : "gold"}
                     className="w-full"
-                    disabled={tier.price === 0 || tier.comingSoon}
+                    disabled
+                    data-testid={`plan-${tier.key}`}
                   >
-                    {tier.price === 0 && <Check className="w-4 h-4" />}
-                    {tier.comingSoon ? "Coming Soon" : tier.cta}
+                    {tier.key === current && <Check className="w-4 h-4" />}
+                    {tier.key === current ? "Current Plan" : tier.comingSoon ? "Coming Soon" : tier.price === 0 ? "Included" : "Sign-up opening soon"}
                   </Button>
                 </div>
 

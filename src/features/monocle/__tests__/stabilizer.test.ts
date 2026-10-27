@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DistanceStabilizer, RangeGate, StabilizerSample } from "../engine/stabilizer";
+import { DistanceStabilizer, RangeGate, type StabilizedReading, StabilizerSample } from "../engine/stabilizer";
 import { mulberry32 } from "../testing/synthScene";
 
 const sample = (t: number, yards: number, confidence = 0.9): StabilizerSample => ({
@@ -13,7 +13,7 @@ const sample = (t: number, yards: number, confidence = 0.9): StabilizerSample =>
 /** Feed `count` samples at 12 Hz around `centre` with the given 1-sigma noise. */
 function feed(s: DistanceStabilizer, startMs: number, count: number, centre: number, noise: number, seed = 1, conf = 0.9) {
   const rand = mulberry32(seed);
-  const out = [];
+  const out: StabilizedReading[] = [];
   for (let i = 0; i < count; i++) {
     const t = startMs + i * 83;
     const n = (rand() + rand() + rand() + rand() - 2) * 1.73 * noise; // ~N(0, noise)
@@ -32,7 +32,7 @@ describe("DistanceStabilizer", () => {
   it("turns 86, 87, 87, 88, 87 into a steady 87", () => {
     const s = new DistanceStabilizer();
     const seq = [86, 87, 87, 88, 87, 86, 87, 88, 87, 87, 86, 88, 87, 87];
-    let last = null;
+    let last: StabilizedReading | null = null;
     seq.forEach((y, i) => (last = s.push(sample(i * 83, y), i * 83)));
     expect(last!.status).toBe("locked");
     expect(last!.yards).toBe(87);
@@ -65,7 +65,7 @@ describe("DistanceStabilizer", () => {
 
   it("refuses to lock when readings disagree wildly (flipping between objects)", () => {
     const s = new DistanceStabilizer();
-    const out = [];
+    const out: StabilizedReading[] = [];
     for (let i = 0; i < 40; i++) out.push(s.push(sample(i * 83, i % 2 ? 60 : 100), i * 83));
     expect(out.some((r) => r.status === "locked")).toBe(false);
   });
@@ -73,7 +73,7 @@ describe("DistanceStabilizer", () => {
   it("rejects an occasional outlier frame", () => {
     const s = new DistanceStabilizer();
     const rand = mulberry32(5);
-    let last = null;
+    let last: StabilizedReading | null = null;
     for (let i = 0; i < 30; i++) {
       const y = i % 9 === 4 ? 140 : 87 + (rand() - 0.5) * 2;
       last = s.push(sample(i * 83, y), i * 83);
@@ -125,7 +125,7 @@ describe("DistanceStabilizer on a slow device", () => {
     const s = new DistanceStabilizer();
     const dt = 830;
     let lockedAt = -1;
-    let last = null;
+    let last: StabilizedReading | null = null;
     for (let i = 0; i < 20; i++) {
       const t = i * dt;
       last = s.push(sample(t, 87 + (i % 3 === 0 ? 0.4 : -0.3)), t);

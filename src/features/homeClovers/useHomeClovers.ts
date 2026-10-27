@@ -24,7 +24,7 @@ export interface HomeCloverView {
   /** False until the server has answered, so the new balance is never flashed before the reveal. */
   ready: boolean;
   count: number;
-  /** "+N this week", or null when the server can't say (the page falls back to its old placeholder). */
+  /** "+N this week", or null when the server can't say (the page then hides the line). */
   week: number | null;
   /** Leaves lit on the clover, 0-4. */
   lit: number;

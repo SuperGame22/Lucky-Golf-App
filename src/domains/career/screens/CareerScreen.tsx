@@ -23,6 +23,7 @@ export default function CareerScreen() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { profile, user } = useAuth();
   const [roundStats, setRoundStats] = useState<RoundStats>({ total: 0, bestScore: null });
+  const [roundsLoaded, setRoundsLoaded] = useState(false);
 
   const handicap = profile?.handicap_index ?? 0;
   const luckyLevel = profile?.lucky_level ?? 1;
@@ -39,6 +40,7 @@ export default function CareerScreen() {
       .eq('user_id', user.id)
       .eq('completed', true)
       .then(({ data }) => {
+        setRoundsLoaded(true);
         if (!data || data.length === 0) return;
         const best = data.reduce((min, r) =>
           r.total_score < min.total_score ? r : min, data[0]);
@@ -58,7 +60,7 @@ export default function CareerScreen() {
             </h1>
             <p className="text-sm text-muted-foreground">{displayName}'s golf journey</p>
           </div>
-          <Button variant="outline" size="icon" onClick={() => navigate('/profile/edit')} data-testid="edit-profile-btn">
+          <Button variant="outline" size="icon" aria-label="Edit profile" onClick={() => navigate('/profile/edit')} data-testid="edit-profile-btn">
             <Settings className="w-5 h-5" />
           </Button>
         </div>
@@ -108,6 +110,8 @@ export default function CareerScreen() {
             <motion.div key={feature.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + index * 0.05 }}
               className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:border-primary/50 transition-colors"
+              role="link" tabIndex={0} aria-label={feature.title}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(feature.path); } }}
               onClick={() => navigate(feature.path)}>
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Icon className="w-6 h-6 text-primary" />
@@ -128,13 +132,15 @@ export default function CareerScreen() {
           );
         })}
 
-        {/* Empty State CTA */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="glass-card p-6 text-center">
-          <Play className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">Play rounds to build your career stats</p>
-          <Button onClick={() => navigate('/play/start')}>Start a Round</Button>
-        </motion.div>
+        {/* Empty State CTA (only before the first completed round) */}
+        {roundsLoaded && roundStats.total === 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="glass-card p-6 text-center">
+            <Play className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-3">Play rounds to build your career stats</p>
+            <Button onClick={() => navigate('/play/start')}>Start a Round</Button>
+          </motion.div>
+        )}
 
         {/* Beta Feedback */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TERMS_TEXT, TERMS_VERSION } from '@/features/content/terms';
+import { TERMS_VERSION } from '@/features/content/termsVersion';
 
 const MAX_PHOTO = 15 * 1024 * 1024;
 const MAX_VIDEO = 50 * 1024 * 1024;
@@ -56,6 +56,12 @@ export default function ShareContent() {
   const [video, setVideo] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  // The full terms (about 60 KB) load only when the player opens them.
+  const [termsText, setTermsText] = useState<string | null>(null);
+  useEffect(() => {
+    if (!showTerms || termsText) return;
+    import('@/features/content/terms').then((m) => setTermsText(m.TERMS_TEXT)).catch(() => setTermsText(''));
+  }, [showTerms, termsText]);
   const [busy, setBusy] = useState(false);
   const [subs, setSubs] = useState<Sub[]>([]);
   const photoRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
@@ -142,6 +148,9 @@ export default function ShareContent() {
           </div>
           <p className="text-sm text-muted-foreground">Send 3 pictures and a short video. Each approved set earns 1 free Clover, which is 1 entry in the weekly drawing.</p>
           <p className="text-sm text-muted-foreground">Show yourself using Lucky Golf products. Photos up to 15 MB. Video 10 to 60 seconds, up to 50 MB. Open to US residents 18 and older. By sending, you let Lucky Golf use your content.</p>
+          <p className="text-xs text-muted-foreground" data-testid="amoe-note">
+            No purchase necessary. You can also get a free entry by emailing <a className="underline" href="mailto:help@luckygolf.com?subject=Clovers%20AMOE%20Entry">help@luckygolf.com</a> with the subject "Clovers AMOE Entry" and your full name, mailing address, date of birth, email and phone (one per drawing). See section 8 of the terms.
+          </p>
         </div>
 
         <div>
@@ -186,11 +195,13 @@ export default function ShareContent() {
         <div className="glass-card p-4 space-y-3">
           <label className="flex items-start gap-3 text-sm cursor-pointer">
             <input type="checkbox" className="mt-1 h-4 w-4 accent-green-500" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} data-testid="terms-checkbox" />
-            <span>I have read and agree to the <button type="button" className="underline text-primary" onClick={() => setShowTerms((s) => !s)}>Clovers Terms and Conditions</button>, and I allow Lucky Golf to use this content.</span>
+            <span>I'm 18 or older and a US resident, I have read and agree to the <button type="button" className="underline text-primary" onClick={() => setShowTerms((s) => !s)}>Clovers Terms and Conditions</button>, and I allow Lucky Golf to use this content.</span>
           </label>
           {showTerms && (
             <div className="max-h-72 overflow-y-auto text-xs text-muted-foreground space-y-2 border-t border-border pt-3">
-              {TERMS_TEXT.split('\n\n').map((para, i) => (
+              {termsText === null && <p>Loading the terms…</p>}
+              {termsText === '' && <p>The terms could not be loaded. Check your connection and try again.</p>}
+              {(termsText ?? '').split('\n\n').filter(Boolean).map((para, i) => (
                 <p key={i} className={/^(\d+\.\s+[A-Z]|\d+\.\d+ [A-Z]|CLOVERS TERMS|COMPANY CONTACT)/.test(para) && para.length < 90 ? 'font-bold text-foreground pt-1' : ''}>{para}</p>
               ))}
             </div>

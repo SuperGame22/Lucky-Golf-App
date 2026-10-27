@@ -5,6 +5,13 @@
 | `stripe-webhook`, `create-checkout`, `buy-putt` | Stripe payments (already deployed) | Stripe / the app |
 | `shopify-webhook` | A paid website order adds clovers (and marks a used discount) | Shopify |
 | `issue-discount` | Turns a player's Spinz discount into a single-use Shopify code | the app |
+| `coach-chat` | Coach Ace (OpenAI). Signed-in **Clover Club / Gold members only**; message count and length capped | the app |
+| `analyze-swing` | Swing video analysis (OpenAI). Signed-in players only | not used by the app yet |
+
+Optional secrets for all functions: `APP_URL` (e.g. `https://lucky-golf-app.vercel.app`, used for Stripe return links) and
+`ALLOWED_ORIGINS` (comma-separated app origins for CORS on the AI functions; unset = any origin).
+`coach-chat` and `analyze-swing` check the login themselves, so they stay deployed with Verify JWT **off**
+(`supabase/config.toml`); redeploy them after pulling: `supabase functions deploy coach-chat analyze-swing create-checkout shopify-webhook issue-discount`.
 
 ## Connecting Shopify (once)
 
@@ -36,4 +43,5 @@ Never paste the token or secrets into chat; they only go in Supabase's Secrets p
   that email signs in verified. Turn on **email confirmation** in Supabase Auth so nobody can claim an email they don't own.
 - Discounts: one active per player, the newest replaces the old one, valid one month, single use, restricted to the
   player's Shopify customer when it can be found.
+- Only fully paid orders earn clovers (deposits / partially paid orders do not).
 - Refunds and cancellations do not take clovers back.

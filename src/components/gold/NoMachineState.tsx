@@ -37,7 +37,7 @@ export const NoMachineState = ({
             <div className="absolute inset-0 rounded-full" style={{
             background: "radial-gradient(circle, hsl(var(--primary) / 0.3) 0%, hsl(var(--primary) / 0.1) 40%, transparent 70%)"
           }} />
-            <img alt="Lucky Leprechaun" src="/images/leprechaun-mascot-transparent.png" className="relative w-full h-full object-contain drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)] opacity-100 border-0" />
+            <img alt="Lucky Leprechaun" src="/images/leprechaun-mascot-transparent.webp" width={128} height={128} decoding="async" className="relative w-full h-full object-contain drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)] opacity-100 border-0" />
           </div>
         </motion.div>
 
@@ -74,8 +74,7 @@ export const NoMachineState = ({
             <span className="font-semibold">How to find the Leprechaun</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Use your rangefinder on the course and look for the rainbow in AR mode. 
-            Follow it to find the Lucky Leprechaun near the greens!
+            Coming soon: spot the Lucky Leprechaun on the course to start your gold machine.
           </p>
         </motion.div>
 

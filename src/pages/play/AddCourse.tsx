@@ -54,7 +54,8 @@ export default function AddCourse() {
     const { data } = await supabase.from('course_requests').select('id, course_name, city, state, status, reject_reason').order('created_at', { ascending: false }).limit(10);
     setMine((data ?? []) as unknown as MyRequest[]);
   };
-  useEffect(() => { loadMine(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadMine(); }, [user]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   const pick = (f: File | undefined) => {

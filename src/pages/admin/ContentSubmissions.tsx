@@ -26,6 +26,18 @@ export default function AdminContentSubmissions() {
   const [busy, setBusy] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<'pending' | 'approved'>('pending');
+  const [amoeEmail, setAmoeEmail] = useState('');
+  const [amoeBusy, setAmoeBusy] = useState(false);
+  const grantAmoe = async () => {
+    if (!amoeEmail.trim() || amoeBusy) return;
+    setAmoeBusy(true);
+    const { data, error } = await rpc('admin_grant_amoe_entry', { p_email: amoeEmail.trim() });
+    setAmoeBusy(false);
+    const res = data as { success?: boolean; error?: string } | null;
+    if (error || !res?.success) { toast.error(error?.message ?? res?.error ?? 'Failed'); return; }
+    toast.success('Free entry granted: +1 clover');
+    setAmoeEmail('');
+  };
 
   const load = useCallback(async () => {
     const { data } = await rpc('admin_list_content_submissions', { p_status: tab });
@@ -62,6 +74,23 @@ export default function AdminContentSubmissions() {
           <div>
             <h1 className="text-xl font-black">Fan content</h1>
             <p className="text-xs text-muted-foreground">3 photos + 1 video per set. Approve gives the player 1 clover.</p>
+            <p className="text-xs text-amber-300/90 mt-1" data-testid="content-review-rules">
+              Approve only if every photo and the video clearly show the player with a Lucky Golf product, the video is at
+              least 10 seconds, and nothing breaks the Clovers Terms (sections 5 and 13).
+            </p>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 space-y-2" data-testid="amoe-grant">
+          <p className="text-sm font-bold">Free entry by email (AMOE)</p>
+          <p className="text-xs text-muted-foreground">
+            For a "Clovers AMOE Entry" email with name, address, date of birth, email and phone: enter the player's account email.
+            Gives 1 clover (1 raffle entry), once per player per week.
+          </p>
+          <div className="flex gap-2">
+            <input type="email" value={amoeEmail} onChange={(e) => setAmoeEmail(e.target.value)} placeholder="player@email.com"
+              aria-label="Player email" className="flex-1 h-10 px-3 bg-black/40 border border-border rounded-lg text-base" />
+            <Button disabled={amoeBusy || !amoeEmail.trim()} onClick={grantAmoe}>Grant</Button>
           </div>
         </div>
 

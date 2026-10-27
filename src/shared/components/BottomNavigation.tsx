@@ -13,13 +13,14 @@ export const BottomNavigation = () => {
     { icon: Coins,     label: "Earn",     path: "/earn" },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-green-900/30 px-6 py-3 flex items-center justify-between z-50">
+    <nav aria-label="Main" className="fixed bottom-0 left-0 right-0 bg-black border-t border-green-900/30 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between z-50">
       {navItems.map((item) => {
         const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
         return (
           <Link
             key={item.path}
             to={item.path}
+            aria-current={active ? "page" : undefined}
             className={`flex flex-col items-center gap-1 ${active ? "text-primary" : "text-muted-foreground"}`}
           >
             <item.icon className="w-6 h-6" />

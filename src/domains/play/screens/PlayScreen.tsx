@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const FEATURES = [
-  { title: 'GPS Rangefinder', desc: 'Distance measurements to the pin', icon: MapPin, path: '/play/rangefinder' },
+  { title: 'Wedge Monocle', desc: 'Camera rangefinder for wedge shots', icon: MapPin, path: '/play/rangefinder' },
   { title: 'Scorecard', desc: 'Track scores hole by hole', icon: FileText, path: '/play/scorecard' },
 ];
 

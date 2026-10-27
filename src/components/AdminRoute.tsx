@@ -6,9 +6,10 @@ import { Loader2 } from "lucide-react";
 // in" — this additionally checks golfer_profiles.role, since without it any
 // signed-up user could reach the admin panel.
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
-  if (loading) {
+  // Wait for the profile too: deciding while it is still loading bounced admins to Home after login.
+  if (loading || (user && profileLoading && !profile)) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-black">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

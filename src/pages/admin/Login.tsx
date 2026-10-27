@@ -52,7 +52,7 @@ const AdminLogin = () => {
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid credentials",
+        description: (error instanceof Error && error.message) || "Invalid credentials",
         variant: "destructive",
       });
     } finally {

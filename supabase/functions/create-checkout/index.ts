@@ -69,7 +69,8 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
       httpClient: Stripe.createFetchHttpClient(),
     });
-    const origin = req.headers.get("origin") || "https://your-app.vercel.app";
+    // Where Stripe sends the player back: APP_URL (set it in Supabase secrets) wins over the caller's Origin header.
+    const origin = (Deno.env.get("APP_URL") || req.headers.get("origin") || "https://lucky-golf-app.vercel.app").replace(/\/$/, "");
 
     // Embedded checkout: the app shows Stripe's payment form inside its own page (/pay) instead of
     // sending the player to Stripe's site. Only used when the app asks for it ({ embedded: true });
@@ -196,7 +197,10 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("create-checkout error:", error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    // Stripe's own errors can include internal detail; show players a plain message instead.
+    const isStripe = typeof (error as { type?: unknown })?.type === "string" && String((error as { type: string }).type).startsWith("Stripe");
+    const message = isStripe ? "Payment could not be started. Please try again." : (error as Error).message;
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

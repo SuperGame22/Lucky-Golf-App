@@ -44,7 +44,7 @@ export function parsePaidOrder(order: ShopifyOrder, opts: { acceptTest?: boolean
   if (!order || order.id === undefined || order.id === null) return { ok: false, reason: "no order id" };
   if (order.test && !opts.acceptTest) return { ok: false, reason: "test order" };
   if (order.cancelled_at) return { ok: false, reason: "cancelled" };
-  if (order.financial_status && !["paid", "partially_refunded", "partially_paid"].includes(order.financial_status)) {
+  if (order.financial_status && !["paid", "partially_refunded"].includes(order.financial_status)) {
     return { ok: false, reason: `not paid (${order.financial_status})` };
   }
   const email = (order.email ?? order.contact_email ?? order.customer?.email ?? "").trim().toLowerCase();
@@ -59,7 +59,9 @@ const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L to avoi
 export const DISCOUNT_PREFIX = "LG-";
 
 /** A code like LG-7KQ2M9XA. `random` is injectable for tests. */
-export function makeDiscountCode(random: () => number = Math.random): string {
+const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+
+export function makeDiscountCode(random: () => number = secureRandom): string {
   let s = "";
   for (let i = 0; i < 8; i++) s += CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)];
   return DISCOUNT_PREFIX + s;

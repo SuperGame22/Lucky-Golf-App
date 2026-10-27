@@ -12,7 +12,7 @@ export const AppLayout = ({ children, hideHeader }: { children: ReactNode; hideH
       />
       <div className="relative z-10">
         {!hideHeader && <Header />}
-        <main className="pb-24">
+        <main className="pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {children}
         </main>
       </div>

@@ -12,38 +12,43 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 
-type Stats = { rounds: number; bestDiff: number; clovers: number };
+type Stats = { rounds: number; bestDiff: number; clovers: number; aces: number };
+type Achievement = { id: string; name: string; desc: string; icon: string; check: (s: Stats) => boolean; soon?: boolean };
 
-const ACHIEVEMENTS = [
+const ACHIEVEMENTS: Achievement[] = [
   { id: 'first_round', name: 'First Round', desc: 'Complete your first round', icon: '🏌️', check: (stats: Stats) => stats.rounds >= 1 },
   { id: 'five_rounds', name: 'Regulars Club', desc: 'Complete 5 rounds', icon: '🏅', check: (s: Stats) => s.rounds >= 5 },
   { id: 'ten_rounds', name: 'Dedicated Golfer', desc: 'Complete 10 rounds', icon: '🔟', check: (s: Stats) => s.rounds >= 10 },
   { id: 'hundred_rounds', name: 'Marathon', desc: 'Play 100 rounds', icon: '🏃', check: (s: Stats) => s.rounds >= 100 },
   { id: 'under_par', name: 'Under Par', desc: 'Finish a round under par', icon: '🔥', check: (s: Stats) => s.bestDiff < 0 },
+  // Lifetime clovers earned, so spending them never re-locks a badge.
   { id: 'clover_100', name: 'Clover Collector', desc: 'Earn 100 clovers', icon: '🍀', check: (s: Stats) => s.clovers >= 100 },
   { id: 'clover_500', name: 'Clover Hoarder', desc: 'Earn 500 clovers', icon: '🌿', check: (s: Stats) => s.clovers >= 500 },
-  { id: 'ace', name: 'Ace!', desc: 'Score a hole-in-one', icon: '⛳', check: () => false },
-  { id: 'wager_win', name: 'Wager King', desc: 'Win 10 Lucky Wagers', icon: '👑', check: () => false },
-  { id: 'social', name: 'Social Butterfly', desc: 'Play with 10 different players', icon: '🦋', check: () => false },
+  { id: 'ace', name: 'Ace!', desc: 'Score a hole-in-one', icon: '⛳', check: (s: Stats) => s.aces > 0 },
+  { id: 'wager_win', name: 'Wager King', desc: 'Win 10 Lucky Wagers', icon: '👑', check: () => false, soon: true },
+  { id: 'social', name: 'Social Butterfly', desc: 'Play with 10 different players', icon: '🦋', check: () => false, soon: true },
 ];
 
 export default function Achievements() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [stats, setStats] = useState({ rounds: 0, bestDiff: 0, clovers: 0 });
+  const [stats, setStats] = useState<Stats>({ rounds: 0, bestDiff: 0, clovers: 0, aces: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      supabase.from('rounds').select('score_diff').eq('user_id', user.id).eq('completed', true),
-    ]).then(([{ data: rounds }]) => {
-      const total = rounds?.length ?? 0;
-      const bestDiff = rounds?.length ? Math.min(...rounds.map(r => r.score_diff)) : 0;
-      setStats({ rounds: total, bestDiff, clovers: profile?.clovers ?? 0 });
-      setLoading(false);
-    });
-  }, [user, profile]);
+    let alive = true;
+    supabase.from('rounds').select('score_diff, scores').eq('user_id', user.id).eq('completed', true)
+      .then(({ data: rounds }) => {
+        if (!alive) return;
+        const list = rounds ?? [];
+        const diffs = list.map(r => r.score_diff).filter((d): d is number => typeof d === 'number');
+        const aces = list.reduce((n, r) => n + (Array.isArray(r.scores) ? (r.scores as number[]).filter(x => x === 1).length : 0), 0);
+        setStats({ rounds: list.length, bestDiff: diffs.length ? Math.min(...diffs) : 0, clovers: profile?.total_clovers ?? 0, aces });
+        setLoading(false);
+      });
+    return () => { alive = false; };
+  }, [user, profile?.total_clovers]);
 
   const unlocked = ACHIEVEMENTS.filter(a => a.check(stats));
   const earned = unlocked.length;
@@ -52,7 +57,7 @@ export default function Achievements() {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/career')}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" aria-label="Back" onClick={() => navigate('/career')}><ArrowLeft className="w-5 h-5" /></Button>
           <div>
             <h1 className="text-2xl font-black uppercase tracking-wider">Achievements</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-widest">{earned}/{ACHIEVEMENTS.length} unlocked</p>
@@ -77,6 +82,7 @@ export default function Achievements() {
                   <p className="font-black text-sm">{a.name}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">{a.desc}</p>
                   {isEarned && <p className="text-[9px] text-primary font-bold mt-2 uppercase tracking-widest">Unlocked ✓</p>}
+                  {!isEarned && a.soon && <p className="text-[9px] text-muted-foreground font-bold mt-2 uppercase tracking-widest">Coming soon</p>}
                 </motion.div>
               );
             })}

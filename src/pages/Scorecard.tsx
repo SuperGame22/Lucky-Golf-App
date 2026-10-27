@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CloverIcon } from "@/components/icons/CloverIcon";
 import { ScorecardHeader } from "@/components/scorecard/ScorecardHeader";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
 import { errMessage } from '@/lib/errors';
+import { clearDraft, readDraft, summarize, writeDraft } from '@/features/scorecard/draft';
 
 // Placeholder par/yardage (par 72 total), used when no course is selected or a hole has no data.
 const PLACEHOLDER_HOLES = Array.from({ length: 18 }, (_, i) => ({
@@ -59,13 +60,27 @@ const Scorecard = () => {
   const location = useLocation();
   const course = (location.state as { course?: SelectedCourse } | null)?.course;
   const allHoles = buildHoles(course);
-  const [scores, setScores] = useState<Record<number, number>>({});
-  const [putts, setPutts] = useState<Record<number, number>>({});
-  const [activeHole, setActiveHole] = useState(1);
+  const courseId = course?.id ?? null;
+  // Pick up a round in progress on this course (kept in the browser while playing).
+  const [draft] = useState(() => readDraft(localStorage, courseId));
+  const [scores, setScores] = useState<Record<number, number>>(draft?.scores ?? {});
+  const [putts, setPutts] = useState<Record<number, number>>(draft?.putts ?? {});
+  const [activeHole, setActiveHole] = useState(draft?.activeHole ?? 1);
   const [saving, setSaving] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [roundLength, setRoundLength] = useState<RoundLength>(course?.holes && course.holes >= 18 ? 18 : 9);
+  const [roundLength, setRoundLength] = useState<RoundLength>(draft?.roundLength ?? (course?.holes && course.holes >= 18 ? 18 : 9));
   const holes = allHoles.slice(0, roundLength);
+
+  useEffect(() => {
+    if (draft) toast.message('Picked up your round in progress');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the round in the browser as it's played; cleared once it's saved.
+  useEffect(() => {
+    if (finished) return;
+    writeDraft(localStorage, { courseId, roundLength, scores, putts, activeHole });
+  }, [courseId, roundLength, scores, putts, activeHole, finished]);
 
   const handleRoundLengthChange = (length: RoundLength) => {
     if (length === roundLength) return;
@@ -73,6 +88,7 @@ const Scorecard = () => {
     if (hasScores && !window.confirm("Switching round length will clear your current scores. Continue?")) {
       return;
     }
+    clearDraft(localStorage);
     setRoundLength(length);
     setScores({});
     setPutts({});
@@ -94,11 +110,13 @@ const Scorecard = () => {
     }));
   };
 
-  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+  // Score against the par of the holes played so far (not the whole course).
+  const summary = summarize(holes, scores, putts);
+  const totalScore = summary.total;
   const totalPar = holes.reduce((a, h) => a + h.par, 0);
-  const totalPutts = Object.values(putts).reduce((a, b) => a + b, 0);
-  const scoreDiff = totalScore - totalPar;
-  const holesPlayed = Object.keys(scores).length;
+  const totalPutts = summary.puttsTotal;
+  const scoreDiff = summary.diff;
+  const holesPlayed = summary.played;
 
   // Calculate Lucky Level (1-5 based on performance)
   const calculateLuckyLevel = () => {
@@ -116,48 +134,44 @@ const Scorecard = () => {
 
   const finishRound = async () => {
     if (!user || saving) return;
+    // Only holes actually scored are saved; an unfinished round is kept but doesn't count as complete.
+    const complete = holesPlayed === roundLength;
+    if (!complete && !window.confirm(
+      `You've scored ${holesPlayed} of ${roundLength} holes. Save it as an unfinished round? Only complete rounds earn clovers and count toward stats.`,
+    )) return;
     setSaving(true);
 
-    // Fill in any unplayed holes with par
-    const finalScores = { ...scores };
-    const finalPutts = { ...putts };
-    holes.forEach(h => {
-      if (!finalScores[h.number]) finalScores[h.number] = h.par;
-      if (!finalPutts[h.number]) finalPutts[h.number] = 2;
-    });
-
-    const finalTotal = Object.values(finalScores).reduce((a, b) => a + b, 0);
-    const finalPuttsTotal = Object.values(finalPutts).reduce((a, b) => a + b, 0);
-
     try {
-      // Save round
       const { data: inserted, error } = await supabase.from('rounds').insert({
         user_id: user.id,
         course_name: course?.name ?? 'Practice Round',
         holes: roundLength,
-        scores: Object.values(finalScores),
-        putts: Object.values(finalPutts),
-        total_score: finalTotal,
-        total_par: totalPar,
-        score_diff: finalTotal - totalPar,
-        total_putts: finalPuttsTotal,
-        holes_played: roundLength,
-        completed: true,
+        scores: summary.scoresByHole as number[],
+        putts: summary.puttsByHole as number[],
+        total_score: summary.total,
+        total_par: summary.par,
+        score_diff: summary.diff,
+        total_putts: summary.puttsTotal,
+        holes_played: holesPlayed,
+        completed: complete,
         clovers_earned: 0, // the server fills this in when it awards the clovers
       }).select('id').single();
 
       if (error) throw error;
+      clearDraft(localStorage);
 
       // The database pays the round's clovers (once per round, with a daily limit) and says how many.
       let earned = 0;
-      try {
-        const { data: award } = await (supabase.rpc as unknown as AwardRoundRpc).call(supabase, 'award_round_clovers', { p_round_id: inserted.id });
-        earned = award?.success ? award.clovers ?? 0 : 0;
-      } catch { /* the round is saved either way */ }
-      await refreshProfile();
+      if (complete) {
+        try {
+          const { data: award } = await (supabase.rpc as unknown as AwardRoundRpc).call(supabase, 'award_round_clovers', { p_round_id: inserted.id });
+          earned = award?.success ? award.clovers ?? 0 : 0;
+        } catch { /* the round is saved either way */ }
+        await refreshProfile();
+      }
 
       setFinished(true);
-      toast.success(earned > 0 ? `Round saved! +${earned} clovers earned 🍀` : 'Round saved!');
+      toast.success(earned > 0 ? `Round saved! +${earned} clovers earned 🍀` : complete ? 'Round saved!' : 'Unfinished round saved');
     } catch (e) {
       toast.error(errMessage(e, 'Failed to save round'));
     } finally {
@@ -192,6 +206,7 @@ const Scorecard = () => {
           totalPutts={totalPutts}
           scoreDiff={scoreDiff}
           roundLength={roundLength}
+          courseName={course?.name}
           activeHole={activeHole}
           onRoundLengthChange={handleRoundLengthChange}
         />
@@ -256,7 +271,7 @@ const Scorecard = () => {
           </Button>
         )}
 
-        <FindPlayers userLuckyLevel={luckyLevel} />
+        <FindPlayers userLuckyLevel={luckyLevel} courseName={course?.name} />
       </div>
     </AppLayout>
   );

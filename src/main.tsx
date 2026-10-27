@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import { missingConfig } from "./lib/config";
+import { announceUpdate } from "./lib/swUpdate";
 import "./index.css";
 
 const root = createRoot(document.getElementById("root")!);
@@ -38,7 +39,25 @@ const isInIframe = (() => {
   }
 })();
 if (import.meta.env.PROD && "serviceWorker" in navigator && !isInIframe) {
-  registerSW({ immediate: true });
+  const updateSW = registerSW({
+    immediate: true,
+    // A new version has downloaded: the app shows a "Reload" prompt (UpdatePrompt) that calls apply().
+    onNeedRefresh() {
+      announceUpdate({ apply: () => updateSW(true) });
+    },
+    // Installed apps resume from memory without reloading, so look for updates on resume and hourly.
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      const check = () => {
+        if (reg.installing || !navigator.onLine) return;
+        reg.update().catch(() => undefined);
+      };
+      setInterval(check, 60 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") check();
+      });
+    },
+  });
 } else if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => undefined);
 }

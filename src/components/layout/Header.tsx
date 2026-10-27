@@ -3,15 +3,18 @@ import { CloverLogo } from '@/components/icons/CloverLogo';
 import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { useWallet } from '@/contexts/WalletContext';
 import { useClovers } from '@/contexts/CloverContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { User, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function Header() {
-  const { balance, gold } = useWallet();
+  const { balance } = useWallet();
+  const { profile } = useAuth();
+  const gold = Number(profile?.gold_balance ?? 0);
   const { cloverBalance } = useClovers();
 
   return (
-    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border pt-[env(safe-area-inset-top)]">
       <div className="flex items-center justify-between h-14 pl-2 pr-5 xs:pl-3 xs:pr-6 max-w-lg mx-auto gap-1.5">
         <Link to="/" className="flex items-center gap-1.5 shrink-0">
           <CloverLogo className="w-7 h-7 xs:w-8 xs:h-8" />
@@ -19,7 +22,7 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-1 min-[400px]:gap-1.5 min-w-0">
-          <Link to="/wallet/add-cash" className="flex items-center gap-0.5 min-[400px]:gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 min-[400px]:px-2.5 py-1.5 rounded-full shrink-0">
+          <Link to="/wallet/add-cash" aria-label={`Cash balance $${balance.toFixed(2)}, add cash`} className="flex items-center gap-0.5 min-[400px]:gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 min-[400px]:px-2.5 py-1.5 rounded-full shrink-0">
             <Wallet className="w-3.5 h-3.5 min-[400px]:w-4 min-[400px]:h-4 text-emerald-400 shrink-0" />
             <span className="text-xs min-[400px]:text-sm font-semibold text-emerald-300 whitespace-nowrap leading-none tabular-nums">${balance.toFixed(2)}</span>
           </Link>
@@ -31,7 +34,7 @@ export function Header() {
             <GoldCoinIcon className="w-3.5 h-3.5 min-[400px]:w-4 min-[400px]:h-4 text-amber-400 shrink-0" />
             <span className="text-xs min-[400px]:text-sm font-semibold text-amber-300 whitespace-nowrap leading-none tabular-nums">${gold.toFixed(2)}</span>
           </div>
-          <Link to="/profile" className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors shrink-0">
+          <Link to="/profile" aria-label="Profile" className="p-1 min-[400px]:p-1.5 rounded-full hover:bg-muted transition-colors shrink-0">
             <User className="w-5 h-5 min-[400px]:w-6 min-[400px]:h-6 text-muted-foreground" />
           </Link>
         </div>

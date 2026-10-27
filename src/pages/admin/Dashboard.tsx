@@ -60,6 +60,13 @@ const AdminDashboard = () => {
       color: "text-primary"
     },
     {
+      title: "Spinz prizes",
+      description: "Ship won clubs and switch on won Clover Club months",
+      icon: Tag,
+      link: "/admin/prizes",
+      color: "text-primary"
+    },
+    {
       title: "Fan content",
       description: "Approve photo + video sets; each approval gives the player 1 clover",
       icon: Camera,

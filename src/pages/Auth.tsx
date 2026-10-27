@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CloverIcon } from '@/components/icons/CloverIcon';
@@ -29,7 +29,18 @@ type AuthMode = 'login' | 'signup' | 'reset';
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { signIn, signUp, resetPassword, user } = useAuth();
+  const location = useLocation();
+  const { signIn, signUp, resetPassword, user, passwordRecovery, updatePassword } = useAuth();
+  // Where to go after signing in: an invite wins, then the page that sent them here, then Home.
+  const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const fromPath = from?.pathname && from.pathname !== '/auth' ? `${from.pathname}${from.search ?? ''}` : null;
+  const nextPath = () => {
+    const invitePath = afterAuthPath(localStorage);
+    return invitePath !== '/' ? invitePath : fromPath ?? '/';
+  };
+  // Arrived from a password-reset email: choose a new password before anything else.
+  const wantsNewPassword = passwordRecovery || new URLSearchParams(location.search).get('reset') === '1';
+  const [newPassword, setNewPassword] = useState('');
   // An invite link sends new players here to sign up first.
   const pendingInvite = readPendingInvite(localStorage);
   const [mode, setMode] = useState<AuthMode>(pendingInvite && new URLSearchParams(window.location.search).get('invite') ? 'signup' : 'login');
@@ -43,11 +54,54 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Redirect if already logged in
-  if (user) {
-    navigate(afterAuthPath(localStorage));
-    return null;
+  const handleNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return; }
+    setLoading(true);
+    const { error: err } = await updatePassword(newPassword);
+    setLoading(false);
+    if (err) { setError(err); return; }
+    navigate(nextPath(), { replace: true });
+  };
+
+  if (user && wantsNewPassword) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <form onSubmit={handleNewPassword} className="w-full max-w-sm space-y-4" data-testid="auth-new-password">
+          <div className="text-center mb-4">
+            <CloverLogo className="w-14 h-14 mx-auto mb-3" />
+            <h1 className="text-2xl font-black uppercase tracking-wider">Choose a new password</h1>
+          </div>
+          {error && <p className="text-xs text-red-400 text-center" role="alert">{error}</p>}
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="New password"
+              aria-label="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full h-12 bg-black/40 border border-border rounded-xl pl-12 pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 text-base"
+              required
+              minLength={6}
+            />
+            <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <Button type="submit" className="w-full h-12 font-black uppercase tracking-wider text-sm" disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Password'}
+          </Button>
+        </form>
+      </div>
+    );
   }
+
+  // Already signed in: go on to where they were headed.
+  if (user) return <Navigate to={nextPath()} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +113,7 @@ export default function AuthPage() {
       if (mode === 'login') {
         const { error: err } = await signIn(email, password);
         if (err) { setError(err); }
-        else { navigate(afterAuthPath(localStorage)); }
+        else { navigate(nextPath(), { replace: true }); }
       } else if (mode === 'signup') {
         if (!displayName.trim()) { setError('Display name is required'); setLoading(false); return; }
         if (password.length < 6) { setError('Password must be at least 6 characters'); setLoading(false); return; }
@@ -84,7 +138,7 @@ export default function AuthPage() {
     setLoading(false);
   };
 
-  const inputCls = 'w-full h-12 bg-black/40 border border-border rounded-xl pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 text-sm';
+  const inputCls = 'w-full h-12 bg-black/40 border border-border rounded-xl pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 text-base';
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
@@ -190,6 +244,7 @@ export default function AuthPage() {
               />
               <button
                 type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >

@@ -31,9 +31,11 @@ const BUY_IN_OPTIONS = [5, 10, 20, 50];
 
 interface FindPlayersProps {
   userLuckyLevel: number;
+  /** The course of the round being played (shown on the competition). */
+  courseName?: string;
 }
 
-export const FindPlayers = ({ userLuckyLevel }: FindPlayersProps) => {
+export const FindPlayers = ({ userLuckyLevel, courseName }: FindPlayersProps) => {
   const [showCreateInvite, setShowCreateInvite] = useState(false);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [isCompetition, setIsCompetition] = useState(false);
@@ -167,15 +169,12 @@ export const FindPlayers = ({ userLuckyLevel }: FindPlayersProps) => {
     setIsCreating(true);
 
     try {
-      const teeTime = new Date();
-      teeTime.setDate(teeTime.getDate() + 1); // Tomorrow
-      teeTime.setHours(9, 0, 0, 0);
-
+      // The competition is for the round on screen right now.
       const { data, error } = await supabase.rpc("create_competition", {
         p_user_id: currentUserId,
         p_buy_in: selectedBuyIn,
-        p_course_name: "Pebble Beach",
-        p_tee_time: teeTime.toISOString(),
+        p_course_name: courseName || "Practice Round",
+        p_tee_time: new Date().toISOString(),
       });
 
       if (error) {

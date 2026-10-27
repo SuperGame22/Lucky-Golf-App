@@ -5,21 +5,28 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { isClubMember } from '@/lib/membership';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock } from 'lucide-react';
 
 /** Shows children to Clover Club and Gold members; everyone else sees a lock. */
 export function ClubGate({ title, children }: { title: string; children: ReactNode }) {
   const navigate = useNavigate();
-  const { profile, loading } = useAuth();
+  const { profile, loading, profileLoading } = useAuth();
 
-  if (loading) return null;
-  if (!profile || isClubMember(profile.membership_tier)) return <>{children}</>;
+  // Fail closed: no profile (still loading, or it failed to load) means no access.
+  if (loading || (profileLoading && !profile)) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (profile && isClubMember(profile.membership_tier)) return <>{children}</>;
 
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/career')}>
+          <Button variant="ghost" size="icon" aria-label="Back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/career'))}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-2xl font-black uppercase tracking-wider">{title}</h1>

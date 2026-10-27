@@ -165,6 +165,9 @@ export default function WeeklyRaffle() {
         <p className="text-center text-sm text-muted-foreground pt-2" data-testid="raffle-juicier">
           The more users that join, the juicier the prizes get.
         </p>
+        <p className="text-center text-[11px] text-muted-foreground/80" data-testid="raffle-no-purchase">
+          No purchase necessary. Free entry: email <a className="underline" href="mailto:help@luckygolf.com?subject=Clovers%20AMOE%20Entry">help@luckygolf.com</a> with the subject "Clovers AMOE Entry". US residents 18+. Void where prohibited.
+        </p>
 
         <Button className="w-full" onClick={() => navigate('/earn/share')} data-testid="raffle-share-content">
           Share content to enter the drawing.

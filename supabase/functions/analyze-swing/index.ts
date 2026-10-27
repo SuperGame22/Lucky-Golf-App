@@ -25,7 +25,13 @@ serve(async (req) => {
       try {
         const { data: claimsData } = await supabase.auth.getClaims(token);
         userId = claimsData?.claims?.sub ?? null;
-      } catch { /* anonymous usage */ }
+      } catch { /* invalid token */ }
+    }
+    // Signed-in players only (this calls a paid AI API).
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Please sign in first." }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { videoUrl } = await req.json();
@@ -183,7 +189,7 @@ Always be encouraging but honest. Use golf terminology naturally. Include lucky/
   } catch (e) {
     console.error("analyze-swing error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Swing analysis is not available right now." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

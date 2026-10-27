@@ -215,6 +215,16 @@ export default function PuttingGame(){
     if(data)setCredits(data.credits??0);
     return data;
   },[]);
+  // Clover Club / Gold: this month's free putts are added the first time Lucky Putts is opened.
+  useEffect(()=>{
+    let alive=true;
+    Promise.resolve(callRpc('claim_member_putts')).then((res)=>{
+      const d=(res as {data?:{granted?:number}|null}|null)?.data;
+      if(alive&&d?.granted){toast({title:`+${d.granted} free putts`,description:'Your monthly member putts are ready.'});refreshPuttStatus();}
+    },()=>undefined);
+    return()=>{alive=false;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   useEffect(()=>{
     refreshPuttStatus();
     // Back from Stripe Checkout: the webhook credits the putt a moment later, so poll briefly.
@@ -395,8 +405,10 @@ export default function PuttingGame(){
         duration_seconds: 0,
         score: sk,
         holes_completed: cc.length,
-      });
+      }).then(({ error }) => { if (error) console.error('practice session not saved:', error.message); });
     });
+    // Runs once when the drill finishes; sk and cc are final at that point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;

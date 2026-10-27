@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, type ProfileUpdate } from '@/contexts/AuthContext';
 import {
   ArrowLeft,
   Camera,
@@ -57,11 +57,12 @@ export default function ProfileEditor() {
     setSaving(true);
     setError(null);
 
-    const updates: Record<string, string | number | null> = {
+    const updates: ProfileUpdate = {
       display_name: displayName.trim(),
       avatar_url: avatar,
     };
-    if (handicap) updates.handicap_index = hcp;
+    // An empty box clears the handicap.
+    updates.handicap_index = handicap.trim() ? hcp : null;
 
     const { error: err } = await updateProfile(updates);
     if (err) {

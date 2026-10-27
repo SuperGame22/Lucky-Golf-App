@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { buildInviteLink, publicBaseUrl, readPendingInvite } from '@/features/invites/invites';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,7 @@ interface Profile {
   display_name: string;
   username: string;
   avatar_url: string;
-  handicap_index: number;
+  handicap_index: number | null;
   lucky_level: number;
   clovers: number;
   total_clovers: number;
@@ -23,17 +23,29 @@ interface Profile {
   tos_version?: string | null;
 }
 
+/** Fields a player may change on their own profile (role, tier, clovers and gold are server-only). */
+export type ProfileUpdate = Partial<Pick<Profile, 'display_name' | 'username' | 'avatar_url' | 'handicap_index' | 'bio' | 'date_of_birth' | 'tos_accepted_at' | 'tos_version'>>;
+
+/** Browser keys that belong to the signed-in player and are cleared on sign-out. */
+const PER_USER_KEYS = ['lg_tier', 'lg_pending_invite', 'lg_pending_contact', 'lg_scorecard_draft'];
+
 interface AuthState {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  /** True until the first session check (and that user's profile) has finished. */
   loading: boolean;
+  /** True while a signed-in user's profile is being (re)loaded and none is in hand yet. */
+  profileLoading: boolean;
+  /** The user arrived from a password-reset email and should choose a new password. */
+  passwordRecovery: boolean;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: string | null }>;
+  updateProfile: (updates: ProfileUpdate) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -43,17 +55,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const profileUserRef = useRef<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
+    // Only show "loading" when we have no profile for this user yet (token refreshes stay silent).
+    if (profileUserRef.current !== userId) setProfileLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('golfer_profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
+      if (error) throw error;
+      profileUserRef.current = userId;
       setProfile(data as Profile | null);
     } catch (e) {
       console.error('fetchProfile error:', e);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -65,11 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+      if (session?.user) {
+        // A refreshed token for the same user doesn't change the profile.
+        if (event !== 'TOKEN_REFRESHED' || profileUserRef.current !== session.user.id) fetchProfile(session.user.id);
+      } else {
+        profileUserRef.current = null;
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -81,17 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const invite = readPendingInvite(localStorage);
     const base = publicBaseUrl(import.meta.env.VITE_PUBLIC_APP_URL, window.location.origin);
     const emailRedirectTo = invite ? buildInviteLink(base, invite.code, invite.from ?? '') : undefined;
-    const { data, error } = await supabase.auth.signUp({ email, password, options: emailRedirectTo ? { emailRedirectTo } : undefined });
+    const name = displayName.trim();
+    // The database creates the profile from this display name (works even before the email is confirmed).
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: name }, ...(emailRedirectTo ? { emailRedirectTo } : {}) },
+    });
     if (error) return { error: error.message };
-    // Create golfer_profiles row with display_name using the returned user ID
-    if (data.user) {
-      await supabase.from('golfer_profiles').upsert({
-        user_id: data.user.id,
-        display_name: displayName.trim(),
-        lucky_level: 1,
-        clovers: 0,
-        total_clovers: 0,
-      }, { onConflict: 'user_id' });
+    // Older databases without that trigger: create the row here when we already have a session.
+    if (data.user && data.session) {
+      const { error: pErr } = await supabase.from('golfer_profiles')
+        .upsert({ user_id: data.user.id, display_name: name }, { onConflict: 'user_id', ignoreDuplicates: true });
+      if (pErr) console.warn('profile create:', pErr.message);
     }
     return { error: null };
   };
@@ -102,13 +131,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('signOut error:', error.message);
+    for (const k of PER_USER_KEYS) {
+      try { localStorage.removeItem(k); } catch { /* storage unavailable */ }
+    }
+    profileUserRef.current = null;
+    setProfile(null);
+    setPasswordRecovery(false);
   };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth`,
+      redirectTo: `${window.location.origin}/auth?reset=1`,
     });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (!error) setPasswordRecovery(false);
     return { error: error?.message ?? null };
   };
 
@@ -116,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: ProfileUpdate) => {
     if (!user) return { error: 'Not signed in' };
     const { error } = await supabase
       .from('golfer_profiles')
@@ -127,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, profileLoading, passwordRecovery, updatePassword, signUp, signIn, signOut, resetPassword, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

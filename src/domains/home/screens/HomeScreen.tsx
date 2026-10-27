@@ -4,20 +4,19 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRecentTransactions } from '@/services/cloverService';
+import { formatActivityAmount, getRecentTransactions, type ActivityItem } from '@/services/cloverService';
 import { SpendClover } from '@/components/icons/SpendClover';
 import { useHomeClovers } from '@/features/homeClovers/useHomeClovers';
 import { InstallCard } from '@/components/InstallCard';
 import { RaffleCard } from '@/components/RaffleCard';
 import { SurveyCard } from '@/components/SurveyCard';
 import { checkoutLink, useMyDiscount } from '@/features/discounts/useMyDiscount';
-import { GoldCoinIcon } from '@/components/icons/GoldCoinIcon';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   Trophy, Target, Gift, ShoppingBag, Sparkles, TrendingUp,
-  Play, MessageCircle, Calendar,
+  Play, Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -40,14 +39,16 @@ export default function HomeScreen() {
   const totalClovers = profile?.total_clovers ?? 0;
   const handicap = profile?.handicap_index ?? 0;
   const luckyLevel = profile?.lucky_level ?? 1;
-  // Placeholder (matches local build) until a weekly clover ledger exists.
-  const cloversThisWeek = reveal.week ?? 3;
-  const goldBalance = profile?.gold_balance ?? 0;
+  // Clovers earned this week, from the server; hidden until it's known (never a made-up number).
+  const cloversThisWeek = reveal.week;
 
-  const [activity, setActivity] = useState<{ id?: string; type: string; description?: string | null; amount?: number; created_at: string }[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [activityLoaded, setActivityLoaded] = useState(false);
   useEffect(() => {
-    getRecentTransactions(5).then(setActivity);
-  }, []);
+    let alive = true;
+    getRecentTransactions(5).then((rows) => { if (alive) { setActivity(rows); setActivityLoaded(true); } });
+    return () => { alive = false; };
+  }, [user?.id]);
 
   return (
     <AppLayout>
@@ -82,9 +83,11 @@ export default function HomeScreen() {
                 <SpendClover className="w-[76px] h-[76px]" litLeaves={reveal.lit} earnedPulse={reveal.pulse} />
                 <span className={`${String(clovers).length >= 4 ? 'text-[41px] leading-none' : 'text-[51px] leading-none'} font-display font-bold text-gradient-green -ml-3`} style={{ visibility: reveal.ready ? 'visible' : 'hidden' }} data-testid="home-clovers">{clovers}</span>
               </div>
-              <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
-                <span data-testid="home-week">+{cloversThisWeek} this week</span>
-              </div>
+              {typeof cloversThisWeek === 'number' && (
+                <div className="flex items-center gap-2 mt-3 text-lg font-medium text-primary">
+                  <span data-testid="home-week">+{cloversThisWeek} this week</span>
+                </div>
+              )}
               {totalClovers > clovers && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
@@ -158,6 +161,8 @@ export default function HomeScreen() {
         {/* Wagers CTA */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="glass-card p-5 cursor-pointer hover:border-primary/50 transition-colors"
+          role="link" tabIndex={0} aria-label="Lucky Wagers"
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/play/wagers'); } }}
           onClick={() => navigate('/play/wagers')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
@@ -175,11 +180,15 @@ export default function HomeScreen() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="glass-card p-5">
           <h3 className="font-display font-semibold text-lg mb-3">Activity</h3>
-          {activity.length === 0 ? (
+          {!activityLoaded ? (
+            <div className="space-y-2" aria-busy="true">
+              {[0, 1].map((i) => <div key={i} className="h-10 rounded-lg bg-muted/40 animate-pulse" />)}
+            </div>
+          ) : activity.length === 0 ? (
             <div className="text-center py-6">
               <Target className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No recent activity</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Play a round or spin the wheel to get started</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Purchases, top-ups and wager payouts show here</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -194,9 +203,14 @@ export default function HomeScreen() {
                       <p className="text-xs text-muted-foreground">{new Date(txn.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <span className={`text-sm font-bold ${txn.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {txn.amount > 0 ? '+' : ''}{txn.amount}
-                  </span>
+                  {(() => {
+                    const a = formatActivityAmount(txn);
+                    return (
+                      <span className={`text-sm font-bold ${a.tone === 'gain' ? 'text-green-400' : a.tone === 'loss' ? 'text-red-400' : 'text-muted-foreground'}`}>
+                        {a.text}
+                      </span>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

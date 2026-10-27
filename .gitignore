@@ -1,9 +1,9 @@
 node_modules/
 .env
-bun.lockb
-bun.lockb
-package-lock.json
+.env.*
+!.env.example
 bun.lockb
 
 dist/
 .DS_Store
+deno.lock
