@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { CloverIcon } from '@/components/icons/CloverIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { describePrize } from '@/features/raffle/raffle';
-import { ArrowLeft, Trophy, Clock, Users, Ticket, Gift } from 'lucide-react';
+import { isNotSetUp } from '@/lib/notSetUp';
+import { ArrowLeft, Trophy, Clock, Users, Ticket, Gift, Hourglass } from 'lucide-react';
 
 function useCountdown(endsAt: string | null) {
   const [timeLeft, setTimeLeft] = useState('');
@@ -39,12 +40,17 @@ export default function WeeklyRaffle() {
   const [userEntries, setUserEntries] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
   const [loading, setLoading] = useState(true);
+  // True while the weekly raffle's server side isn't installed on the live project yet.
+  const [comingSoon, setComingSoon] = useState(false);
   const [last, setLast] = useState<{ winner_name: string; prize_name: string; i_won: boolean } | null>(null);
   const countdown = useCountdown(jackpot?.ends_at ?? null);
 
   useEffect(() => {
-    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { last_result?: typeof last } | null }>).call(supabase, 'get_raffle_home')
-      .then(({ data }) => setLast(data?.last_result ?? null), () => undefined);
+    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { last_result?: typeof last } | null; error: unknown }>).call(supabase, 'get_raffle_home')
+      .then(({ data, error }) => {
+        if (isNotSetUp(error)) setComingSoon(true);
+        setLast(data?.last_result ?? null);
+      }, () => undefined);
     supabase.rpc('get_active_jackpot_for_user').then(({ data, error }) => {
       if (!error && data) {
         setJackpot(data.jackpot ?? null);
@@ -80,6 +86,14 @@ export default function WeeklyRaffle() {
 
         {loading ? (
           <div className="text-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
+        ) : !jackpot && comingSoon ? (
+          /* Raffle not launched yet */
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-10 text-center" data-testid="raffle-coming-soon">
+            <Hourglass className="w-12 h-12 text-primary/60 mx-auto mb-4" />
+            <p className="font-black text-lg mb-2">The weekly raffle is coming soon</p>
+            <p className="text-sm text-muted-foreground">We're getting the first prize ready. When it starts, the prize and draw time will show here. Keep playing and earning clovers in the meantime.</p>
+          </motion.div>
         ) : !jackpot ? (
           /* No active jackpot */
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -167,7 +181,7 @@ export default function WeeklyRaffle() {
         </p>
 
         <Button className="w-full" onClick={() => navigate('/earn/share')} data-testid="raffle-share-content">
-          Share content to enter the drawing.
+          {jackpot ? 'Share content to enter the drawing.' : 'Share content to earn clovers.'}
         </Button>
       </div>
     </AppLayout>
