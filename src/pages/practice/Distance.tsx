@@ -1,40 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { DISTANCE_DRILLS as DRILLS, addShot, countHits, currentDrillIndex, type ShotResult } from '@/features/practice/distance';
+import { elapsedSeconds } from '@/features/putting/round';
 import { ArrowLeft, Target, Zap, RotateCcw } from 'lucide-react';
-
-const DRILLS = [
-  { target: 50, club: 'Sand Wedge', tolerance: 5 },
-  { target: 100, club: 'Pitching Wedge', tolerance: 8 },
-  { target: 150, club: '7 Iron', tolerance: 10 },
-  { target: 200, club: '5 Iron', tolerance: 12 },
-];
 
 export default function DistanceControl() {
   const navigate = useNavigate();
-  const [currentDrill, setCurrentDrill] = useState(0);
-  const [results, setResults] = useState<{ target: number; actual: number; diff: number }[]>([]);
+  const [results, setResults] = useState<ShotResult[]>([]);
+  const startedAt = useRef(Date.now());
+  const logged = useRef(false);
 
+  const currentDrill = currentDrillIndex(results);
   const drill = DRILLS[currentDrill];
+  const done = results.length >= DRILLS.length;
 
+  // Log the finished set once (a quick double-tap can't log it twice).
   useEffect(() => {
-    if (results.length < DRILLS.length) return;
-    const hits = results.filter((r, i) => r.diff <= (DRILLS[i]?.tolerance ?? 10)).length;
+    if (!done || logged.current) return;
+    logged.current = true;
+    const hits = countHits(results);
+    const duration = elapsedSeconds(startedAt.current, Date.now());
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from('practice_sessions').insert({ user_id: user.id, drill_type: 'distance', duration_seconds: 0, score: hits, holes_completed: DRILLS.length });
+      supabase.from('practice_sessions')
+        .insert({ user_id: user.id, drill_type: 'distance', duration_seconds: duration, score: hits, holes_completed: DRILLS.length })
+        .then(() => undefined, () => undefined);
     });
-  }, [results.length]);
+  }, [done, results]);
 
   const simulateShot = () => {
     const variance = (Math.random() - 0.5) * drill.tolerance * 4;
     const actual = Math.round(drill.target + variance);
-    const diff = Math.abs(actual - drill.target);
-    setResults(prev => [...prev, { target: drill.target, actual, diff }]);
-    if (currentDrill < DRILLS.length - 1) setCurrentDrill(prev => prev + 1);
+    setResults((prev) => addShot(prev, actual));
+  };
+
+  const restart = () => {
+    setResults([]);
+    startedAt.current = Date.now();
+    logged.current = false;
   };
 
   return (
@@ -74,7 +81,7 @@ export default function DistanceControl() {
           </div>
         )}
         {results.length >= DRILLS.length && (
-          <Button variant="outline" className="w-full font-bold uppercase tracking-wider" onClick={() => { setResults([]); setCurrentDrill(0); }}>
+          <Button variant="outline" className="w-full font-bold uppercase tracking-wider" onClick={restart}>
             <RotateCcw className="w-4 h-4 mr-2" /> Restart Drill
           </Button>
         )}

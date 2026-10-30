@@ -39,7 +39,7 @@ const GoldMachine = () => {
   // Dev tier toggle — does NOT auto-activate based on profile
   const { tier: globalTier, setTier } = useTier();
   const devTier: MemberTier = globalTier === 'free' ? 'new' : globalTier;
-  useEffect(() => { const cfg = TIER_CONFIG[devTier]; setHasMachine(cfg.hasMachine); setGenerationRate(cfg.rate || 6); }, [globalTier]);
+  useEffect(() => { const cfg = TIER_CONFIG[devTier]; setHasMachine(cfg.hasMachine); setGenerationRate(cfg.rate || 6); }, [devTier]);
 
   // Load saved pot value from profile (but don't auto-activate machine)
   useEffect(() => {
