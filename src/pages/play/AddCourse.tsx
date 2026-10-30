@@ -3,15 +3,16 @@
  * The player earns a clover when it is approved.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle2, Clock, Hourglass, Loader2, XCircle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { photoPath, requestProblem } from '@/features/courses/requests';
+import { isNotSetUp } from '@/lib/notSetUp';
 
 interface MyRequest { id: string; course_name: string; city: string | null; state: string; status: 'pending' | 'approved' | 'rejected'; reject_reason: string | null }
 
@@ -47,14 +48,17 @@ export default function AddCourse() {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [mine, setMine] = useState<MyRequest[]>([]);
+  // True when course requests aren't set up on the server yet (table, bucket or function missing).
+  const [unavailable, setUnavailable] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const loadMine = async () => {
+  const loadMine = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('course_requests').select('id, course_name, city, state, status, reject_reason').order('created_at', { ascending: false }).limit(10);
+    const { data, error: err } = await supabase.from('course_requests').select('id, course_name, city, state, status, reject_reason').order('created_at', { ascending: false }).limit(10);
+    if (isNotSetUp(err)) { setUnavailable(true); return; }
     setMine((data ?? []) as unknown as MyRequest[]);
-  };
-  useEffect(() => { loadMine(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
+  }, [user]);
+  useEffect(() => { loadMine(); }, [loadMine]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   const pick = (f: File | undefined) => {
@@ -74,10 +78,14 @@ export default function AddCourse() {
       const file = await shrink(photo);
       const path = photoPath(user.id, crypto.randomUUID(), file.type);
       const up = await supabase.storage.from('course-scorecards').upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw new Error('Could not upload the photo. Try again.');
+      if (up.error) {
+        if (isNotSetUp(up.error)) { setUnavailable(true); return; }
+        throw new Error('Could not upload the photo. Try again.');
+      }
       const { data, error: err } = await (supabase.rpc as unknown as Rpc).call(supabase, 'submit_course_request', {
         p_name: name, p_city: city, p_state: state, p_notes: null, p_photo_path: path,
       });
+      if (isNotSetUp(err)) { setUnavailable(true); return; }
       const res = data as { success?: boolean; error?: string } | null;
       if (err || !res?.success) throw new Error(res?.error ?? err?.message ?? 'Could not send. Try again.');
       setSent(true);
@@ -108,6 +116,17 @@ export default function AddCourse() {
           </div>
         )}
 
+        {unavailable ? (
+          <div className="glass-card p-5 space-y-3 text-center" data-testid="course-coming-soon">
+            <Hourglass className="w-8 h-8 text-primary mx-auto" />
+            <p className="font-bold">Adding courses is coming soon</p>
+            <p className="text-sm text-muted-foreground">
+              We're still setting this up, so scorecard photos can't be sent yet. Check back soon.
+              In the meantime you can play a practice round.
+            </p>
+            <Button className="w-full" onClick={() => navigate('/play/scorecard')}>Play a practice round</Button>
+          </div>
+        ) : (
         <div className="glass-card p-5 space-y-3">
           <Input placeholder="Course name" value={name} onChange={(e) => setName(e.target.value)} data-testid="course-name" />
           <div className="flex gap-2">
@@ -131,8 +150,9 @@ export default function AddCourse() {
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send for review'}
           </Button>
         </div>
+        )}
 
-        {mine.length > 0 && (
+        {!unavailable && mine.length > 0 && (
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Your requests</p>
             {mine.map((r) => (
