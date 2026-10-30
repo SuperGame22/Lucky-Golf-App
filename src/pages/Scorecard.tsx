@@ -14,20 +14,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
 import { errMessage } from '@/lib/errors';
-
-// Placeholder par/yardage (par 72 total), used when no course is selected or a hole has no data.
-const PLACEHOLDER_HOLES = Array.from({ length: 18 }, (_, i) => ({
-  number: i + 1,
-  par: [4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 4, 3, 5, 4, 3, 5, 4, 4][i],
-  distance: [
-    380, 165, 520, 410, 395, 185, 545, 425, 405, 400, 390, 175, 535, 415, 170,
-    530, 405, 550,
-  ][i],
-}));
+import { buildHoles, summarize, defaultStrokes, type CourseHole } from '@/features/scorecard/holes';
 
 export type RoundLength = 9 | 18;
 
-type CourseHole = { hole: number; par: number | null; yards_est: number | null };
 export type SelectedCourse = {
   id: number;
   name: string;
@@ -36,17 +26,6 @@ export type SelectedCourse = {
   holes: number | null;
   hole_data: CourseHole[] | null;
 };
-
-// Merge real course data (approximate yards) over the placeholders, hole by hole.
-const buildHoles = (course?: SelectedCourse) =>
-  PLACEHOLDER_HOLES.map((ph) => {
-    const real = course?.hole_data?.find((h) => h.hole === ph.number);
-    return {
-      number: ph.number,
-      par: real?.par ?? ph.par,
-      distance: real?.yards_est ?? ph.distance,
-    };
-  });
 
 const CLOVERS_PER_ROUND = 5; // display only; the amount and daily limit are enforced by award_round_clovers()
 
@@ -58,7 +37,7 @@ const Scorecard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const course = (location.state as { course?: SelectedCourse } | null)?.course;
-  const allHoles = buildHoles(course);
+  const allHoles = buildHoles(course?.hole_data);
   const [scores, setScores] = useState<Record<number, number>>({});
   const [putts, setPutts] = useState<Record<number, number>>({});
   const [activeHole, setActiveHole] = useState(1);
@@ -83,7 +62,7 @@ const Scorecard = () => {
   const updateScore = (hole: number, delta: number) => {
     setScores((prev) => ({
       ...prev,
-      [hole]: Math.max(1, (prev[hole] || holes[hole - 1].par) + delta),
+      [hole]: Math.max(1, (prev[hole] || defaultStrokes(holes[hole - 1])) + delta),
     }));
   };
 
@@ -94,16 +73,15 @@ const Scorecard = () => {
     }));
   };
 
-  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
-  const totalPar = holes.reduce((a, h) => a + h.par, 0);
+  // Score-to-par only counts holes whose par is known (see features/scorecard/holes.ts).
+  const summary = summarize(holes, scores);
+  const { totalScore, scoreDiff, holesPlayed, playedKnownPar } = summary;
   const totalPutts = Object.values(putts).reduce((a, b) => a + b, 0);
-  const scoreDiff = totalScore - totalPar;
-  const holesPlayed = Object.keys(scores).length;
 
   // Calculate Lucky Level (1-5 based on performance)
   const calculateLuckyLevel = () => {
-    if (holesPlayed < 3) return 3; // Default level
-    const avgOverPar = scoreDiff / holesPlayed;
+    if (playedKnownPar < 3) return 3; // Default level (also when par is unknown)
+    const avgOverPar = scoreDiff / playedKnownPar;
     if (avgOverPar <= -0.5) return 5; // Way under par
     if (avgOverPar <= 0) return 4; // At or under par
     if (avgOverPar <= 0.5) return 3; // Slightly over
@@ -112,21 +90,23 @@ const Scorecard = () => {
   };
 
   const luckyLevel = calculateLuckyLevel();
-  const isGoldPlayer = holesPlayed >= 3 && scoreDiff < 0;
+  const isGoldPlayer = playedKnownPar >= 3 && scoreDiff < 0;
 
   const finishRound = async () => {
     if (!user || saving) return;
     setSaving(true);
 
-    // Fill in any unplayed holes with par
+    // Fill in any unplayed holes with their starting stroke count (par, or 4 when par is unknown)
     const finalScores = { ...scores };
     const finalPutts = { ...putts };
     holes.forEach(h => {
-      if (!finalScores[h.number]) finalScores[h.number] = h.par;
+      if (!finalScores[h.number]) finalScores[h.number] = defaultStrokes(h);
       if (!finalPutts[h.number]) finalPutts[h.number] = 2;
     });
 
     const finalTotal = Object.values(finalScores).reduce((a, b) => a + b, 0);
+    // total_par / score_diff cover only holes with a known par (0 / 0 when the course has no par data).
+    const finalSummary = summarize(holes, finalScores);
     const finalPuttsTotal = Object.values(finalPutts).reduce((a, b) => a + b, 0);
 
     try {
@@ -138,8 +118,8 @@ const Scorecard = () => {
         scores: Object.values(finalScores),
         putts: Object.values(finalPutts),
         total_score: finalTotal,
-        total_par: totalPar,
-        score_diff: finalTotal - totalPar,
+        total_par: finalSummary.knownPar,
+        score_diff: finalSummary.scoreDiff,
         total_putts: finalPuttsTotal,
         holes_played: roundLength,
         completed: true,
@@ -169,7 +149,7 @@ const Scorecard = () => {
     if (!scores[activeHole]) {
       setScores((prev) => ({
         ...prev,
-        [activeHole]: holes[activeHole - 1].par,
+        [activeHole]: defaultStrokes(holes[activeHole - 1]),
       }));
     }
     if (!putts[activeHole]) {
@@ -188,9 +168,10 @@ const Scorecard = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <ScorecardHeader
           totalScore={totalScore}
-          totalPar={totalPar}
           totalPutts={totalPutts}
           scoreDiff={scoreDiff}
+          playedKnownPar={playedKnownPar}
+          unknownParPlayed={holesPlayed - playedKnownPar}
           roundLength={roundLength}
           activeHole={activeHole}
           onRoundLengthChange={handleRoundLengthChange}
@@ -199,7 +180,7 @@ const Scorecard = () => {
         <HoleScoreEntry
           activeHole={activeHole}
           hole={holes[activeHole - 1]}
-          score={scores[activeHole] || holes[activeHole - 1].par}
+          score={scores[activeHole] || defaultStrokes(holes[activeHole - 1])}
           putts={putts[activeHole] || 2}
           onScoreChange={(delta) => updateScore(activeHole, delta)}
           onPuttsChange={(delta) => updatePutts(activeHole, delta)}
@@ -223,6 +204,13 @@ const Scorecard = () => {
           totalScore={totalScore}
           scoreDiff={scoreDiff}
         />
+        {!summary.fullPar && (
+          <p className="text-xs text-muted-foreground text-center -mt-3" data-testid="par-unknown-note">
+            {summary.knownParHoles === 0
+              ? "Par isn't known for this course yet, so score-to-par and Lucky Level aren't shown."
+              : `Par isn't known for ${summary.unknownParHoles} of these holes; they count toward strokes but not score-to-par.`}
+          </p>
+        )}
 
         {/* Clover Reward / Finish */}
         <motion.div

@@ -2,11 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Flag, Plus, Minus, Check, Target } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface Hole {
-  number: number;
-  par: number;
-  distance: number;
-}
+import type { ScorecardHole as Hole } from "@/features/scorecard/holes";
 
 interface HoleScoreEntryProps {
   activeHole: number;
@@ -45,7 +41,8 @@ export const HoleScoreEntry = ({
           <span className="text-lg font-medium">Hole {activeHole}</span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Par {hole.par} • ~{hole.distance} yds
+          {hole.par != null ? `Par ${hole.par}` : "Par unknown"}
+          {hole.distance != null && ` • ~${hole.distance} yds`}
         </p>
       </div>
 
