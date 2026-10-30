@@ -297,11 +297,9 @@ const LuckySpin = () => {
                       <p className="text-xs text-muted-foreground mt-1">
                         {discount.percent}% off · good until {new Date(discount.expiresAt).toLocaleDateString()} · one-time use
                       </p>
-                      {checkoutLink(discount.code) && (
-                        <a href={checkoutLink(discount.code)!} className="inline-block mt-2 text-xs font-bold text-primary underline" target="_blank" rel="noreferrer">
-                          Use it at checkout
-                        </a>
-                      )}
+                      <a href={checkoutLink(discount.code)} className="inline-block mt-2 text-xs font-bold text-primary underline" target="_blank" rel="noreferrer">
+                        Use it at checkout
+                      </a>
                     </>
                   ) : (
                     <>
