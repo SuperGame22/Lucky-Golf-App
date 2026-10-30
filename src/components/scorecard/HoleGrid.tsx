@@ -1,10 +1,6 @@
 import { motion } from "framer-motion";
 
-interface Hole {
-  number: number;
-  par: number;
-  distance: number;
-}
+import { parLabel, type ScorecardHole as Hole } from "@/features/scorecard/holes";
 
 interface HoleGridProps {
   holes: Hole[];
@@ -22,7 +18,6 @@ const NineGrid = ({
   onHoleSelect,
   label,
 }: HoleGridProps & { label?: string }) => {
-  const par = holes.reduce((a, h) => a + h.par, 0);
   const played = holes.filter((h) => scores[h.number]);
   const total = played.reduce((a, h) => a + scores[h.number], 0);
   return (
@@ -31,7 +26,7 @@ const NineGrid = ({
         <div className="flex justify-between text-xs font-medium mb-2">
           <span>{label}</span>
           <span className="text-muted-foreground">
-            Par {par}
+            {parLabel(holes)}
             {played.length > 0 && ` • Score ${total}`}
           </span>
         </div>
@@ -48,8 +43,8 @@ const NineGrid = ({
       {/* Par values */}
       <div className="grid grid-cols-9 gap-1 text-center text-xs mb-2">
         {holes.map((hole) => (
-          <div key={hole.number} className="text-muted-foreground">
-            {hole.par}
+          <div key={hole.number} className="text-muted-foreground" title={hole.par == null ? "Par unknown" : undefined}>
+            {hole.par ?? "?"}
           </div>
         ))}
       </div>
@@ -58,7 +53,9 @@ const NineGrid = ({
       <div className="grid grid-cols-9 gap-1 mb-2">
         {holes.map((hole) => {
           const score = scores[hole.number];
-          const diff = score ? score - hole.par : 0;
+          // No colour for a hole whose par is unknown: there's nothing to compare against.
+          const diff = score && hole.par != null ? score - hole.par : 0;
+          const neutral = !!score && hole.par == null;
           return (
             <button
               key={hole.number}
@@ -68,6 +65,8 @@ const NineGrid = ({
               } ${
                 !score
                   ? "bg-muted text-muted-foreground"
+                  : neutral
+                  ? "bg-muted/60 text-foreground"
                   : diff < 0
                   ? "bg-primary/20 text-primary"
                   : diff > 0

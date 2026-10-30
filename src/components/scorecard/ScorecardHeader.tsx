@@ -1,12 +1,17 @@
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { formatDiff } from "@/features/scorecard/holes";
 
 interface ScorecardHeaderProps {
   totalScore: number;
-  totalPar: number;
   totalPutts: number;
+  /** strokes minus par over played holes with a known par */
   scoreDiff: number;
+  /** played holes that count toward scoreDiff (0 = no score-to-par to show) */
+  playedKnownPar: number;
+  /** played holes whose par is unknown */
+  unknownParPlayed: number;
   roundLength: 9 | 18;
   activeHole: number;
   onRoundLengthChange: (length: 9 | 18) => void;
@@ -14,9 +19,10 @@ interface ScorecardHeaderProps {
 
 export const ScorecardHeader = ({
   totalScore,
-  totalPar,
   totalPutts,
   scoreDiff,
+  playedKnownPar,
+  unknownParPlayed,
   roundLength,
   activeHole,
   onRoundLengthChange,
@@ -43,22 +49,26 @@ export const ScorecardHeader = ({
             {totalScore > 0 ? totalScore : "--"}
           </p>
           <p
+            data-testid="score-to-par"
             className={`text-sm font-medium ${
-              scoreDiff > 0
+              playedKnownPar > 0 && scoreDiff > 0
                 ? "text-destructive"
-                : scoreDiff < 0
+                : playedKnownPar > 0 && scoreDiff < 0
                 ? "text-primary"
                 : "text-muted-foreground"
             }`}
           >
-            {totalScore > 0
-              ? scoreDiff > 0
-                ? `+${scoreDiff}`
-                : scoreDiff < 0
-                ? scoreDiff
-                : "E"
+            {totalScore > 0 && playedKnownPar > 0
+              ? formatDiff(scoreDiff)
+              : totalScore > 0
+              ? "Par unknown"
               : "--"}
           </p>
+          {totalScore > 0 && playedKnownPar > 0 && unknownParPlayed > 0 && (
+            <p className="text-[10px] text-muted-foreground" data-testid="score-to-par-partial">
+              thru {playedKnownPar} hole{playedKnownPar === 1 ? "" : "s"} with par
+            </p>
+          )}
           {totalPutts > 0 && (
             <p className="text-xs text-muted-foreground">{totalPutts} putts</p>
           )}

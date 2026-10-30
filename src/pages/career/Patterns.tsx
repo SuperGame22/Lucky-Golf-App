@@ -25,11 +25,13 @@ export default function ScorePatterns() {
       .then(({ data }) => { setRounds(data || []); setLoading(false); });
   }, [user]);
 
-  const avg = rounds.length
-    ? (rounds.reduce((s, r) => s + r.score_diff, 0) / rounds.length).toFixed(1)
+  // Rounds saved without any known par (total_par 0) have no real score-to-par, so they're left out of these stats.
+  const parRounds = rounds.filter(r => r.total_par > 0);
+  const avg = parRounds.length
+    ? (parRounds.reduce((s, r) => s + r.score_diff, 0) / parRounds.length).toFixed(1)
     : null;
-  const best = rounds.length ? Math.min(...rounds.map(r => r.score_diff)) : null;
-  const worst = rounds.length ? Math.max(...rounds.map(r => r.score_diff)) : null;
+  const best = parRounds.length ? Math.min(...parRounds.map(r => r.score_diff)) : null;
+  const worst = parRounds.length ? Math.max(...parRounds.map(r => r.score_diff)) : null;
 
   return (
     <AppLayout>
@@ -70,11 +72,11 @@ export default function ScorePatterns() {
             <div className="glass-card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Last {Math.min(rounds.length, 10)} rounds</p>
+                <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Last {Math.min(parRounds.length, 10)} rounds with par</p>
               </div>
               <div className="flex items-end gap-1 h-24">
-                {rounds.slice(-10).map((r, i) => {
-                  const max = Math.max(...rounds.slice(-10).map((x) => Math.abs(x.score_diff)), 1);
+                {parRounds.slice(-10).map((r, i) => {
+                  const max = Math.max(...parRounds.slice(-10).map((x) => Math.abs(x.score_diff)), 1);
                   const height = Math.max(10, (Math.abs(r.score_diff) / max) * 100);
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
