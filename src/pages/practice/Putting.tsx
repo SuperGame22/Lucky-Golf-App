@@ -11,6 +11,7 @@ import { startCheckout } from '@/features/checkout/checkout';
 import { callRpc } from '@/lib/rpc';
 import { startClock, stepsDue } from '@/features/putting/timestep';
 import { createStrokeGate } from '@/features/putting/strokeGate';
+import { afterLipOut, elapsedSeconds, type PuttState } from '@/features/putting/round';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -204,7 +205,7 @@ function inBunker(px:number,py:number):boolean{
   });
 }
 
-type GS='aim'|'roll'|'sunk'|'lip'|'miss'|'sand'|'practice';
+type GS=PuttState;
 
 export default function PuttingGame(){
   const nav=useNavigate();const{refreshProfile}=useAuth();
@@ -242,6 +243,12 @@ export default function PuttingGame(){
     setBuying(false);
   };
   const gRef=useRef<HTMLDivElement>(null);const raf=useRef(0);
+  // Lip-out banner timer: cleared as soon as the putt ends so it can't flip a sunk/missed ball back to "roll".
+  const lipTimer=useRef<number|undefined>(undefined);
+  const clearLip=()=>{window.clearTimeout(lipTimer.current);lipTimer.current=undefined;};
+  // When this round started, for the practice-session log.
+  const roundStart=useRef(Date.now());
+  const loggedRef=useRef(false);
   const[course]=useState<Hole[]>(()=>mk());
   const[nc,setNc]=useState<Hole[]|null>(null);
   const cc=nc||course;
@@ -313,7 +320,7 @@ export default function PuttingGame(){
 
       // Boundary: bunker or off-green
       if(!inGreen(x,y)){
-        cancelAnimationFrame(raf.current);
+        cancelAnimationFrame(raf.current);clearLip();
         setBp({x:Math.max(2,Math.min(98,x)),y:Math.max(2,Math.min(98,y))});
         if(prac){endPrac('Practice Over','Now for the real putt');return true;}
         if(inBunker(x,y)){setGs('sand');setMsg('Trapped in Sand');setSub('Ball hit the bunker');}
@@ -327,19 +334,19 @@ export default function PuttingGame(){
       if(dist<LIP){
         const nx=hdx/(dist||0.001),ny=hdy/(dist||0.001);
         if(dist<CAP_R&&cs<CAP_S){
-          cancelAnimationFrame(raf.current);setBp({x:h.hx,y:h.hy});
+          cancelAnimationFrame(raf.current);clearLip();setBp({x:h.hx,y:h.hy});
           if(prac){endPrac('Nice Read!','Now the real putt');return true;}
           sndSink();doSunk();return true;
         }
         if(dist>LIPI&&lipCD===0){
-          if(cs>CAP_S*3){lipCD=15;const tx=-ny,ty=nx,dot=vx*tx+vy*ty;const rv=vx-dot*tx,rvy2=vy-dot*ty;vx=dot*tx*0.8-rv*0.3;vy=dot*ty*0.8-rvy2*0.3;x=h.hx+nx*(LIP+0.3);y=h.hy+ny*(LIP+0.3);if(!prac){setGs('lip');setMsg('Lip Out');setSub('Too much pace');setTimeout(()=>{setMsg(null);setSub(null);setGs('roll');},900);}}
+          if(cs>CAP_S*3){lipCD=15;const tx=-ny,ty=nx,dot=vx*tx+vy*ty;const rv=vx-dot*tx,rvy2=vy-dot*ty;vx=dot*tx*0.8-rv*0.3;vy=dot*ty*0.8-rvy2*0.3;x=h.hx+nx*(LIP+0.3);y=h.hy+ny*(LIP+0.3);if(!prac){setGs('lip');setMsg('Lip Out');setSub('Too much pace');clearLip();lipTimer.current=window.setTimeout(()=>{lipTimer.current=undefined;setMsg(null);setSub(null);setGs(afterLipOut);},900);}}
           else if(cs>CAP_S){const pull=0.08+(1-dist/LIP)*0.12;vx-=nx*pull;vy-=ny*pull;vx*=0.965;vy*=0.965;}
         }
         if(dist<LIP*1.5&&cs<CAP_S*2){const gv=0.02*(1-dist/(LIP*1.5));vx-=nx*gv;vy-=ny*gv;}
       }
       if(cs<STOP){
         setBp({x,y});
-        cancelAnimationFrame(raf.current);
+        cancelAnimationFrame(raf.current);clearLip();
         const fd=Math.sqrt((x-h.hx)**2+(y-h.hy)**2);
         if(fd<CAP_R+0.2){setBp({x:h.hx,y:h.hy});if(prac){endPrac('Nice Read!','Real putt next');return true;}sndSink();doSunk();}
         else if(prac){endPrac('Practice Over','Now the real putt');}
@@ -369,8 +376,8 @@ export default function PuttingGame(){
     }catch{/* no Spin this time; the round continues */}
     setTimeout(()=>{setMsg(null);setSub(null);if(hi<cc.length-1){setHi(n=>n+1);setBp({x:50,y:88});setPrac(true);setGs('aim');}},2200);
   };
-  const resetG=()=>{cancelAnimationFrame(raf.current);setNc(mk());setHi(0);setBp({x:50,y:88});setGs('aim');setPt(0);setSk(0);setSp(0);setMsg(null);setSub(null);setPrac(true);};
-  const retry=()=>{cancelAnimationFrame(raf.current);setBp({x:50,y:88});setGs('aim');setMsg(null);setSub(null);};
+  const resetG=()=>{cancelAnimationFrame(raf.current);clearLip();roundStart.current=Date.now();setNc(mk());setHi(0);setBp({x:50,y:88});setGs('aim');setPt(0);setSk(0);setSp(0);setMsg(null);setSub(null);setPrac(true);};
+  const retry=()=>{cancelAnimationFrame(raf.current);clearLip();setBp({x:50,y:88});setGs('aim');setMsg(null);setSub(null);};
 
   const aim=d0&&dc?{dx:d0.x-dc.x,dy:d0.y-dc.y}:null;
   const pw=aim?Math.min(Math.sqrt(aim.dx**2+aim.dy**2),MXD):0;
@@ -402,18 +409,22 @@ export default function PuttingGame(){
 
   // Log completed session to DB
   useEffect(() => {
-    if (!done) return;
+    // Log once per finished round (re-armed when a new round starts).
+    if (!done) { loggedRef.current = false; return; }
+    if (loggedRef.current) return;
+    loggedRef.current = true;
+    const duration = elapsedSeconds(roundStart.current, Date.now());
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       supabase.from('practice_sessions').insert({
         user_id: user.id,
         drill_type: 'putting',
-        duration_seconds: 0,
+        duration_seconds: duration,
         score: sk,
         holes_completed: cc.length,
       });
     });
-  }, [done]);
+  }, [done, sk, cc.length]);
 
   const sm=Math.sqrt(h.sx*h.sx+h.sy*h.sy),hs=sm>0.1;
   // Real direction always (not just above the "Break" badge threshold), so even a
