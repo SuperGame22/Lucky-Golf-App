@@ -57,8 +57,5 @@ export function useMyDiscount() {
   return { discount, shopConnected, loaded, refresh };
 }
 
-/** "Use it at checkout" link: opens the store with the code already applied (needs VITE_SHOPIFY_STORE_URL). */
-export function checkoutLink(code: string): string | null {
-  const base = (import.meta.env.VITE_SHOPIFY_STORE_URL as string | undefined)?.replace(/\/+$/, '');
-  return base ? `${base}/discount/${encodeURIComponent(code)}` : null;
-}
+/** Kept here so existing imports keep working. */
+export { checkoutLink } from './checkout';

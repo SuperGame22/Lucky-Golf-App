@@ -147,11 +147,9 @@ export default function HomeScreen() {
                 Code <span className="font-mono font-bold text-foreground">{discount.code}</span> · until {new Date(discount.expiresAt).toLocaleDateString()}
               </p>
             </div>
-            {checkoutLink(discount.code) && (
-              <a href={checkoutLink(discount.code)!} target="_blank" rel="noreferrer">
-                <Button size="sm">Use it</Button>
-              </a>
-            )}
+            <a href={checkoutLink(discount.code)} target="_blank" rel="noreferrer">
+              <Button size="sm">Use it</Button>
+            </a>
           </motion.div>
         )}
 
