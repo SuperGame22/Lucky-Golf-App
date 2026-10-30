@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { startCheckout } from '@/features/checkout/checkout';
 import { callRpc } from '@/lib/rpc';
 import { startClock, stepsDue } from '@/features/putting/timestep';
+import { createStrokeGate } from '@/features/putting/strokeGate';
 
 // Physics
 const BR=0.55,HR=0.95,CAP_R=0.35,CAP_S=0.9,LIP=HR+BR,LIPI=HR*0.6;
@@ -211,6 +212,8 @@ export default function PuttingGame(){
   // Putt credits: each real (non-practice) putt costs 1, bought at $1 each or in Putt Packs.
   const[credits,setCredits]=useState(0);const[buying,setBuying]=useState(false);
   const spendingRef=useRef(false);
+  // One stroke at a time: closed from an accepted release until the ball starts rolling (see strokeGate.ts).
+  const[stroke]=useState(createStrokeGate);
   const refreshPuttStatus=useCallback(async()=>{
     const data=(await callRpc('get_putt_status')).data as {credits?:number}|null;
     if(data)setCredits(data.credits??0);
@@ -257,12 +260,15 @@ export default function PuttingGame(){
     return{x:((cx-r.left)/r.width)*100,y:((cy-r.top)/r.height)*100};
   },[]);
 
-  const down=(e:React.TouchEvent|React.MouseEvent)=>{unlockAudio();if(gs!=='aim')return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
-  const move=(e:React.TouchEvent|React.MouseEvent)=>{if(!d0||gs!=='aim')return;const p='touches' in e?e.touches[0]:e;setDc(pct(p.clientX,p.clientY));};
+  const down=(e:React.TouchEvent|React.MouseEvent)=>{unlockAudio();if(gs!=='aim'||stroke.busy)return;const p='touches' in e?e.touches[0]:e;const v=pct(p.clientX,p.clientY);setD0(v);setDc(v);};
+  const move=(e:React.TouchEvent|React.MouseEvent)=>{if(!d0||gs!=='aim'||stroke.busy)return;const p='touches' in e?e.touches[0]:e;setDc(pct(p.clientX,p.clientY));};
   const up=()=>{
-    if(!d0||!dc||gs!=='aim'||spendingRef.current)return;
+    if(!d0||!dc||gs!=='aim')return;
+    // A release while the previous stroke is still swinging (fast pull-back and release) is dropped,
+    // so two roll loops can't run at once and leave the putter riding along with the ball.
+    if(stroke.busy||spendingRef.current){setD0(null);setDc(null);return;}
     const dx=d0.x-dc.x,dy=d0.y-dc.y,pw=Math.min(Math.sqrt(dx*dx+dy*dy),MXD);
-    setD0(null);setDc(null);if(pw<0.3)return;
+    setD0(null);setDc(null);if(pw<0.3||!stroke.begin())return;
     const a=Math.atan2(dy,dx);
     const launch=()=>{
       if(!prac)setPt(n=>n+1);
@@ -271,18 +277,18 @@ export default function PuttingGame(){
       // reaches the ball at the end of that swing.
       setSwing({angle:a,pw});
       const _vx=Math.cos(a)*pw*PWK,_vy=Math.sin(a)*pw*PWK;
-      setTimeout(()=>{sndHit();setSwing(null);sim(_vx,_vy);},220);
+      setTimeout(()=>{sndHit();setSwing(null);sim(_vx,_vy);stroke.end();},220);
     };
     if(prac){launch();return;}
     const needPutt=()=>{setMsg('Need a Putt');setSub('Tap Buy a Putt · $1');setTimeout(()=>{setMsg(null);setSub(null);},1800);};
-    if(credits<=0){needPutt();return;}
+    if(credits<=0){stroke.end();needPutt();return;}
     spendingRef.current=true;
     Promise.resolve(callRpc('spend_putt')).then((res)=>{
       const data=res.data as {success?:boolean;credits?:number}|null;
       spendingRef.current=false;
-      if(!data?.success){setCredits(0);needPutt();return;}
+      if(!data?.success){stroke.end();setCredits(0);needPutt();return;}
       setCredits(data.credits??0);launch();
-    }).catch(()=>{spendingRef.current=false;});
+    }).catch(()=>{spendingRef.current=false;stroke.end();});
   };
 
   const endPrac=(label:string,detail:string)=>{
@@ -291,6 +297,7 @@ export default function PuttingGame(){
   };
 
   const sim=(ivx:number,ivy:number)=>{
+    cancelAnimationFrame(raf.current); // never leave an older roll loop running alongside this one
     setGs(prac?'practice':'roll');
     let x=bp.x,y=bp.y,vx=ivx,vy=ivy,lipCD=0;
     const step=():boolean=>{
