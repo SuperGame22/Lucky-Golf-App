@@ -13,6 +13,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { SURVEY_LABELS } from '@/features/survey/questions';
+import { isNotSetUp } from '@/lib/notSetUp';
 import { CSV_HEADER, describePrize, easternDate, parsePrizeCsv, upcomingWeeks, type PrizeItem } from '@/features/raffle/raffle';
 
 interface Row {
@@ -37,6 +38,8 @@ export default function AdminRaffle() {
   const [paste, setPaste] = useState('');
   const [drawing, setDrawing] = useState<string | null>(null);
   const [survey, setSurvey] = useState<{ question_key: string; answer: string; n: number }[]>([]);
+  const [surveyNotSetUp, setSurveyNotSetUp] = useState(false);
+  const [queueNotSetUp, setQueueNotSetUp] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('weekly_jackpots').select('*').neq('status', 'cancelled').order('starts_at', { ascending: false }).limit(60);
@@ -45,7 +48,8 @@ export default function AdminRaffle() {
   }, []);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    rpc('admin_survey_results').then(({ data }) => {
+    rpc('admin_survey_results').then(({ data, error }) => {
+      if (isNotSetUp(error)) { setSurveyNotSetUp(true); return; }
       const res = data as { success?: boolean; results?: typeof survey } | null;
       if (res?.success) setSurvey(res.results ?? []);
     }, () => undefined);
@@ -59,6 +63,11 @@ export default function AdminRaffle() {
   const queue = async (items: PrizeItem[]) => {
     const { data, error } = await rpc('admin_queue_raffle_prizes', { p_items: items });
     const res = data as { success: boolean; saved?: number; errors?: { week_start: string; error: string }[]; error?: string } | null;
+    if (isNotSetUp(error)) {
+      setQueueNotSetUp(true);
+      toast.error("Prize scheduling isn't set up on the server yet");
+      return false;
+    }
     if (error || !res?.success) { toast.error(error?.message ?? res?.error ?? 'Could not save'); return false; }
     if (res.errors?.length) toast.error(res.errors.map((e) => `${e.week_start}: ${e.error}`).join('\n'));
     if (res.saved) toast.success(`${res.saved} week${res.saved === 1 ? '' : 's'} saved`);
@@ -193,6 +202,20 @@ export default function AdminRaffle() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : `Queue ${parsed.items.length || ''} week${parsed.items.length === 1 ? '' : 's'}`}
           </Button>
         </div>
+
+        {queueNotSetUp && (
+          <div className="glass-card p-4 text-sm space-y-1" data-testid="raffle-queue-not-set-up">
+            <p className="font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Prize scheduling isn't set up yet</p>
+            <p className="text-muted-foreground">The server function that saves weekly prizes hasn't been installed on the live project, so nothing was saved.</p>
+          </div>
+        )}
+
+        {surveyNotSetUp && (
+          <div className="glass-card p-4 text-sm space-y-1" data-testid="survey-not-set-up">
+            <p className="font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Beta survey results aren't set up yet</p>
+            <p className="text-muted-foreground">The survey's server side hasn't been installed on the live project, so there are no results to show.</p>
+          </div>
+        )}
 
         {survey.length > 0 && (
           <div className="glass-card p-4 space-y-2" data-testid="survey-results">

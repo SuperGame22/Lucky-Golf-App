@@ -6,11 +6,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, XCircle } from 'lucide-react';
+import { ChevronLeft, Loader2, XCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { isNotSetUp } from '@/lib/notSetUp';
 import { buildHoleData, emptyHoles, type HoleInput } from '@/features/courses/requests';
 
 interface Req { id: string; course_name: string; city: string | null; state: string; notes: string | null; photo_path: string; created_at: string; submitted_by: string | null }
@@ -29,9 +30,11 @@ export default function AdminCourseRequests() {
   const [form, setForm] = useState({ name: '', city: '', state: '' });
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [notSetUp, setNotSetUp] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await rpc('admin_list_course_requests', { p_status: 'pending' });
+    const { data, error } = await rpc('admin_list_course_requests', { p_status: 'pending' });
+    setNotSetUp(isNotSetUp(error));
     const res = data as { success?: boolean; requests?: Req[] } | null;
     setReqs(res?.success ? res.requests ?? [] : []);
     setLoading(false);
@@ -61,7 +64,7 @@ export default function AdminCourseRequests() {
     const { data, error } = await rpc('admin_approve_course_request', { p_id: open.id, p_name: form.name, p_city: form.city, p_state: form.state, p_hole_data: built.data });
     setBusy(false);
     const res = data as { success?: boolean; error?: string } | null;
-    if (error || !res?.success) { toast.error(error?.message ?? res?.error ?? 'Could not approve'); return; }
+    if (error || !res?.success) { toast.error(isNotSetUp(error) ? "Course requests aren't set up on the server yet" : error?.message ?? res?.error ?? 'Could not approve'); return; }
     toast.success('Course added. The player earned a clover.');
     setOpen(null);
     load();
@@ -73,7 +76,7 @@ export default function AdminCourseRequests() {
     const { data, error } = await rpc('admin_reject_course_request', { p_id: open.id, p_reason: reason });
     setBusy(false);
     const res = data as { success?: boolean; error?: string } | null;
-    if (error || !res?.success) { toast.error(error?.message ?? res?.error ?? 'Could not reject'); return; }
+    if (error || !res?.success) { toast.error(isNotSetUp(error) ? "Course requests aren't set up on the server yet" : error?.message ?? res?.error ?? 'Could not reject'); return; }
     toast.success('Request rejected');
     setOpen(null);
     load();
@@ -93,6 +96,12 @@ export default function AdminCourseRequests() {
         </div>
 
         {loading ? <div className="text-center py-16"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
+          : notSetUp ? (
+          <div className="glass-card p-6 space-y-2 text-sm" data-testid="course-requests-not-set-up">
+            <p className="font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Course requests aren't set up yet</p>
+            <p className="text-muted-foreground">The server side of course requests (the requests table, its review functions and the scorecard-photo storage) hasn't been installed on the live project. Players see a "coming soon" message on Add Course for now. Requests will show up here once it's in place.</p>
+          </div>
+          )
           : reqs.length === 0 ? <div className="glass-card p-10 text-center text-sm text-muted-foreground">No requests waiting.</div>
           : reqs.map((r) => (
             <button key={r.id} onClick={() => openReq(r)} className="glass-card p-4 w-full text-left flex items-center justify-between gap-3" data-testid="course-request">
