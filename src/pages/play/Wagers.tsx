@@ -249,7 +249,7 @@ export default function LuckyWagers() {
         }, 300);
       }
     }, 500);
-  }, [myId, myName]);
+  }, [myId, myName, betAmount, navigate]);
 
   // ── Host: Create Session ──
   const handleCreate = (selectedMode: WagerMode) => {
