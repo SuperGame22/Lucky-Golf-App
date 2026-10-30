@@ -206,8 +206,17 @@ export default function StartRound() {
           <Button variant="ghost" className="w-full" onClick={() => navigate('/play/scorecard')}>
             Skip, play a practice round
           </Button>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Yardages are approximate. Course data © OpenStreetMap contributors.
+          <p className="text-[10px] text-muted-foreground/60 text-center" data-testid="osm-attribution">
+            Yardages are approximate. Course data{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              © OpenStreetMap contributors
+            </a>
+            .
           </p>
         </div>
       </div>
